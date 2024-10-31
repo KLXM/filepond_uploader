@@ -1,4 +1,4 @@
-<?php 
+<?php /*
 if (rex::isBackend() && rex::getUser()) {
     // Backend assets
     rex_view::addCssFile($this->getAssetsUrl('css/filepond-custom.css'));
@@ -15,3 +15,4 @@ if (rex::isBackend() && rex::getUser()) {
     // Custom initialization
     rex_view::addJsFile($this->getAssetsUrl('js/filepond-init.js'));
 }
+*/
