@@ -1,0 +1,27 @@
+.filepond--root {
+    margin-bottom: 1rem;
+}
+
+.filepond--panel-root {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+.filepond--drop-label {
+    color: #495057;
+}
+
+.filepond--label-action {
+    text-decoration-color: #0d6efd;
+}
+
+/* Error states */
+.filepond--panel-root[data-scalable="false"] {
+    background-color: #fff3f3;
+    border-color: #dc3545;
+}
+
+/* Success states */
+.filepond--item-panel[data-scalable="true"] {
+    background-color: #e8f5e9;
+}
