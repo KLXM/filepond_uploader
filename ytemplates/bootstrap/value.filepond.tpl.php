@@ -68,11 +68,11 @@ foreach ($fileNames as $fileName) {
             <div class="col-md-7">
                 <div class="form-group">
                     <label for="title">Titel:</label>
-                    <input type="text" class="form-control" name="title">
+                    <input required type="text" class="form-control" name="title">
                 </div>
                 <div class="form-group">
                     <label for="alt">Alt-Text:</label>
-                    <input type="text" class="form-control" name="alt">
+                    <input required type="text" class="form-control" name="alt">
                     <small class="form-text text-muted">Alternativtext für Screenreader und SEO</small>
                 </div>
                 <div class="form-group">
@@ -248,6 +248,8 @@ $(document).on('rex:ready', function() {
                     .then(load);
             }
         },
+	    imagePreviewHeight: 100,
+        itemPanelAspectRatio: 1,
         labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
         maxFiles: <?= $this->getElement('allowed_max_files') ?: 'null' ?>,
         acceptedFileTypes: <?= json_encode(explode(',', $this->getElement('allowed_types') ?: 'image/*')) ?>,
@@ -289,11 +291,7 @@ $(document).on('rex:ready', function() {
     margin-bottom: 15px;
 }
 
-.image-preview-container img {
-    max-height: 300px;
-    width: auto;
-    object-fit: contain;
-}
+
 .file-info {
     text-align: center;
     color: #6c757d;
