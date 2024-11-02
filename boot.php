@@ -9,7 +9,6 @@ if (rex::isBackend() && rex::getUser() || rex::isFrontend()) {
     rex_view::addCssFile('https://unpkg.com/filepond/dist/filepond.css');
     rex_view::addCssFile('https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css');
     
-    rex_view::addCssFile($this->getAssetsUrl('css/filepond-custom.css'));
     rex_view::addCssFile($this->getAssetsUrl('filepond_widget.css'));
     
     // JavaScript
