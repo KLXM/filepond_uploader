@@ -35,7 +35,7 @@ Das AddOn erzwingt die Eingabe von drei wichtigen Metadaten für jedes Bild:
    - Dokumentiert Bildrechte und Urheber
    - Wichtig für die rechtssichere Verwendung
 
-Ohne diese Metadaten wird der Upload abgebrochen. Dies stellt sicher, dass alle Medien von Anfang an barrierefrei und rechtlich korrekt eingebunden werden.
+Ohne Metadaten wird der Upload abgebrochen. Dies stellt sicher, dass alle Medien von Anfang an barrierefrei und rechtlich korrekt eingebunden werden.
 
 ## Anwendung als Modul
 
