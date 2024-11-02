@@ -13,7 +13,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         if ($sql->getRows() == 0) {
 			
 	rex_sql_table::get(rex::getTable('media'))
-        ->ensureColumn(new rex_sql_column('med_alt', 'text', true), 'last')
+        ->ensureColumn(new rex_sql_column('med_alt', 'text', true), 'med_description')
         ->ensure();	
 			
             try {
