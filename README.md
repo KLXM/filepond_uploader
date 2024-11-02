@@ -2,6 +2,9 @@
 
 Ein modernes und barrierefreies Upload-System für REDAXO, basierend auf dem [FilePond](https://pqina.nl/filepond/) JavaScript Framework. Das AddOn wurde mit dem Fokus auf Zugänglichkeit und rechtliche Anforderungen entwickelt.
 
+🚨 Achtung noch nicht für den produktiven Einsatz. Hier wird noch debugt und optimiert. 
+
+
 ## Features
 
 - 🖼️ Moderne Drag & Drop Oberfläche
