@@ -1,6 +1,4 @@
-Ich erstelle die README.md für das REDAXO-AddOn "filepond":
 
-```markdown
 # Filepond für REDAXO
 
 Ein schickes Datei-Upload-Widget mit Drag & Drop, Bildervorschau und Metadaten-Verwaltung für REDAXO. Basierend auf dem leistungsstarken [FilePond](https://pqina.nl/filepond/) JavaScript Framework.
@@ -121,6 +119,4 @@ Die Sprachausgabe kann über das Attribut `data-filepond-lang` gesteuert werden:
 - `en`: Englisch (Standard)
 
 Weitere Sprachen können in der filepond_widget.js hinzugefügt werden.
-```
 
-Soll ich noch etwas ergänzen oder anpassen?
