@@ -1,0 +1,194 @@
+:root {
+    /* Colors */
+    --fp-primary-color: #3bb594;
+    --fp-primary-hover: #318c73;
+    --fp-danger-color: #c74343;
+    --fp-danger-hover: #9c3535;
+    --fp-border-color: #c3c3c3;
+    --fp-background: #f9f9f9;
+    --fp-text-color: #666;
+    --fp-modal-backdrop: rgba(0, 0, 0, 0.5);
+    
+    /* Spacing */
+    --fp-spacing-sm: 0.5rem;
+    --fp-spacing-md: 1rem;
+    --fp-spacing-lg: 1.5rem;
+    
+    /* Sizes */
+    --fp-preview-height: 120px;
+    --fp-border-radius: 3px;
+    --fp-font-size-small: 12px;
+    --fp-font-size-base: 13px;
+    
+    /* Transitions */
+    --fp-transition-speed: 0.2s;
+}
+
+/* Container */
+.filepond--root {
+    margin-bottom: var(--fp-spacing-md);
+}
+
+/* Panel Styling */
+.filepond--panel-root {
+    border: 1px solid var(--fp-border-color);
+    background-color: var(--fp-background);
+}
+
+/* Drop Label */
+.filepond--drop-label {
+    font-size: var(--fp-font-size-base);
+    color: var(--fp-text-color);
+    min-height: 4em;
+}
+
+/* Grid Layout */
+.filepond--list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: var(--fp-spacing-sm);
+}
+
+/* Item Container */
+.filepond--item {
+    width: calc(33.33% - var(--fp-spacing-sm));
+    margin: 0;
+    border-radius: var(--fp-border-radius);
+    overflow: hidden;
+    transform: none;
+}
+
+/* Control Panel */
+.filepond--file-wrapper {
+    height: 100%;
+}
+
+/* Image Preview */
+.filepond--image-preview-wrapper {
+    height: var(--fp-preview-height);
+    border-radius: calc(var(--fp-border-radius) - 1px);
+    overflow: hidden;
+    background: #fff;
+}
+
+/* File Info */
+.filepond--file-info {
+    font-size: var(--fp-font-size-small);
+    min-height: auto;
+}
+
+/* Progress Bar */
+.filepond--progress-indicator {
+    z-index: 1000;
+    position: relative;
+}
+
+/* Modal Styles */
+.metadata-form {
+    padding: var(--fp-spacing-md);
+}
+
+.metadata-form .form-group {
+    margin-bottom: var(--fp-spacing-md);
+}
+
+.image-preview-container {
+    border: 1px solid var(--fp-border-color);
+    padding: var(--fp-spacing-sm);
+    border-radius: var(--fp-border-radius);
+    background: var(--fp-background);
+}
+
+.image-preview-container img {
+    max-height: 300px;
+    width: auto;
+    object-fit: contain;
+    margin: 0 auto;
+    display: block;
+}
+
+.file-info {
+    text-align: center;
+    color: var(--fp-text-color);
+    padding: var(--fp-spacing-sm);
+    background: var(--fp-background);
+    border-radius: var(--fp-border-radius);
+    margin-top: var(--fp-spacing-sm);
+}
+
+/* Modal specific */
+.modal-lg {
+    max-width: 900px;
+}
+
+.modal-backdrop {
+    background-color: var(--fp-modal-backdrop);
+}
+
+/* Buttons */
+.btn-save {
+    background: var(--fp-primary-color);
+    color: white;
+    transition: background var(--fp-transition-speed) ease;
+}
+
+.btn-save:hover {
+    background: var(--fp-primary-hover);
+    color: white;
+}
+
+.btn-abort {
+    background: var(--fp-danger-color);
+    color: white;
+    transition: background var(--fp-transition-speed) ease;
+}
+
+.btn-abort:hover {
+    background: var(--fp-danger-hover);
+    color: white;
+}
+
+/* Drag & Drop Effects */
+.filepond--item {
+    cursor: grab;
+    transition: transform var(--fp-transition-speed) ease;
+}
+
+.filepond--item:active {
+    cursor: grabbing;
+}
+
+.filepond--item.is-drag-over {
+    border: 2px solid var(--fp-primary-color);
+    box-shadow: 0 0 10px rgba(59, 181, 148, 0.3);
+}
+
+.filepond--item.is-dragging {
+    opacity: 0.8;
+}
+
+/* Hover Effects */
+.filepond--item:hover .filepond--file-info {
+    opacity: 1;
+}
+
+.filepond--item:hover .filepond--image-preview-wrapper {
+    transform: scale(1.02);
+    transition: transform var(--fp-transition-speed) ease;
+}
+
+/* Form Elements */
+.metadata-form input.form-control {
+    border-color: var(--fp-border-color);
+    transition: border-color var(--fp-transition-speed) ease;
+}
+
+.metadata-form input.form-control:focus {
+    border-color: var(--fp-primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(59, 181, 148, 0.25);
+}
+
+.metadata-form .form-text {
+    color: var(--fp-text-color);
+    font-size: var(--fp-font-size-small);
+}

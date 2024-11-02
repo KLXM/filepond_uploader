@@ -8,9 +8,14 @@ requires:
     redaxo: '^5.12'
     packages:
         yform: '>=4.0.0'
+        metainfo: '>=2.0.0'  # Neu: Metainfo als Abhängigkeit
 
 page:
-    hidden: true
+    title: 'Filepond Upload'
+    perm: admin
+    subpages:
+        upload: { title: 'Upload' }
+        settings: { title: 'Einstellungen' }
 
 installer_ignore:
     - node_modules
