@@ -207,7 +207,7 @@ $(document).on('rex:ready', function() {
                     
                     const formData = new FormData();
                     formData.append(fieldName, file);
-                    formData.append('rex-api-call', 'yform_filepond');
+                    formData.append('rex-api-call', 'filepond_uploader');
                     formData.append('func', 'upload');
                     formData.append('category_id', <?= $this->getElement('category') ?: 1 ?>);
                     formData.append('metadata', JSON.stringify(fileMetadata));
@@ -236,7 +236,7 @@ $(document).on('rex:ready', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 ondata: (formData) => {
-                    formData.append('rex-api-call', 'yform_filepond');
+                    formData.append('rex-api-call', 'filepond_uploader');
                     formData.append('func', 'delete');
                     formData.append('filename', formData.get('serverId'));
                     return formData;

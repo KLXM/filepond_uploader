@@ -1,5 +1,5 @@
 <?php
-$csrf = rex_csrf_token::factory('yform_filepond_settings');
+$csrf = rex_csrf_token::factory('filepond_uploader_settings');
 
 $content = '';
 $success = '';
@@ -10,7 +10,7 @@ if (rex_post('submit', 'boolean') && $csrf->isValid()) {
     $settings = rex_post('settings', 'array', []);
     
     // Einstellungen speichern
-    if (rex_config::set('yform_filepond', 'settings', $settings)) {
+    if (rex_config::set('filepond_uploader', 'settings', $settings)) {
         $success = rex_i18n::msg('form_saved');
     } else {
         $error = rex_i18n::msg('form_save_error');
@@ -18,7 +18,7 @@ if (rex_post('submit', 'boolean') && $csrf->isValid()) {
 }
 
 // Aktuelle Einstellungen laden
-$settings = rex_config::get('yform_filepond', 'settings', [
+$settings = rex_config::get('filepond_uploader', 'settings', [
     'default_category' => 0,
     'allowed_types' => 'image/*,.pdf',
     'max_filesize' => 10
