@@ -1,5 +1,5 @@
 <?php
-$csrf = rex_csrf_token::factory('yform_filepond');
+$csrf = rex_csrf_token::factory('filepond_uploader');
 
 // Ausgewählte Kategorie
 $selectedCategory = rex_request('category_id', 'int', 0);
@@ -172,7 +172,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     
                     const formData = new FormData();
                     formData.append(fieldName, file);
-                    formData.append("rex-api-call", "yform_filepond");
+                    formData.append("rex-api-call", "filepond_uploader");
                     formData.append("func", "upload");
                     formData.append("category_id", categorySelect.value);
                     formData.append("metadata", JSON.stringify(fileMetadata));
@@ -209,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Bei Kategorie-Wechsel die aktuelle Kategorie im Upload mit übergeben
     categorySelect.addEventListener("change", function() {
         pond.server.process.ondata = (formData) => {
-            formData.append("rex-api-call", "yform_filepond");
+            formData.append("rex-api-call", "filepond_uploader");
             formData.append("func", "upload");
             formData.append("category_id", categorySelect.value);
             return formData;

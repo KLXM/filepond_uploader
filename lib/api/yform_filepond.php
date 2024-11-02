@@ -1,7 +1,7 @@
 <?php
-// rex_api_yform_filepond.php
+// rex_api_filepond_uploader.php
 
-class rex_api_yform_filepond extends rex_api_function
+class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
 
