@@ -12,10 +12,9 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         
         if ($sql->getRows() == 0) {
 			
-			rex_sql_table::get(rex::getTable('media'))
-            ->ensureColumn(new rex_sql_column('med_alt', 'text', true))
-            ->ensure();
-			
+	rex_sql_table::get(rex::getTable('media'))
+        ->ensureColumn(new rex_sql_column('med_alt', 'text', true), 'last')
+        ->ensure();	
 			
             try {
                 // Parameter basierend auf rex_api_metainfo_default_fields_create
