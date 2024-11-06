@@ -5,51 +5,90 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
     // Prüfe ob die Metainfo-Tabelle existiert
     $sql = rex_sql::factory();
     $sql->setQuery('SHOW TABLES LIKE "' . rex::getTable('metainfo_field') . '"');
+    
     if ($sql->getRows() > 0) {
         
-        // Prüfe ob das Feld bereits existiert
-        $sql->setQuery('SELECT * FROM ' . rex::getTable('metainfo_field') . ' WHERE name = "med_alt"');
-        
-        if ($sql->getRows() == 0) {
-			
-	rex_sql_table::get(rex::getTable('media'))
-        ->ensureColumn(new rex_sql_column('med_alt', 'text', true), 'med_description')
-        ->ensure();	
-			
-            try {
-                // Parameter basierend auf rex_api_metainfo_default_fields_create
-                $field = [
-                    'title' => 'Alternative Text',  // Label im Backend
-                    'name' => 'med_alt',         // Technischer Name
-                    'priority' => 2,               // Priorität (nach Copyright)
-                    'attributes' => '',            // Zusätzliche Attribute
-                    'type_id' => 1,               // 1 = Text Input
-                    'params' => '',               // Zusätzliche Parameter
-                    'validate' => '',             // Validierungsregeln
-                    'restrictions' => '',          // Einschränkungen
-                    'createuser' => rex::getUser()->getLogin(),
-                    'createdate' => date('Y-m-d H:i:s'),
-                    'updateuser' => rex::getUser()->getLogin(),
-                    'updatedate' => date('Y-m-d H:i:s')
-                ];
+        // Prüfe ob die notwendigen Felder bereits existieren
+        $fields = [
+            'med_alt' => [
+                'title' => 'Alternative Text',
+                'priority' => 2,
+                'type_id' => 1, // Text Input
+                'params' => '',
+                'validate' => '',
+                'restrictions' => ''
+            ],
+            'med_copyright' => [
+                'title' => 'Copyright',
+                'priority' => 3,
+                'type_id' => 1, // Text Input
+                'params' => '',
+                'validate' => '',
+                'restrictions' => ''
+            ]
+        ];
 
-                // Feld in die Datenbank eintragen
-                $insert = rex_sql::factory();
-                $insert->setTable(rex::getTable('metainfo_field'));
-                $insert->setValues($field);
-                $insert->insert();
-
-                // Erfolgsmeldung
-                rex_logger::factory()->log('info', 'Meta field "med_alt" was created successfully');
-
-            } catch (rex_sql_exception $e) {
-                // Fehler loggen
-                rex_logger::logError(E_WARNING, $e->getMessage(), $e->getFile(), $e->getLine());
-                throw new rex_functional_exception('Error creating meta field "med_alt": ' . $e->getMessage());
+        try {
+            // Hole Medientabelle
+            $mediaTable = rex_sql_table::get(rex::getTable('media'));
+            
+            // Füge Spalten hinzu nach med_description, wenn sie nicht existieren
+            if (!$mediaTable->hasColumn('med_alt')) {
+                $mediaTable->addColumn(new rex_sql_column('med_alt', 'text', true), 'med_description');
             }
+            if (!$mediaTable->hasColumn('med_copyright')) {
+                $mediaTable->addColumn(new rex_sql_column('med_copyright', 'text', true), 'med_description');
+            }
+            
+            // Führe die Änderungen aus
+            $mediaTable->alter();
+            
+            // Erstelle Metainfo Felder
+            foreach ($fields as $name => $field) {
+                $sql->setQuery('SELECT * FROM ' . rex::getTable('metainfo_field') . ' WHERE name = :name', [':name' => $name]);
+                
+                if ($sql->getRows() == 0) {
+                    $metaField = [
+                        'title' => $field['title'],
+                        'name' => $name,
+                        'priority' => $field['priority'],
+                        'attributes' => '',
+                        'type_id' => $field['type_id'],
+                        'params' => $field['params'],
+                        'validate' => $field['validate'],
+                        'restrictions' => $field['restrictions'],
+                        'createuser' => rex::getUser()->getLogin(),
+                        'createdate' => date('Y-m-d H:i:s'),
+                        'updateuser' => rex::getUser()->getLogin(),
+                        'updatedate' => date('Y-m-d H:i:s')
+                    ];
+
+                    $insert = rex_sql::factory();
+                    $insert->setTable(rex::getTable('metainfo_field'));
+                    $insert->setValues($metaField);
+                    $insert->insert();
+                }
+            }
+
+            // Prüfe ob der Upload-Ordner existiert
+            $uploadPath = rex_path::pluginData('yform', 'manager', 'upload/filepond');
+            if (!file_exists($uploadPath)) {
+                mkdir($uploadPath, 0775, true);
+            }
+
+            // Setze Standardkonfiguration
+            if (!rex_config::has('filepond_uploader', 'settings')) {
+                rex_config::set('filepond_uploader', 'settings', [
+                    'default_category' => 0,
+                    'allowed_types' => 'image/*,video/*,.pdf,.doc,.docx,.txt',
+                    'max_filesize' => 10
+                ]);
+            }
+
+        } catch (rex_sql_exception $e) {
+            throw new rex_functional_exception($e->getMessage());
         }
     }
 }
 
-// Erfolgsmeldung für das AddOn
 return true;

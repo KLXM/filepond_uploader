@@ -1,345 +1,363 @@
 $(document).on('rex:ready', function() {
-   // Debug Helper
-   const debug = {
-       log: function(message, data = null) {
-           console.log('FilePond Debug:', message, data || '');
-       }
-   };
+    // Translations
+    const translations = {
+        de_de: {
+            labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
+            metaTitle: 'Metadaten für',
+            titleLabel: 'Titel:',
+            altLabel: 'Alt-Text:',
+            altNotice: 'Alternativtext für Screenreader und SEO',
+            copyrightLabel: 'Copyright:',
+            fileInfo: 'Datei',
+            fileSize: 'Größe',
+            saveBtn: 'Speichern',
+            cancelBtn: 'Abbrechen'
+        },
+        en_gb: {
+            labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
+            metaTitle: 'Metadata for',
+            titleLabel: 'Title:',
+            altLabel: 'Alt Text:',
+            altNotice: 'Alternative text for screen readers and SEO',
+            copyrightLabel: 'Copyright:',
+            fileInfo: 'File',
+            fileSize: 'Size',
+            saveBtn: 'Save',
+            cancelBtn: 'Cancel'
+        }
+    };
 
-   // Translations
-   const translations = {
-       de: {
-           labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
-           metaTitle: 'Metadaten für',
-           titleLabel: 'Titel:',
-           altLabel: 'Alt-Text:',
-           altNotice: 'Alternativtext für Screenreader und SEO',
-           copyrightLabel: 'Copyright:',
-           fileInfo: 'Datei',
-           fileSize: 'Größe',
-           saveBtn: 'Speichern',
-           cancelBtn: 'Abbrechen'
-       },
-       en: {
-           labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
-           metaTitle: 'Metadata for',
-           titleLabel: 'Title:',
-           altLabel: 'Alt Text:',
-           altNotice: 'Alternative text for screen readers and SEO',
-           copyrightLabel: 'Copyright:',
-           fileInfo: 'File',
-           fileSize: 'Size',
-           saveBtn: 'Save',
-           cancelBtn: 'Cancel'
-       }
-   };
+    // File type icons mapping
+    const fileIcons = {
+        'image': 'fa-regular fa-image',
+        'video': 'fa-regular fa-file-video',
+        'pdf': 'fa-regular fa-file-pdf',
+        'doc': 'fa-regular fa-file-word',
+        'docx': 'fa-regular fa-file-word',
+        'txt': 'fa-regular fa-file-lines',
+        'default': 'fa-regular fa-file'
+    };
 
-   FilePond.registerPlugin(
-       FilePondPluginFileValidateType,
-       FilePondPluginFileValidateSize,
-       FilePondPluginImagePreview
-   );
+    // Helper function to get file icon
+    const getFileIcon = (file) => {
+        const type = file.type.split('/')[0];
+        const extension = file.name ? file.name.split('.').pop().toLowerCase() : '';
+        return fileIcons[type] || fileIcons[extension] || fileIcons.default;
+    };
 
-   $('input[data-widget="filepond"]').each(function() {
-       const input = $(this);
-       const lang = input.data('filepondLang') || 'en'; // Default zu Englisch
-       const t = translations[lang] || translations['en']; // Fallback zu Englisch
-       
-       // Originalwert mit Anführungszeichen
-       let rawValue = input.val();
-       debug.log('Raw input value:', rawValue);
-       
-       // Wert für die Verarbeitung (mit Anführungszeichen, da die API sie auch zurückgibt)
-       let initialValue = rawValue.trim();
-       debug.log('Cleaned input value:', initialValue);
-       
-       input.hide();
+    // Helper function to truncate filename
+    const truncateFilename = (filename, maxLength = 20) => {
+        if (filename.length <= maxLength) return filename;
+        const extension = filename.split('.').pop();
+        const name = filename.substring(0, filename.lastIndexOf('.'));
+        const truncated = name.substring(0, maxLength - extension.length - 3) + '...';
+        return `${truncated}.${extension}`;
+    };
 
-       const fileInput = $('<input type="file" multiple/>');
-       fileInput.insertAfter(input);
+    FilePond.registerPlugin(
+        FilePondPluginFileValidateType,
+        FilePondPluginFileValidateSize,
+        FilePondPluginImagePreview
+    );
 
-       // Create metadata dialog
-       const createMetadataDialog = (file, existingMetadata = null) => {
-           return new Promise((resolve, reject) => {  // reject hinzugefügt
-               const dialog = $(`
-                   <div class="modal fade">
-                       <div class="modal-dialog modal-lg">
-                           <div class="modal-content">
-                               <div class="modal-header">
-                                   <h4 class="modal-title">${t.metaTitle} ${file.name || file.filename}</h4>
-                                   <button type="button" class="close" data-dismiss="modal">&times;</button>
-                               </div>
-                               <div class="modal-body">
-                                   <form class="metadata-form">
-                                       <div class="row">
-                                           <div class="col-md-5">
-                                               <div class="image-preview-container">
-                                                   <img src="" alt="" class="img-responsive">
-                                               </div>
-                                               <div class="file-info small text-muted"></div>
-                                           </div>
-                                           <div class="col-md-7">
-                                               <div class="form-group">
-                                                   <label for="title">${t.titleLabel}</label>
-                                                   <input type="text" class="form-control" name="title" required>
-                                               </div>
-                                               <div class="form-group">
-                                                   <label for="alt">${t.altLabel}</label>
-                                                   <input type="text" class="form-control" name="alt" required>
-                                                   <small class="form-text text-muted">${t.altNotice}</small>
-                                               </div>
-                                               <div class="form-group">
-                                                   <label for="copyright">${t.copyrightLabel}</label>
-                                                   <input type="text" class="form-control" name="copyright">
-                                               </div>
-                                               <div class="form-group mt-4">
-                                                   <button type="submit" class="btn btn-save">${t.saveBtn}</button>
-                                                   <button type="button" class="btn btn-abort" data-dismiss="modal">${t.cancelBtn}</button>
-                                               </div>
-                                           </div>
-                                       </div>
-                                   </form>
-                               </div>
-                           </div>
-                       </div>
-                   </div>
-               `);
+    $('input[data-widget="filepond"]').each(function() {
+        const input = $(this);
+        const lang = input.data('filepondLang') || 'en_gb';
+        const t = translations[lang] || translations['en_gb'];
+        
+        let rawValue = input.val();
+        let initialValue = rawValue.trim();
+        
+        input.hide();
 
-               // Bild in Vorschau laden
-               const previewImage = async () => {
-                   const imgContainer = dialog.find('.image-preview-container img');
-                   const fileInfo = dialog.find('.file-info');
-                   
-                   try {
-                       // Für neue Uploads
-                       if (file instanceof File) {
-                           const reader = new FileReader();
-                           reader.onload = (e) => {
-                               imgContainer.attr('src', e.target.result);
-                           };
-                           reader.readAsDataURL(file);
-                           
-                           fileInfo.html(`
-                               <strong>${t.fileInfo}:</strong> ${file.name}<br>
-                               <strong>${t.fileSize}:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
-                           `);
-                       }
-                       // Für existierende Dateien
-                       else {
-                           imgContainer.attr('src', '/media/' + file.source);
-                           
-                           const mediaFile = await fetch('/media/' + file.source);
-                           const size = mediaFile.headers.get('content-length');
-                           fileInfo.html(`
-                               <strong>${t.fileInfo}:</strong> ${file.source}<br>
-                               <strong>${t.fileSize}:</strong> ${(size / 1024 / 1024).toFixed(2)} MB
-                           `);
-                       }
-                   } catch (error) {
-                       console.error('Error loading preview:', error);
-                       imgContainer.attr('src', '');
-                   }
-               };
+        const fileInput = $('<input type="file" multiple/>');
+        fileInput.insertAfter(input);
 
-               previewImage();
+        // Create metadata dialog with preview
+        const createMetadataDialog = (file, existingMetadata = null) => {
+            return new Promise((resolve, reject) => {
+                const dialog = $(`
+                    <div class="modal fade">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title">${t.metaTitle} ${truncateFilename(file.name || file.filename)}</h4>
+                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                </div>
+                                <div class="modal-body">
+                                    <form class="metadata-form">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <div class="preview-container"></div>
+                                                <div class="file-info small text-muted"></div>
+                                            </div>
+                                            <div class="col-md-7">
+                                                <div class="form-group">
+                                                    <label for="title">${t.titleLabel}</label>
+                                                    <input type="text" class="form-control" name="title" required>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="alt">${t.altLabel}</label>
+                                                    <input type="text" class="form-control" name="alt" required>
+                                                    <small class="form-text text-muted">${t.altNotice}</small>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="copyright">${t.copyrightLabel}</label>
+                                                    <input type="text" class="form-control" name="copyright">
+                                                </div>
+                                                <div class="form-group mt-4">
+                                                    <button type="submit" class="btn btn-save">${t.saveBtn}</button>
+                                                    <button type="button" class="btn btn-abort" data-dismiss="modal">${t.cancelBtn}</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
 
-               // Fill existing metadata if available
-               if (existingMetadata) {
-                   dialog.find('[name="title"]').val(existingMetadata.title || '');
-                   dialog.find('[name="alt"]').val(existingMetadata.alt || '');
-                   dialog.find('[name="copyright"]').val(existingMetadata.copyright || '');
-               }
+                // Preview content based on file type
+                const previewContainer = dialog.find('.preview-container');
+                const fileInfo = dialog.find('.file-info');
+                const fileType = file.type ? file.type.split('/')[0] : '';
+                
+                const showPreview = async () => {
+                    try {
+                        if (file instanceof File) {
+                            if (fileType === 'image') {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                    previewContainer.html(`<img src="${e.target.result}" alt="" class="img-fluid">`);
+                                };
+                                reader.readAsDataURL(file);
+                            } else if (fileType === 'video') {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                    previewContainer.html(`
+                                        <video controls class="img-fluid">
+                                            <source src="${e.target.result}" type="${file.type}">
+                                            Your browser does not support the video tag.
+                                        </video>
+                                    `);
+                                };
+                                reader.readAsDataURL(file);
+                            } else {
+                                // Show icon for other file types
+                                const icon = getFileIcon(file);
+                                previewContainer.html(`
+                                    <div class="file-icon-preview">
+                                        <i class="${icon}"></i>
+                                    </div>
+                                `);
+                            }
+                            
+                            fileInfo.html(`
+                                <strong>${t.fileInfo}:</strong> ${truncateFilename(file.name)}<br>
+                                <strong>${t.fileSize}:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
+                            `);
+                        } else {
+                            // Handling existing files
+                            const mediaUrl = '/media/' + file.source;
+                            const extension = file.source.split('.').pop().toLowerCase();
+                            
+                            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                                previewContainer.html(`<img src="${mediaUrl}" alt="" class="img-fluid">`);
+                            } else if (['mp4', 'webm', 'ogg'].includes(extension)) {
+                                previewContainer.html(`
+                                    <video controls class="img-fluid">
+                                        <source src="${mediaUrl}" type="video/${extension}">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                `);
+                            } else {
+                                const fakeFile = { name: file.source, type: 'application/' + extension };
+                                const icon = getFileIcon(fakeFile);
+                                previewContainer.html(`
+                                    <div class="file-icon-preview">
+                                        <i class="${icon}"></i>
+                                    </div>
+                                `);
+                            }
 
-               // Handle form submit
-               dialog.find('form').on('submit', function(e) {
-                   e.preventDefault();
-                   const metadata = {
-                       title: dialog.find('[name="title"]').val(),
-                       alt: dialog.find('[name="alt"]').val(),
-                       copyright: dialog.find('[name="copyright"]').val()
-                   };
-                   dialog.data('submitted', true);
-                   resolve(metadata);
-                   dialog.modal('hide');
-               });
+                            const mediaFile = await fetch(mediaUrl);
+                            const size = mediaFile.headers.get('content-length');
+                            fileInfo.html(`
+                                <strong>${t.fileInfo}:</strong> ${truncateFilename(file.source)}<br>
+                                <strong>${t.fileSize}:</strong> ${(size / 1024 / 1024).toFixed(2)} MB
+                            `);
+                        }
+                    } catch (error) {
+                        console.error('Error loading preview:', error);
+                        previewContainer.html('');
+                    }
+                };
 
-               // Bei Modal-Schließen oder Abbrechen Upload abbrechen
-               dialog.on('hidden.bs.modal', function() {
-                   if (!dialog.data('submitted')) {
-                       reject(new Error('Metadata input cancelled'));
-                   }
-                   dialog.remove();
-               });
+                showPreview();
 
-               dialog.find('.btn-abort').on('click', function() {
-                   dialog.modal('hide');
-               });
+                // Fill existing metadata if available
+                if (existingMetadata) {
+                    dialog.find('[name="title"]').val(existingMetadata.title || '');
+                    dialog.find('[name="alt"]').val(existingMetadata.alt || '');
+                    dialog.find('[name="copyright"]').val(existingMetadata.copyright || '');
+                }
 
-               dialog.modal('show');
-           });
-       };
+                // Handle form submit
+                dialog.find('form').on('submit', function(e) {
+                    e.preventDefault();
+                    const metadata = {
+                        title: dialog.find('[name="title"]').val(),
+                        alt: dialog.find('[name="alt"]').val(),
+                        copyright: dialog.find('[name="copyright"]').val()
+                    };
+                    dialog.data('submitted', true);
+                    resolve(metadata);
+                    dialog.modal('hide');
+                });
 
-       // Existierende Dateien vorbereiten
-       let existingFiles = [];
-       if (initialValue) {
-           existingFiles = initialValue.split(',')
-               .filter(Boolean)
-               .map(filename => {
-                   const file = filename.trim().replace(/^"|"$/g, '');
-                   debug.log('Processing existing file:', file);
+                dialog.on('hidden.bs.modal', function() {
+                    if (!dialog.data('submitted')) {
+                        reject(new Error('Metadata input cancelled'));
+                    }
+                    dialog.remove();
+                });
 
-                   const mediaUrl = '/media/' + file;
-                   debug.log('Generated media URL:', mediaUrl);
+                dialog.find('.btn-abort').on('click', function() {
+                    dialog.modal('hide');
+                });
 
-                   return {
-                       source: file,
-                       options: {
-                           type: 'local',
-                           metadata: {
-                               poster: mediaUrl
-                           }
-                       }
-                   };
-               });
-           debug.log('Prepared existing files:', existingFiles);
-       }
+                dialog.modal('show');
+            });
+        };
 
-       // FilePond initialisieren
-       const pond = FilePond.create(fileInput[0], {
-           files: existingFiles,
-           allowMultiple: true,
-           maxFiles: input.data('filepondMaxfiles') || null,
-           server: {
-               url: 'index.php',
-               process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                   try {
-                       const fileMetadata = await createMetadataDialog(file);
-                       
-                       const formData = new FormData();
-                       formData.append(fieldName, file);
-                       formData.append('rex-api-call', 'filepond_uploader');
-                       formData.append('func', 'upload');
-                       formData.append('category_id', input.data('filepondCat') || '1');
-                       formData.append('metadata', JSON.stringify(fileMetadata));
+        // Prepare existing files
+        let existingFiles = [];
+        if (initialValue) {
+            existingFiles = initialValue.split(',')
+                .filter(Boolean)
+                .map(filename => {
+                    const file = filename.trim().replace(/^"|"$/g, '');
+                    const mediaUrl = '/media/' + file;
+                    return {
+                        source: file,
+                        options: {
+                            type: 'local',
+                            metadata: {
+                                poster: mediaUrl
+                            }
+                        }
+                    };
+                });
+        }
 
-                       const response = await fetch('index.php', {
-                           method: 'POST',
-                           headers: {
-                               'X-Requested-With': 'XMLHttpRequest'
-                           },
-                           body: formData
-                       });
+        // Initialize FilePond
+        const pond = FilePond.create(fileInput[0], {
+            files: existingFiles,
+            allowMultiple: true,
+            server: {
+                url: 'index.php',
+                process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+                    try {
+                        const fileMetadata = await createMetadataDialog(file);
+                        
+                        const formData = new FormData();
+                        formData.append(fieldName, file);
+                        formData.append('rex-api-call', 'filepond_uploader');
+                        formData.append('func', 'upload');
+                        formData.append('category_id', input.data('filepondCat') || '1');
+                        formData.append('metadata', JSON.stringify(fileMetadata));
 
-                       const result = await response.json();
+                        const response = await fetch('index.php', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        });
 
-                       if (!response.ok) {
-                           console.error('Upload error:', result);
-                           error(result.error || 'Upload failed');
-                           return;
-                       }
+                        const result = await response.json();
 
-                       load(result);
-                   } catch (err) {
-                       console.error('Upload cancelled:', err);
-                       error('Upload cancelled');
-                       abort();
-                   }
-               },
-               revert: {
-                   method: 'POST',
-                   headers: {
-                       'X-Requested-With': 'XMLHttpRequest'
-                   },
-                   ondata: (formData) => {
-                       formData.append('rex-api-call', 'filepond_uploader');
-                       formData.append('func', 'delete');
-                       formData.append('filename', formData.get('serverId'));
-                       return formData;
-                   }
-               },
-               load: (source, load, error, progress, abort, headers) => {
-                   debug.log('Loading file:', source);
-                   
-                   const url = '/media/' + source.replace(/^"|"$/g, '');
-                   debug.log('Loading from URL:', url);
-                   
-                   fetch(url)
-                       .then(response => {
-                           if (!response.ok) {
-                               throw new Error('HTTP error! status: ' + response.status);
-                           }
-                           return response.blob();
-                       })
-                       .then(blob => {
-                           debug.log('File loaded successfully');
-                           load(blob);
-                       })
-                       .catch(e => {
-                           debug.log('Error loading file:', e);
-                           error(e.message);
-                       });
-                   
-                   return {
-                       abort: () => {
-                           debug.log('Load aborted');
-                           abort();
-                       }
-                   };
-               }
-           },
-           labelIdle: t.labelIdle,
-           styleButtonRemoveItemPosition: 'right',
-           styleLoadIndicatorPosition: 'right',
-           styleProgressIndicatorPosition: 'right',
-           styleButtonProcessItemPosition: 'right',
-           imagePreviewHeight: 100,
-           itemPanelAspectRatio: 1,
-           acceptedFileTypes: (input.data('filepondTypes') || 'image/*').split(','),
-           maxFileSize: (input.data('filepondMaxsize') || '10') + 'MB',
-           credits: false
-       });
+                        if (!response.ok) {
+                            error(result.error || 'Upload failed');
+                            return;
+                        }
 
-       // Events loggen
-       pond.on('initfile', (file) => {
-           debug.log('File initialized:', file);
-       });
+                        load(result);
+                    } catch (err) {
+                        error('Upload cancelled');
+                        abort();
+                    }
+                },
+                revert: {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    ondata: (formData) => {
+                        formData.append('rex-api-call', 'filepond_uploader');
+                        formData.append('func', 'delete');
+                        formData.append('filename', formData.get('serverId'));
+                        return formData;
+                    }
+                },
+                load: (source, load, error, progress, abort, headers) => {
+                    const url = '/media/' + source.replace(/^"|"$/g, '');
+                    
+                    fetch(url)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('HTTP error! status: ' + response.status);
+                            }
+                            return response.blob();
+                        })
+                        .then(blob => {
+                            load(blob);
+                        })
+                        .catch(e => {
+                            error(e.message);
+                        });
+                    
+                    return {
+                        abort: () => {
+                            abort();
+                        }
+                    };
+                }
+            },
+            labelIdle: t.labelIdle,
+            styleButtonRemoveItemPosition: 'right',
+            styleLoadIndicatorPosition: 'right',
+            styleProgressIndicatorPosition: 'right',
+            styleButtonProcessItemPosition: 'right',
+            imagePreviewHeight: 100,
+            itemPanelAspectRatio: 1,
+            acceptedFileTypes: (input.data('filepondTypes') || 'image/*,video/*,application/pdf').split(','),
+            maxFileSize: (input.data('filepondMaxsize') || '1000') + 'MB',
+            credits: false
+        });
 
-       pond.on('processfile', (error, file) => {
-           if (!error && file.serverId) {
-               debug.log('File processed:', file.serverId);
-               const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
-               if (!currentValue.includes(file.serverId)) {
-                   currentValue.push(file.serverId);
-                   const newValue = currentValue.join(',');
-                   input.val(newValue);
-                   debug.log('Updated input value:', newValue);
-               }
-           } else if (error) {
-               debug.log('Process error:', error);
-           }
-       });
+        // Event handlers
+        pond.on('processfile', (error, file) => {
+            if (!error && file.serverId) {
+                const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
+                if (!currentValue.includes(file.serverId)) {
+                    currentValue.push(file.serverId);
+                    input.val(currentValue.join(','));
+                }
+            }
+        });
 
-       pond.on('removefile', (error, file) => {
-           if (!error) {
-               debug.log('Removing file:', file.serverId || file.source);
-               const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
-               const removeValue = file.serverId || file.source;
-               const index = currentValue.indexOf(removeValue);
-               if (index > -1) {
-                   currentValue.splice(index, 1);
-                   const newValue = currentValue.join(',');
-                   input.val(newValue);
-                   debug.log('Updated input value after remove:', newValue);
-               }
-           } else {
-               debug.log('Remove error:', error);
-           }
-       });
-
-       // FilePond Debug Events
-       pond.on('warning', (error) => debug.log('Warning:', error));
-       pond.on('error', (error) => debug.log('Error:', error));
-
-       debug.log('FilePond instance created');
-   });
+        pond.on('removefile', (error, file) => {
+            if (!error) {
+                const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
+                const removeValue = file.serverId || file.source;
+                const index = currentValue.indexOf(removeValue);
+                if (index > -1) {
+                    currentValue.splice(index, 1);
+                    input.val(currentValue.join(','));
+                }
+            }
+        });
+    });
 });

@@ -9,9 +9,8 @@ $error = '';
 if (rex_post('submit', 'boolean') && $csrf->isValid()) {
     $settings = rex_post('settings', 'array', []);
     
-    // Einstellungen speichern
     if (rex_config::set('filepond_uploader', 'settings', $settings)) {
-        $success = rex_i18n::msg('form_saved');
+        $success = rex_i18n::msg('filepond_settings_saved');
     } else {
         $error = rex_i18n::msg('form_save_error');
     }
@@ -19,15 +18,9 @@ if (rex_post('submit', 'boolean') && $csrf->isValid()) {
 
 // Aktuelle Einstellungen laden
 $settings = rex_config::get('filepond_uploader', 'settings', [
-    'default_category' => 0,
-    'allowed_types' => 'image/*,.pdf',
+    'max_files' => 10,
     'max_filesize' => 10
 ]);
-
-// Medienpool-Kategorien holen
-$categories = [];
-$sql = rex_sql::factory();
-$categories = $sql->getArray('SELECT id, name FROM ' . rex::getTable('media_category') . ' ORDER BY name');
 
 if ($success != '') {
     $content .= rex_view::success($success);
@@ -43,39 +36,22 @@ $content .= '
         ' . $csrf->getHiddenField() . '
         <div class="panel panel-default">
             <div class="panel-heading">
-                <div class="panel-title">Einstellungen</div>
+                <div class="panel-title">' . rex_i18n::msg('filepond_settings_title') . '</div>
             </div>
             
             <div class="panel-body">
                 <div class="form-group">
-                    <label class="col-sm-2 control-label">Standard-Kategorie</label>
+                    <label class="col-sm-2 control-label">' . rex_i18n::msg('filepond_settings_max_files') . '</label>
                     <div class="col-sm-10">
-                        <select name="settings[default_category]" class="form-control">
-                            <option value="0">Keine Kategorie</option>';
-
-foreach ($categories as $category) {
-    $content .= '<option value="' . $category['id'] . '"' . 
-                ($settings['default_category'] == $category['id'] ? ' selected' : '') . '>' . 
-                rex_escape($category['name']) . '</option>';
-}
-
-$content .= '
-                        </select>
+                        <input type="number" name="settings[max_files]" value="' . $settings['max_files'] . '" class="form-control" min="1" />
                     </div>
                 </div>
                 
                 <div class="form-group">
-                    <label class="col-sm-2 control-label">Erlaubte Dateitypen</label>
+                    <label class="col-sm-2 control-label">' . rex_i18n::msg('filepond_settings_maxsize') . '</label>
                     <div class="col-sm-10">
-                        <input type="text" name="settings[allowed_types]" value="' . $settings['allowed_types'] . '" class="form-control" />
-                        <span class="help-block">z.B.: image/*,.pdf</span>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="col-sm-2 control-label">Max. Dateigröße (MB)</label>
-                    <div class="col-sm-10">
-                        <input type="number" name="settings[max_filesize]" value="' . $settings['max_filesize'] . '" class="form-control" />
+                        <input type="number" name="settings[max_filesize]" value="' . $settings['max_filesize'] . '" class="form-control" min="1" />
+                        <p class="help-block">' . rex_i18n::msg('filepond_settings_maxsize_notice') . '</p>
                     </div>
                 </div>
             </div>
@@ -84,7 +60,7 @@ $content .= '
                 <div class="rex-form-panel-footer">
                     <div class="btn-toolbar">
                         <button type="submit" name="submit" value="1" class="btn btn-save rex-form-aligned">
-                            Speichern
+                            ' . rex_i18n::msg('form_save') . '
                         </button>
                     </div>
                 </div>
@@ -96,6 +72,6 @@ $content .= '
 // Fragment ausgeben
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit', false);
-$fragment->setVar('title', 'Filepond Einstellungen');
+$fragment->setVar('title', rex_i18n::msg('filepond_settings_title'));
 $fragment->setVar('body', $content, false);
 echo $fragment->parse('core/page/section.php');
