@@ -1,21 +1,27 @@
 package: filepond_uploader
 version: '1.0.0'
-author: Your Name
-supportpage: github.com/your/repo
+author: 'Friends Of REDAXO'
+supportpage: github.com/FriendsOfREDAXO/filepond_uploader
 
 requires:
-    php: '>=7.3'
-    redaxo: '^5.12'
+    php: '>=7.4'
+    redaxo: '^5.13'
     packages:
         yform: '>=4.0.0'
-        metainfo: '>=2.0.0'  # Neu: Metainfo als Abhängigkeit
+        metainfo: '>=2.0.0'
 
 page:
-    title: 'Filepond Upload'
+    title: 'translate:filepond_uploader_title'
     perm: admin
     subpages:
-        upload: { title: 'Upload' }
-        settings: { title: 'Einstellungen' }
+        upload: { title: 'translate:filepond_uploader_upload' }
+        settings: { title: 'translate:filepond_uploader_settings' }
+
+default_config:
+    allowed_types: 'image/*,video/*,.pdf,.doc,.docx,.txt'
+    max_size: 1000
+    max_files: 30
+    category_id: 0
 
 installer_ignore:
     - node_modules
@@ -24,8 +30,4 @@ installer_ignore:
     - yarn.lock
     - .gitignore
     - .github
-
-default_config:
-    allowed_types: .pdf,.doc,.docx,.txt
-    max_size: 10
-    max_files: 5
+    - .git

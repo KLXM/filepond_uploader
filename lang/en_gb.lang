@@ -1,0 +1,21 @@
+filepond_uploader = FilePond Uploader
+filepond_uploader_title = FilePond Uploader
+
+# Subpage Upload
+filepond_uploader_upload = Upload
+filepond_upload_title = Upload Files
+filepond_upload_category = Category
+filepond_upload_files = Files
+filepond_upload_no_category = No category
+
+# Subpage Settings
+filepond_uploader_settings = Settings
+filepond_settings_title = Settings
+filepond_settings_saved = Settings have been saved
+filepond_settings_max_files = Maximum number of files
+filepond_settings_maxsize = Maximum file size (MB)
+filepond_settings_maxsize_notice = Size in megabytes
+
+# Permissions
+perm_general_filepond_uploader[] = FilePond Uploader permissions
+perm_general_filepond_uploader[settings] = FilePond Uploader: Settings

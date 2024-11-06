@@ -81,12 +81,12 @@ protected function handleUpload($categoryId)
             $sql->update();
 
             // Log success
-            rex_logger::factory()->log('info', 'File uploaded successfully: ' . $result['filename']);
+           # rex_logger::factory()->log('info', 'File uploaded successfully: ' . $result['filename']);
             return $result['filename'];
         }
         
         // Log error details
-        rex_logger::factory()->log('error', 'Upload failed with messages: ' . implode(', ', $result['messages']));
+       # rex_logger::factory()->log('error', 'Upload failed with messages: ' . implode(', ', $result['messages']));
         throw new rex_api_exception(implode(', ', $result['messages']));
 
     } catch (Exception $e) {
@@ -99,7 +99,7 @@ protected function handleUpload($categoryId)
     protected function handleDelete()
     {
         $filename = trim(rex_request('filename', 'string', ''));
-        rex_logger::factory()->log('debug', 'Attempting to delete file: ' . $filename);
+        # rex_logger::factory()->log('debug', 'Attempting to delete file: ' . $filename);
         
         if (empty($filename)) {
             throw new rex_api_exception('Missing filename');
@@ -122,12 +122,12 @@ protected function handleUpload($categoryId)
                             $query = "SELECT id FROM " . $table->getTableName() . " WHERE " . 
                                     $field->getName() . " LIKE :filename";
                             
-                            rex_logger::factory()->log('debug', 'Checking table: ' . $table->getTableName() . ' with query: ' . $query);
+                            # rex_logger::factory()->log('debug', 'Checking table: ' . $table->getTableName() . ' with query: ' . $query);
                             
                             $result = $sql->getArray($query, ['filename' => '%' . $filename . '%']);
                             if (count($result) > 0) {
                                 $inUse = true;
-                                rex_logger::factory()->log('debug', 'File still in use in table: ' . $table->getTableName());
+                                # rex_logger::factory()->log('debug', 'File still in use in table: ' . $table->getTableName());
                                 break 2;
                             }
                         }
@@ -136,7 +136,7 @@ protected function handleUpload($categoryId)
 
                 // Nur löschen wenn die Datei nicht mehr verwendet wird
                 if (!$inUse) {
-                    rex_logger::factory()->log('debug', 'Deleting file from mediapool: ' . $filename);
+                    # rex_logger::factory()->log('debug', 'Deleting file from mediapool: ' . $filename);
                     if (rex_media_service::deleteMedia($filename)) {
                         rex_response::sendJson(['status' => 'success']);
                         exit;
@@ -145,13 +145,13 @@ protected function handleUpload($categoryId)
                     }
                 } else {
                     // Wenn die Datei noch verwendet wird, senden wir trotzdem Erfolg
-                    rex_logger::factory()->log('debug', 'File still in use, not deleting from mediapool: ' . $filename);
+                    # rex_logger::factory()->log('debug', 'File still in use, not deleting from mediapool: ' . $filename);
                     rex_response::sendJson(['status' => 'success']);
                     exit;
                 }
             } else {
                 // Datei existiert nicht im Medienpool
-                rex_logger::factory()->log('debug', 'File does not exist in mediapool: ' . $filename);
+                # rex_logger::factory()->log('debug', 'File does not exist in mediapool: ' . $filename);
                 rex_response::sendJson(['status' => 'success']);
                 exit;
             }
