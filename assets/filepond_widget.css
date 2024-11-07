@@ -44,11 +44,11 @@
 
 /* Drop Label */
 .filepond--drop-label {
-    color: var(--fp-text-light);
+    color: var(--fp-text);
 }
 
 .filepond--drop-label label {
-    color: var(--fp-text-light);
+    color: var(--fp-text);
 }
 
 /* File Info */
