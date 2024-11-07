@@ -27,12 +27,12 @@ foreach ($fileNames as $fileName) {
     }
 }
 ?>
-
-<?php 
+$langCode = 'en_gb';
+$currentUser = rex::getUser();
+// Prüfen, ob ein Backend-User eingeloggt ist
 if ($currentUser) {
     $langCode = $currentUser->getLanguage();
 } 
-?>
 
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
     <label class="control-label" for="<?= $this->getFieldId() ?>"><?= $this->getLabel() ?></label>
