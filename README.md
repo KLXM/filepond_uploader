@@ -179,6 +179,13 @@ pond.on('removefile', (error, file) => {
 });
 ```
 
+## Assets aktualisieren 
+
+```cli
+npm install 
+npm run build 
+```
+
 ## Tipps & Tricks
 
 - Maximale Dateigröße wird auch serverseitig geprüft
