@@ -1,6 +1,4 @@
 <?php
-// rex_api_filepond_uploader.php
-
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
