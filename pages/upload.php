@@ -21,7 +21,7 @@ $error = '';
 
 $currentUser = rex::getUser();
 
-$lng = 'en';
+$lng = 'en_gb';
 // Prüfen, ob ein Backend-User eingeloggt ist
 if ($currentUser) {
     $langCode = $currentUser->getLanguage();
