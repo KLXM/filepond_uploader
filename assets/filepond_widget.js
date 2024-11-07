@@ -1,7 +1,7 @@
 $(document).on('rex:ready', function() {
     // Translations
     const translations = {
-        de_de: {
+        de: {
             labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
             metaTitle: 'Metadaten für',
             titleLabel: 'Titel:',
@@ -13,7 +13,7 @@ $(document).on('rex:ready', function() {
             saveBtn: 'Speichern',
             cancelBtn: 'Abbrechen'
         },
-        en_gb: {
+        en: {
             labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
             metaTitle: 'Metadata for',
             titleLabel: 'Title:',
@@ -27,33 +27,6 @@ $(document).on('rex:ready', function() {
         }
     };
 
-    // File type icons mapping
-    const fileIcons = {
-        'image': 'fa-regular fa-image',
-        'video': 'fa-regular fa-file-video',
-        'pdf': 'fa-regular fa-file-pdf',
-        'doc': 'fa-regular fa-file-word',
-        'docx': 'fa-regular fa-file-word',
-        'txt': 'fa-regular fa-file-lines',
-        'default': 'fa-regular fa-file'
-    };
-
-    // Helper function to get file icon
-    const getFileIcon = (file) => {
-        const type = file.type.split('/')[0];
-        const extension = file.name ? file.name.split('.').pop().toLowerCase() : '';
-        return fileIcons[type] || fileIcons[extension] || fileIcons.default;
-    };
-
-    // Helper function to truncate filename
-    const truncateFilename = (filename, maxLength = 20) => {
-        if (filename.length <= maxLength) return filename;
-        const extension = filename.split('.').pop();
-        const name = filename.substring(0, filename.lastIndexOf('.'));
-        const truncated = name.substring(0, maxLength - extension.length - 3) + '...';
-        return `${truncated}.${extension}`;
-    };
-
     FilePond.registerPlugin(
         FilePondPluginFileValidateType,
         FilePondPluginFileValidateSize,
@@ -62,8 +35,8 @@ $(document).on('rex:ready', function() {
 
     $('input[data-widget="filepond"]').each(function() {
         const input = $(this);
-        const lang = input.data('filepondLang') || 'en_gb';
-        const t = translations[lang] || translations['en_gb'];
+        const lang = input.data('filepondLang') || 'en';
+        const t = translations[lang] || translations['en'];
         
         let rawValue = input.val();
         let initialValue = rawValue.trim();
@@ -72,7 +45,6 @@ $(document).on('rex:ready', function() {
 
         const fileInput = $('<input type="file" multiple/>');
         fileInput.insertAfter(input);
-
         // Create metadata dialog with preview
         const createMetadataDialog = (file, existingMetadata = null) => {
             return new Promise((resolve, reject) => {
@@ -81,14 +53,16 @@ $(document).on('rex:ready', function() {
                         <div class="modal-dialog modal-lg">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h4 class="modal-title">${t.metaTitle} ${truncateFilename(file.name || file.filename)}</h4>
+                                    <h4 class="modal-title">${t.metaTitle} ${file.name || file.filename}</h4>
                                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                                 </div>
                                 <div class="modal-body">
                                     <form class="metadata-form">
                                         <div class="row">
                                             <div class="col-md-5">
-                                                <div class="preview-container"></div>
+                                                <div class="media-preview-container">
+                                                    <!-- Media preview will be inserted here -->
+                                                </div>
                                                 <div class="file-info small text-muted"></div>
                                             </div>
                                             <div class="col-md-7">
@@ -118,75 +92,52 @@ $(document).on('rex:ready', function() {
                     </div>
                 `);
 
-                // Preview content based on file type
-                const previewContainer = dialog.find('.preview-container');
-                const fileInfo = dialog.find('.file-info');
-                const fileType = file.type ? file.type.split('/')[0] : '';
-                
-                const showPreview = async () => {
+                const previewContainer = dialog.find('.media-preview-container');
+
+                const previewMedia = async () => {
                     try {
                         if (file instanceof File) {
-                            if (fileType === 'image') {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    previewContainer.html(`<img src="${e.target.result}" alt="" class="img-fluid">`);
-                                };
-                                reader.readAsDataURL(file);
-                            } else if (fileType === 'video') {
-                                const reader = new FileReader();
-                                reader.onload = (e) => {
-                                    previewContainer.html(`
-                                        <video controls class="img-fluid">
-                                            <source src="${e.target.result}" type="${file.type}">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    `);
-                                };
-                                reader.readAsDataURL(file);
+                            if (file.type.startsWith('image/')) {
+                                const img = document.createElement('img');
+                                img.src = URL.createObjectURL(file);
+                                img.alt = file.name;
+                                img.style.maxHeight = '200px';
+                                previewContainer.append(img);
+                            } else if (file.type.startsWith('video/')) {
+                                const video = document.createElement('video');
+                                video.src = URL.createObjectURL(file);
+                                video.controls = true;
+                                video.muted = true;
+                                video.style.maxHeight = '200px';
+                                previewContainer.append(video);
+                            } else if (file.type.startsWith('application/pdf')) {
+                                const pdfIcon = $('<i class="fas fa-file-pdf fa-3x"></i>');
+                                previewContainer.append(pdfIcon);
                             } else {
-                                // Show icon for other file types
-                                const icon = getFileIcon(file);
-                                previewContainer.html(`
-                                    <div class="file-icon-preview">
-                                        <i class="${icon}"></i>
-                                    </div>
-                                `);
+                                const docIcon = $('<i class="fas fa-file fa-3x"></i>');
+                                previewContainer.append(docIcon);
                             }
-                            
-                            fileInfo.html(`
-                                <strong>${t.fileInfo}:</strong> ${truncateFilename(file.name)}<br>
-                                <strong>${t.fileSize}:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB
-                            `);
                         } else {
-                            // Handling existing files
-                            const mediaUrl = '/media/' + file.source;
-                            const extension = file.source.split('.').pop().toLowerCase();
-                            
-                            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
-                                previewContainer.html(`<img src="${mediaUrl}" alt="" class="img-fluid">`);
-                            } else if (['mp4', 'webm', 'ogg'].includes(extension)) {
-                                previewContainer.html(`
-                                    <video controls class="img-fluid">
-                                        <source src="${mediaUrl}" type="video/${extension}">
-                                        Your browser does not support the video tag.
-                                    </video>
-                                `);
+                            if (file.type.startsWith('image/')) {
+                                const img = document.createElement('img');
+                                img.src = '/media/' + file.source;
+                                img.alt = file.source;
+                                img.style.maxHeight = '200px';
+                                previewContainer.append(img);
+                            } else if (file.type.startsWith('video/')) {
+                                const video = document.createElement('video');
+                                video.src = '/media/' + file.source;
+                                video.controls = true;
+                                video.muted = true;
+                                video.style.maxHeight = '200px';
+                                previewContainer.append(video);
+                            } else if (file.type.startsWith('application/pdf')) {
+                                const pdfIcon = $('<i class="fas fa-file-pdf fa-3x"></i>');
+                                previewContainer.append(pdfIcon);
                             } else {
-                                const fakeFile = { name: file.source, type: 'application/' + extension };
-                                const icon = getFileIcon(fakeFile);
-                                previewContainer.html(`
-                                    <div class="file-icon-preview">
-                                        <i class="${icon}"></i>
-                                    </div>
-                                `);
+                                const docIcon = $('<i class="fas fa-file fa-3x"></i>');
+                                previewContainer.append(docIcon);
                             }
-
-                            const mediaFile = await fetch(mediaUrl);
-                            const size = mediaFile.headers.get('content-length');
-                            fileInfo.html(`
-                                <strong>${t.fileInfo}:</strong> ${truncateFilename(file.source)}<br>
-                                <strong>${t.fileSize}:</strong> ${(size / 1024 / 1024).toFixed(2)} MB
-                            `);
                         }
                     } catch (error) {
                         console.error('Error loading preview:', error);
@@ -194,16 +145,14 @@ $(document).on('rex:ready', function() {
                     }
                 };
 
-                showPreview();
+                previewMedia();
 
-                // Fill existing metadata if available
                 if (existingMetadata) {
                     dialog.find('[name="title"]').val(existingMetadata.title || '');
                     dialog.find('[name="alt"]').val(existingMetadata.alt || '');
                     dialog.find('[name="copyright"]').val(existingMetadata.copyright || '');
                 }
 
-                // Handle form submit
                 dialog.find('form').on('submit', function(e) {
                     e.preventDefault();
                     const metadata = {
@@ -230,7 +179,6 @@ $(document).on('rex:ready', function() {
                 dialog.modal('show');
             });
         };
-
         // Prepare existing files
         let existingFiles = [];
         if (initialValue) {
@@ -238,13 +186,12 @@ $(document).on('rex:ready', function() {
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                    const mediaUrl = '/media/' + file;
                     return {
                         source: file,
                         options: {
                             type: 'local',
                             metadata: {
-                                poster: mediaUrl
+                                poster: '/media/' + file
                             }
                         }
                     };
@@ -255,6 +202,8 @@ $(document).on('rex:ready', function() {
         const pond = FilePond.create(fileInput[0], {
             files: existingFiles,
             allowMultiple: true,
+            allowReorder: true,
+            maxFiles: input.data('filepondMaxfiles') || null,
             server: {
                 url: 'index.php',
                 process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
@@ -311,17 +260,13 @@ $(document).on('rex:ready', function() {
                             }
                             return response.blob();
                         })
-                        .then(blob => {
-                            load(blob);
-                        })
+                        .then(load)
                         .catch(e => {
                             error(e.message);
                         });
                     
                     return {
-                        abort: () => {
-                            abort();
-                        }
+                        abort
                     };
                 }
             },
@@ -332,8 +277,8 @@ $(document).on('rex:ready', function() {
             styleButtonProcessItemPosition: 'right',
             imagePreviewHeight: 100,
             itemPanelAspectRatio: 1,
-            acceptedFileTypes: (input.data('filepondTypes') || 'image/*,video/*,application/pdf').split(','),
-            maxFileSize: (input.data('filepondMaxsize') || '1000') + 'MB',
+            acceptedFileTypes: (input.data('filepondTypes') || 'image/*').split(','),
+            maxFileSize: (input.data('filepondMaxsize') || '10') + 'MB',
             credits: false
         });
 
@@ -358,6 +303,15 @@ $(document).on('rex:ready', function() {
                     input.val(currentValue.join(','));
                 }
             }
+        });
+
+        // Handle reordering
+        pond.on('reorderfiles', (files) => {
+            const newValue = files
+                .map(file => file.serverId || file.source)
+                .filter(Boolean)
+                .join(',');
+            input.val(newValue);
         });
     });
 });
