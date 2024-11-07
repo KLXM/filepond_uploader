@@ -1,7 +1,7 @@
 $(document).on('rex:ready', function() {
     // Translations
     const translations = {
-        de: {
+        de_de: {
             labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
             metaTitle: 'Metadaten für',
             titleLabel: 'Titel:',
@@ -13,7 +13,7 @@ $(document).on('rex:ready', function() {
             saveBtn: 'Speichern',
             cancelBtn: 'Abbrechen'
         },
-        en: {
+        en_en: {
             labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
             metaTitle: 'Metadata for',
             titleLabel: 'Title:',
