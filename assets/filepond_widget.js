@@ -13,7 +13,7 @@ $(document).on('rex:ready', function() {
             saveBtn: 'Speichern',
             cancelBtn: 'Abbrechen'
         },
-        en_en: {
+        en_gb: {
             labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
             metaTitle: 'Metadata for',
             titleLabel: 'Title:',
@@ -35,8 +35,8 @@ $(document).on('rex:ready', function() {
 
     $('input[data-widget="filepond"]').each(function() {
         const input = $(this);
-        const lang = input.data('filepondLang') || 'en';
-        const t = translations[lang] || translations['en'];
+        const lang = input.data('filepondLang') || 'en_gb';
+        const t = translations[lang] || translations['en_gb'];
         
         let rawValue = input.val();
         let initialValue = rawValue.trim();
