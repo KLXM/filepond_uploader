@@ -51,7 +51,7 @@ $content = '
         </div>
     </form>
 </div>
-
+';
 <script>
 document.addEventListener("rex:ready", function() {
     $("#rex-mediapool-category").on("change", function() {
@@ -69,8 +69,8 @@ document.addEventListener("rex:ready", function() {
         }
     });
 });
-</script>';
-
+</script>
+<?php 
 // Fragment ausgeben
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit', false);
