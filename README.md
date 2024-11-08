@@ -54,7 +54,7 @@ $yform->setValueField('filepond', [
     data-filepond-maxfiles="5" 
     data-filepond-types="mime/type, .extension"
     data-filepond-maxsize="10"
-    data-filepond-lang="de"
+    data-filepond-lang="de_de"
 >
 ```
 
@@ -73,6 +73,21 @@ foreach($files as $file) {
 }
 ?>
 ```
+
+### Es kann auch in ein Medialist-Value schreiben. 
+
+```php
+<input 
+    type="hidden" 
+    name="REX_INPUT_MEDIALIST[1]" 
+    value="REX_MEDIALIST[1]" 
+    data-widget="filepond"
+…
+>
+```
+
+
+
 
 ## Konfiguration
 
