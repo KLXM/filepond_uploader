@@ -1,6 +1,9 @@
 <?php
 $csrf = rex_csrf_token::factory('filepond_uploader_settings');
-
+$settings = [
+    'max_files' => 10,
+    'max_filesize' => 10
+];
 $content = '';
 $success = '';
 $error = '';
