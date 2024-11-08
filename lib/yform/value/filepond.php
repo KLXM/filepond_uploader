@@ -1,5 +1,4 @@
-<?php 
-class rex_yform_value_filepond extends rex_yform_value_abstract
+<?php class rex_yform_value_filepond extends rex_yform_value_abstract
 {
     protected static function cleanValue($value)
     {
@@ -108,12 +107,11 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             }
 
             $this->setValue($value);
-
-            if ($value != '') {
-                $this->params['value_pool']['email'][$this->getName()] = $value;
-                if ($this->saveInDb()) {
-                    $this->params['value_pool']['sql'][$this->getName()] = $value;
-                }
+            
+            // Wert immer in die value_pools schreiben, auch wenn leer
+            $this->params['value_pool']['email'][$this->getName()] = $value;
+            if ($this->saveInDb()) {
+                $this->params['value_pool']['sql'][$this->getName()] = $value;
             }
         }
 
