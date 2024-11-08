@@ -1,3 +1,4 @@
+<?php 
 class rex_yform_value_filepond extends rex_yform_value_abstract
 {
     protected static function cleanValue($value)
