@@ -9,7 +9,7 @@ $selMedia->setSize(1);
 $selMedia->setSelected($selectedCategory);
 $selMedia->setAttribute('class', 'selectpicker');
 $selMedia->setAttribute('data-live-search', 'true');
-if (rex::requireUser()->getComplexPerm('media')->hasAll()) {
+if (rex::getUser()->getComplexPerm('media')->hasAll()) {
     $selMedia->addOption(rex_i18n::msg('filepond_upload_no_category'), '0');
 }
 
@@ -53,16 +53,28 @@ $content = '
 </div>
 
 <script>
-$(document).on("rex:ready", function() {
-    $("#rex-mediapool-category").on("change", function() {
-        const newCategory = $(this).val();
-        $("#filepond-upload").attr("data-filepond-cat", newCategory);
-        
-        const pondElement = document.querySelector("#filepond-upload");
-        if (pondElement && pondElement.FilePond) {
-            pondElement.FilePond.removeFiles();
-        }
-    });
+document.addEventListener("rex:ready", function() {
+    const categorySelect = document.getElementById("rex-mediapool-category");
+    const filepondInput = document.getElementById("filepond-upload");
+    
+    if (categorySelect && filepondInput) {
+        categorySelect.addEventListener("change", function() {
+            const newCategory = this.value;
+            filepondInput.setAttribute("data-filepond-cat", newCategory);
+            
+            // FilePond-Instanz finden und neu initialisieren
+            if (filepondInput.FilePond) {
+                filepondInput.FilePond.setOptions({
+                    server: {
+                        process: {
+                            url: "index.php?rex-api-call=filepond_uploader&func=upload&category_id=" + newCategory
+                        }
+                    }
+                });
+                filepondInput.FilePond.removeFiles();
+            }
+        });
+    }
 });
 </script>';
 
