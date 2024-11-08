@@ -96,7 +96,7 @@ class rex_api_filepond_uploader extends rex_api_function
     
     // Use provided category if valid, otherwise fall back to config default
     if (!isset($categoryId) || $categoryId < 0) {
-        $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
+        #$categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
     }
 
     // Add to media pool
