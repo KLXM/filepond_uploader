@@ -68,7 +68,7 @@ document.addEventListener("rex:ready", function() {
             pondElement._pond.removeFiles();
         }
     });
-});
+});?>
 </script>
 <?php 
 // Fragment ausgeben
