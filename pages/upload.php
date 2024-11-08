@@ -14,7 +14,11 @@ $selMedia->setAttribute('data-live-search', 'true');
 if (rex::requireUser()->getComplexPerm('media')->hasAll()) {
     $selMedia->addOption(rex_i18n::msg('filepond_upload_no_category'), '0');
 }
-
+// Aktuelle Einstellungen laden
+$settings = rex_config::get('filepond_uploader', 'settings', [
+    'max_files' => 10,
+    'max_filesize' => 10
+]); 
 $content = '';
 $success = '';
 $error = '';
