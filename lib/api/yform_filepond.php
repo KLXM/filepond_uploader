@@ -7,8 +7,9 @@ class rex_api_filepond_uploader extends rex_api_function
 
     public function execute()
     {
-        $func = rex_request('func', 'string', '');
-        $categoryId = rex_request('category_id', 'int', rex_config::get('filepond_uploader', 'category_id', 0));
+        
+     $func = rex_request('func', 'string', '');
+     $categoryId = rex_request('category_id', 'int', 0);  
         
         try {
             switch ($func) {
@@ -96,7 +97,7 @@ class rex_api_filepond_uploader extends rex_api_function
     
     // Use provided category if valid, otherwise fall back to config default
     if (!isset($categoryId) || $categoryId < 0) {
-        #$categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
+        $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
     }
 
     // Add to media pool
