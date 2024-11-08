@@ -1,8 +1,6 @@
 <?php
-$csrf = rex_csrf_token::factory('filepond_uploader');
-
 // Ausgewählte Kategorie
-$selectedCategory = rex_request('category_id', 'int', 0);
+$selectedCategory = rex_request('category_id', 'int', rex_config::get('filepond_uploader', 'category_id', 0));
 
 $selMedia = new rex_media_category_select($checkPerm = true);
 $selMedia->setId('rex-mediapool-category');
@@ -14,26 +12,13 @@ $selMedia->setAttribute('data-live-search', 'true');
 if (rex::requireUser()->getComplexPerm('media')->hasAll()) {
     $selMedia->addOption(rex_i18n::msg('filepond_upload_no_category'), '0');
 }
-// Aktuelle Einstellungen laden
-$settings = rex_config::get('filepond_uploader', 'settings', [
-    'max_files' => 10,
-    'max_filesize' => 10
-]); 
-$content = '';
-$success = '';
-$error = '';
 
 $currentUser = rex::getUser();
+$langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
 
-$lng = 'en_gb';
-// Prüfen, ob ein Backend-User eingeloggt ist
-if ($currentUser) {
-    $langCode = $currentUser->getLanguage();
-} 
-$content .= '
+$content = '
 <div class="rex-form">
     <form action="' . rex_url::currentBackendPage() . '" method="post" class="form-horizontal">
-        ' . $csrf->getHiddenField() . '
         <div class="panel panel-default">
             <div class="panel-heading">
                 <div class="panel-title">' . rex_i18n::msg('filepond_upload_title') . '</div>
@@ -54,9 +39,10 @@ $content .= '
                             id="filepond-upload"
                             data-widget="filepond"
                             data-filepond-cat="'.$selectedCategory.'"
-                            data-filepond-maxfiles="1000"
-                            data-filepond-maxsize="'.$settings['max_filesize'].'"
-                            data-filepond-lang="'. $langCode .'"
+                            data-filepond-maxfiles="'.rex_config::get('filepond_uploader', 'max_files', 30).'"
+                            data-filepond-types="'.rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt').'"
+                            data-filepond-maxsize="'.rex_config::get('filepond_uploader', 'max_filesize', 10).'"
+                            data-filepond-lang="'.$langCode.'"
                             value=""
                         >
                     </div>

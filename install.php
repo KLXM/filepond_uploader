@@ -32,7 +32,8 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             // Hole Medientabelle
             $mediaTable = rex_sql_table::get(rex::getTable('media'));
             
-           if (!$mediaTable->hasColumn('med_alt')) {
+            // Füge Spalten hinzu nach med_description, wenn sie nicht existieren
+            if (!$mediaTable->hasColumn('med_alt')) {
                 $mediaTable->addColumn(new rex_sql_column('med_alt', 'text', true));
             }
             if (!$mediaTable->hasColumn('med_copyright')) {
@@ -73,15 +74,6 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             $uploadPath = rex_path::pluginData('yform', 'manager', 'upload/filepond');
             if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0775, true);
-            }
-
-            // Setze Standardkonfiguration
-            if (!rex_config::has('filepond_uploader', 'settings')) {
-                rex_config::set('filepond_uploader', 'settings', [
-                    'default_category' => 0,
-                    'allowed_types' => 'image/*,video/*,.pdf,.doc,.docx,.txt',
-                    'max_filesize' => 10
-                ]);
             }
 
         } catch (rex_sql_exception $e) {

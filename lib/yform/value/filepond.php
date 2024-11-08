@@ -14,9 +14,9 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $originalValue = '';
             if (isset($this->params['main_id']) && $this->params['main_id'] > 0) {
                 $sql = rex_sql::factory();
-                $sql->setQuery('SELECT ' . $sql->escapeIdentifier($this->getName()) . 
-                              ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) . 
-                              ' WHERE id = ' . (int)$this->params['main_id']);
+                $sql->setQuery('SELECT ' . $sql->escapeIdentifier($this->getName()) .
+                    ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) .
+                    ' WHERE id = ' . (int)$this->params['main_id']);
                 if ($sql->getRows() > 0) {
                     $originalValue = self::cleanValue($sql->getValue($this->getName()));
                 }
@@ -44,7 +44,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                         // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
                         $inUse = false;
                         $sql = rex_sql::factory();
-                        
+
                         // Alle YForm Tabellen durchsuchen
                         $yformTables = rex_yform_manager_table::getAll();
                         foreach ($yformTables as $table) {
@@ -56,7 +56,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                                     $currentId = (int)$this->params['main_id'];
 
                                     $query = "SELECT id FROM $tableName WHERE $fieldName LIKE ? AND id != ?";
-                                    
+
                                     try {
                                         $result = $sql->getArray($query, [$filePattern, $currentId]);
                                         if (count($result) > 0) {
@@ -88,7 +88,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
 
         if ($this->params['send']) {
             $value = '';
-            
+
             if (isset($_REQUEST['FORM'])) {
                 foreach ($_REQUEST['FORM'] as $form) {
                     if (isset($form[$this->getId()])) {
@@ -120,11 +120,11 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
 
         $files = [];
         $value = $this->getValue();
-        
+
         if ($value) {
             $value = trim($value, '"');
             $fileNames = explode(',', $value);
-            
+
             foreach ($fileNames as $fileName) {
                 $fileName = trim($fileName);
                 if ($fileName && file_exists(rex_path::media($fileName))) {
@@ -154,36 +154,37 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                 'name'     => ['type' => 'name',   'label' => rex_i18n::msg('yform_values_defaults_name')],
                 'label'    => ['type' => 'text',   'label' => rex_i18n::msg('yform_values_defaults_label')],
                 'category' => [
-                    'type' => 'text',   
-                    'label' => 'Medienkategorie ID',
-                    'notice' => 'ID der Medienkategorie in die die Dateien geladen werden sollen'
+                    'type' => 'text',
+                    'label' => rex_i18n::msg('filepond_settings_category_id'),
+                    'notice' => rex_i18n::msg('filepond_settings_category_notice'),
+                    'default' => (string)rex_config::get('filepond_uploader', 'category_id', 0)
                 ],
                 'allowed_types' => [
-                    'type' => 'text',   
-                    'label' => 'Erlaubte Dateitypen',
-                    'notice' => 'z.B.: image/*,video/*,.pdf',
-                    'default' => 'image/*'
+                    'type' => 'text',
+                    'label' => rex_i18n::msg('filepond_settings_allowed_types'),
+                    'notice' => rex_i18n::msg('filepond_settings_allowed_types_notice'),
+                    'default' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt')
                 ],
                 'allowed_filesize' => [
-                    'type' => 'text',   
-                    'label' => 'Maximale Dateigröße (MB)',
-                    'notice' => 'Größe in Megabyte',
-                    'default' => '10'
+                    'type' => 'text',
+                    'label' => rex_i18n::msg('filepond_settings_maxsize'),
+                    'notice' => rex_i18n::msg('filepond_settings_maxsize_notice'),
+                    'default' => (string)rex_config::get('filepond_uploader', 'max_filesize', 10)
                 ],
                 'allowed_max_files' => [
-                    'type' => 'text',   
-                    'label' => 'Maximale Anzahl Dateien',
-                    'default' => '10'
+                    'type' => 'text',
+                    'label' => rex_i18n::msg('filepond_settings_max_files'),
+                    'default' => (string)rex_config::get('filepond_uploader', 'max_files', 30)
                 ],
-                'required' => ['type' => 'boolean', 'label' => 'Pflichtfeld', 'default' => '0'],
-                'notice'   => ['type' => 'text',    'label' => rex_i18n::msg('yform_values_defaults_notice')],
+                'required' => ['type' => 'boolean', 'label' => rex_i18n::msg('yform_values_required_label'), 'default' => '0'],
+                'notice'   => ['type' => 'text',    'label' => rex_i18n::msg('yform_values_notice_label')],
                 'empty_value'  => [
-                    'type' => 'text',    
-                    'label' => 'Fehlermeldung wenn leer',
-                    'default' => 'Bitte eine Datei auswählen.'
+                    'type' => 'text',
+                    'label' => rex_i18n::msg('filepond_empty_value_label'),
+                    'default' => rex_i18n::msg('filepond_empty_value_default')
                 ]
             ],
-            'description' => 'Filepond Dateiupload mit Medienpool-Integration',
+            'description' => rex_i18n::msg('filepond_description'),
             'db_type' => ['text'],
             'multi_edit' => false
         ];
@@ -231,7 +232,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     $media = rex_media::get($file);
                     if ($media) {
                         $fileName = $media->getFileName();
-                        
+
                         if ($media->isImage()) {
                             $thumb = rex_media_manager::getUrl('rex_medialistbutton_preview', $fileName);
                             $downloads[] = sprintf(
@@ -262,7 +263,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     }
                 }
             }
-            
+
             if (!empty($downloads)) {
                 return '<div class="rex-yform-value-mediafile-list">' . implode('', $downloads) . '</div>';
             }
