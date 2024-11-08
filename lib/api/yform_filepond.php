@@ -10,6 +10,8 @@ class rex_api_filepond_uploader extends rex_api_function
         
      $func = rex_request('func', 'string', '');
      $categoryId = rex_request('category_id', 'int', 0);  
+        rex_logger::factory()->log('debug', 'FilePond API called with category_id: ' . $categoryId . ' and func: ' . $func);
+    
         
         try {
             switch ($func) {
