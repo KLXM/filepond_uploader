@@ -54,27 +54,20 @@ $content = '
 
 <script>
 document.addEventListener("rex:ready", function() {
-    const categorySelect = document.getElementById("rex-mediapool-category");
-    const filepondInput = document.getElementById("filepond-upload");
-    
-    if (categorySelect && filepondInput) {
-        categorySelect.addEventListener("change", function() {
-            const newCategory = this.value;
-            filepondInput.setAttribute("data-filepond-cat", newCategory);
-            
-            // FilePond-Instanz finden und neu initialisieren
-            if (filepondInput.FilePond) {
-                filepondInput.FilePond.setOptions({
-                    server: {
-                        process: {
-                            url: "index.php?rex-api-call=filepond_uploader&func=upload&category_id=" + newCategory
-                        }
-                    }
-                });
-                filepondInput.FilePond.removeFiles();
-            }
-        });
-    }
+    $("#rex-mediapool-category").on("change", function() {
+        const newCategory = $(this).val();
+        const $filepond = $("#filepond-upload");
+        
+        // Update data attribute
+        $filepond.attr("data-filepond-cat", newCategory);
+        
+        // Update FilePond server URL
+        const pondElement = document.querySelector("#filepond-upload");
+        if (pondElement && pondElement._pond) {
+            pondElement._pond.server.process.url = 'index.php?rex-api-call=filepond_uploader&func=upload&category_id=' + newCategory;
+            pondElement._pond.removeFiles();
+        }
+    });
 });
 </script>';
 
