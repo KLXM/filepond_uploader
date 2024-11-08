@@ -14,9 +14,11 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $originalValue = '';
             if (isset($this->params['main_id']) && $this->params['main_id'] > 0) {
                 $sql = rex_sql::factory();
-                $sql->setQuery('SELECT ' . $sql->escapeIdentifier($this->getName()) .
-                    ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) .
-                    ' WHERE id = ' . (int)$this->params['main_id']);
+                $sql->setQuery(
+                    'SELECT ' . $sql->escapeIdentifier($this->getName()) . 
+                    ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) . 
+                    ' WHERE id = ?', [$this->params['main_id']]
+                );
                 if ($sql->getRows() > 0) {
                     $originalValue = self::cleanValue($sql->getValue($this->getName()));
                 }
@@ -24,13 +26,8 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
 
             // Neuen Wert aus dem Formular holen
             $newValue = '';
-            if (isset($_REQUEST['FORM'])) {
-                foreach ($_REQUEST['FORM'] as $form) {
-                    if (isset($form[$this->getId()])) {
-                        $newValue = self::cleanValue($form[$this->getId()]);
-                        break;
-                    }
-                }
+            if (isset($this->params['value_pool']['email'][$this->getName()])) {
+                $newValue = self::cleanValue($this->params['value_pool']['email'][$this->getName()]);
             }
 
             // Gelöschte Dateien ermitteln und verarbeiten
@@ -44,39 +41,40 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                         // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
                         $inUse = false;
                         $sql = rex_sql::factory();
-
+                        
                         // Alle YForm Tabellen durchsuchen
                         $yformTables = rex_yform_manager_table::getAll();
                         foreach ($yformTables as $table) {
                             foreach ($table->getFields() as $field) {
                                 if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
-                                    $tableName = $sql->escapeIdentifier($table->getTableName());
-                                    $fieldName = $sql->escapeIdentifier($field->getName());
-                                    $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
+                                    $tableName = $table->getTableName();
+                                    $fieldName = $field->getName();
+                                    $filePattern = '%' . $sql->escape($filename) . '%';
+                                    
+                                    // Aktuelle ID ausschließen
                                     $currentId = (int)$this->params['main_id'];
+                                    
+                                    $query = 'SELECT id FROM ' . $sql->escapeIdentifier($tableName) . 
+                                            ' WHERE ' . $sql->escapeIdentifier($fieldName) . ' LIKE ? ' .
+                                            ' AND id != ?';
 
-                                    $query = "SELECT id FROM $tableName WHERE $fieldName LIKE ? AND id != ?";
-
-                                    try {
-                                        $result = $sql->getArray($query, [$filePattern, $currentId]);
-                                        if (count($result) > 0) {
-                                            $inUse = true;
-                                            break 2;
-                                        }
-                                    } catch (Exception $e) {
-                                        continue;
+                                    $result = $sql->getArray($query, [$filePattern, $currentId]);
+                                    if (count($result) > 0) {
+                                        $inUse = true;
+                                        break 2;
                                     }
                                 }
                             }
                         }
 
                         // Datei löschen wenn sie nicht mehr verwendet wird
-                        if (!$inUse && rex_media::get($filename)) {
+                        if (!$inUse) {
                             rex_media_service::deleteMedia($filename);
                         }
                     }
                 } catch (Exception $e) {
-                    // Fehler beim Löschen werden ignoriert
+                    // Fehler beim Löschen loggen
+                    rex_logger::logError(E_WARNING, $e->getMessage(), $e->getFile(), $e->getLine());
                 }
             }
         }
@@ -88,19 +86,14 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
 
         if ($this->params['send']) {
             $value = '';
-
-            if (isset($_REQUEST['FORM'])) {
-                foreach ($_REQUEST['FORM'] as $form) {
-                    if (isset($form[$this->getId()])) {
-                        $value = $form[$this->getId()];
-                        break;
-                    }
-                }
+            
+            if (isset($this->params['value_pool']['email'][$this->getName()])) {
+                $value = $this->params['value_pool']['email'][$this->getName()];
             }
 
             $errors = [];
             if ($this->getElement('required') == 1 && $value == '') {
-                $errors[] = $this->getElement('empty_value', 'Bitte wählen Sie eine Datei aus.');
+                $errors[] = $this->getElement('empty_value', rex_i18n::msg('filepond_empty_value_default'));
             }
 
             if (count($errors) > 0) {
@@ -120,11 +113,11 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
 
         $files = [];
         $value = $this->getValue();
-
+        
         if ($value) {
             $value = trim($value, '"');
             $fileNames = explode(',', $value);
-
+            
             foreach ($fileNames as $fileName) {
                 $fileName = trim($fileName);
                 if ($fileName && file_exists(rex_path::media($fileName))) {
@@ -134,7 +127,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         }
 
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
-            'category_id' => $this->getElement('category') ?: 1,
+            'category_id' => $this->getElement('category') ?: rex_config::get('filepond_uploader', 'category_id', 0),
             'value' => $this->getValue(),
             'files' => $files
         ]);
@@ -154,32 +147,32 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                 'name'     => ['type' => 'name',   'label' => rex_i18n::msg('yform_values_defaults_name')],
                 'label'    => ['type' => 'text',   'label' => rex_i18n::msg('yform_values_defaults_label')],
                 'category' => [
-                    'type' => 'text',
+                    'type' => 'text',   
                     'label' => rex_i18n::msg('filepond_settings_category_id'),
                     'notice' => rex_i18n::msg('filepond_settings_category_notice'),
                     'default' => (string)rex_config::get('filepond_uploader', 'category_id', 0)
                 ],
                 'allowed_types' => [
-                    'type' => 'text',
+                    'type' => 'text',   
                     'label' => rex_i18n::msg('filepond_settings_allowed_types'),
                     'notice' => rex_i18n::msg('filepond_settings_allowed_types_notice'),
                     'default' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt')
                 ],
                 'allowed_filesize' => [
-                    'type' => 'text',
+                    'type' => 'text',   
                     'label' => rex_i18n::msg('filepond_settings_maxsize'),
                     'notice' => rex_i18n::msg('filepond_settings_maxsize_notice'),
                     'default' => (string)rex_config::get('filepond_uploader', 'max_filesize', 10)
                 ],
                 'allowed_max_files' => [
-                    'type' => 'text',
+                    'type' => 'text',   
                     'label' => rex_i18n::msg('filepond_settings_max_files'),
                     'default' => (string)rex_config::get('filepond_uploader', 'max_files', 30)
                 ],
                 'required' => ['type' => 'boolean', 'label' => rex_i18n::msg('yform_values_required_label'), 'default' => '0'],
                 'notice'   => ['type' => 'text',    'label' => rex_i18n::msg('yform_values_notice_label')],
                 'empty_value'  => [
-                    'type' => 'text',
+                    'type' => 'text',    
                     'label' => rex_i18n::msg('filepond_empty_value_label'),
                     'default' => rex_i18n::msg('filepond_empty_value_default')
                 ]
@@ -195,7 +188,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         $params['searchForm']->setValueField('text', [
             'name' => $params['field']->getName(),
             'label' => $params['field']->getLabel(),
-            'notice' => 'Dateiname eingeben'
+            'notice' => rex_i18n::msg('yform_values_defaults_notice')
         ]);
     }
 
@@ -232,7 +225,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     $media = rex_media::get($file);
                     if ($media) {
                         $fileName = $media->getFileName();
-
+                        
                         if ($media->isImage()) {
                             $thumb = rex_media_manager::getUrl('rex_medialistbutton_preview', $fileName);
                             $downloads[] = sprintf(
@@ -263,7 +256,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     }
                 }
             }
-
+            
             if (!empty($downloads)) {
                 return '<div class="rex-yform-value-mediafile-list">' . implode('', $downloads) . '</div>';
             }
