@@ -32,12 +32,11 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             // Hole Medientabelle
             $mediaTable = rex_sql_table::get(rex::getTable('media'));
             
-            // Füge Spalten hinzu nach med_description, wenn sie nicht existieren
-            if (!$mediaTable->hasColumn('med_alt')) {
-                $mediaTable->addColumn(new rex_sql_column('med_alt', 'text', true), 'med_description');
+           if (!$mediaTable->hasColumn('med_alt')) {
+                $mediaTable->addColumn(new rex_sql_column('med_alt', 'text', true));
             }
             if (!$mediaTable->hasColumn('med_copyright')) {
-                $mediaTable->addColumn(new rex_sql_column('med_copyright', 'text', true), 'med_description');
+                $mediaTable->addColumn(new rex_sql_column('med_copyright', 'text', true));
             }
             
             // Führe die Änderungen aus
