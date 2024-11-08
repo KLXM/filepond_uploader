@@ -1,6 +1,6 @@
 <?php
-// Ausgewählte Kategorie
-$selectedCategory = rex_request('category_id', 'int', rex_config::get('filepond_uploader', 'category_id', 0));
+// Ausgewählte Kategorie hat Vorrang vor der Einstellung aus der Config
+$selectedCategory = rex_request('category_id', 'int', 0);
 
 $selMedia = new rex_media_category_select($checkPerm = true);
 $selMedia->setId('rex-mediapool-category');
