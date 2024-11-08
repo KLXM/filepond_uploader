@@ -1,6 +1,4 @@
-<?php
-
-class rex_yform_value_filepond extends rex_yform_value_abstract
+<?php class rex_yform_value_filepond extends rex_yform_value_abstract
 {
     protected static function cleanValue($value)
     {
@@ -50,15 +48,15 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                         foreach ($yformTables as $table) {
                             foreach ($table->getFields() as $field) {
                                 if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
-                                    $tableName = $sql->escapeIdentifier($table->getTableName());
-                                    $fieldName = $sql->escapeIdentifier($field->getName());
+                                    $tableName = $table->getTableName();
+                                    $fieldName = $field->getName();
                                     $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
                                     $currentId = (int)$this->params['main_id'];
 
-                                    $query = "SELECT id FROM $tableName WHERE $fieldName LIKE ? AND id != ?";
+                                    $query = "SELECT id FROM $tableName WHERE $fieldName LIKE :filename AND id != :id";
                                     
                                     try {
-                                        $result = $sql->getArray($query, [$filePattern, $currentId]);
+                                        $result = $sql->getArray($query, [':filename' => $filePattern, ':id' => $currentId]);
                                         if (count($result) > 0) {
                                             $inUse = true;
                                             break 2;
@@ -109,12 +107,11 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             }
 
             $this->setValue($value);
-
-            if ($value != '') {
-                $this->params['value_pool']['email'][$this->getName()] = $value;
-                if ($this->saveInDb()) {
-                    $this->params['value_pool']['sql'][$this->getName()] = $value;
-                }
+            
+            // Wert immer in die value_pools schreiben, auch wenn leer
+            $this->params['value_pool']['email'][$this->getName()] = $value;
+            if ($this->saveInDb()) {
+                $this->params['value_pool']['sql'][$this->getName()] = $value;
             }
         }
 
@@ -134,7 +131,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         }
 
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
-            'category_id' => $this->getElement('category') ?: 1,
+            'category_id' => $this->getElement('category') ?: rex_config::get('filepond_uploader', 'category_id', 0),
             'value' => $this->getValue(),
             'files' => $files
         ]);
@@ -156,24 +153,25 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                 'category' => [
                     'type' => 'text',   
                     'label' => 'Medienkategorie ID',
-                    'notice' => 'ID der Medienkategorie in die die Dateien geladen werden sollen'
+                    'notice' => 'ID der Medienkategorie in die die Dateien geladen werden sollen',
+                    'default' => (string)rex_config::get('filepond_uploader', 'category_id', 0)
                 ],
                 'allowed_types' => [
                     'type' => 'text',   
                     'label' => 'Erlaubte Dateitypen',
                     'notice' => 'z.B.: image/*,video/*,.pdf',
-                    'default' => 'image/*'
+                    'default' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*')
                 ],
                 'allowed_filesize' => [
                     'type' => 'text',   
                     'label' => 'Maximale Dateigröße (MB)',
                     'notice' => 'Größe in Megabyte',
-                    'default' => '10'
+                    'default' => (string)rex_config::get('filepond_uploader', 'max_filesize', 10)
                 ],
                 'allowed_max_files' => [
                     'type' => 'text',   
                     'label' => 'Maximale Anzahl Dateien',
-                    'default' => '10'
+                    'default' => (string)rex_config::get('filepond_uploader', 'max_files', 10)
                 ],
                 'required' => ['type' => 'boolean', 'label' => 'Pflichtfeld', 'default' => '0'],
                 'notice'   => ['type' => 'text',    'label' => rex_i18n::msg('yform_values_defaults_notice')],

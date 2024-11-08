@@ -214,7 +214,7 @@ $(document).on('rex:ready', function() {
                         formData.append(fieldName, file);
                         formData.append('rex-api-call', 'filepond_uploader');
                         formData.append('func', 'upload');
-                        formData.append('category_id', input.data('filepondCat') || '1');
+                        formData.append('category_id', input.data('filepondCat') || '0');
                         formData.append('metadata', JSON.stringify(fileMetadata));
 
                         const response = await fetch('index.php', {

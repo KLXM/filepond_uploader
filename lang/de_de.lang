@@ -1,21 +1,44 @@
-filepond_uploader = FilePond Uploader
+# General
 filepond_uploader_title = FilePond Uploader
+filepond_description = Modernes Upload-Feld mit Medienpool-Integration
 
-# Subpage Upload
+# Tabs
 filepond_uploader_upload = Upload
-filepond_upload_title = Dateien hochladen
-filepond_upload_category = Kategorie
-filepond_upload_files = Dateien
-filepond_upload_no_category = Keine Kategorie
-
-# Subpage Settings
 filepond_uploader_settings = Einstellungen
+
+# Upload page
+filepond_upload_title = Datei-Upload
+filepond_upload_category = Medien-Kategorie
+filepond_upload_no_category = Keine Kategorie
+filepond_upload_files = Dateien
+
+# Settings page
 filepond_settings_title = Einstellungen
 filepond_settings_saved = Einstellungen wurden gespeichert
 filepond_settings_max_files = Maximale Anzahl Dateien
 filepond_settings_maxsize = Maximale Dateigröße (MB)
 filepond_settings_maxsize_notice = Größe in Megabyte
+filepond_settings_allowed_types = Erlaubte Dateitypen
+filepond_settings_allowed_types_notice = Beispiel: image/*,video/*,.pdf
+filepond_settings_category_id = Standard Medien-Kategorie
+filepond_settings_category_notice = ID der Medienkategorie in die die Dateien geladen werden sollen
+filepond_settings_lang = Standardsprache
+filepond_settings_lang_notice = Beispiel: en_gb, de_de
 
-# Permissions
-perm_general_filepond_uploader[] = FilePond Uploader Rechte
-perm_general_filepond_uploader[settings] = FilePond Uploader: Einstellungen
+# YForm field
+filepond_empty_value_label = Fehlermeldung wenn leer
+filepond_empty_value_default = Bitte wählen Sie eine Datei aus
+filepond_delete_confirm = Möchten Sie diese Datei wirklich löschen?
+
+# Error messages
+filepond_error_no_file = Keine Datei hochgeladen
+filepond_error_file_too_large = Datei ist zu groß
+filepond_error_file_type = Dateityp nicht erlaubt
+filepond_error_upload_failed = Upload fehlgeschlagen
+filepond_error_delete_failed = Datei konnte nicht gelöscht werden
+filepond_error_file_not_found = Datei nicht gefunden
+filepond_error_invalid_function = Ungültige Funktion
+
+# Messages
+filepond_upload_success = Datei erfolgreich hochgeladen
+filepond_delete_success = Datei erfolgreich gelöscht

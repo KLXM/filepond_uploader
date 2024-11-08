@@ -1,12 +1,17 @@
 <?php
+// rex_api_filepond_uploader.php
+
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
 
     public function execute()
     {
-        $func = rex_request('func', 'string', '');
-        $categoryId = rex_request('category_id', 'int', 1);
+        
+     $func = rex_request('func', 'string', '');
+     $categoryId = rex_request('category_id', 'int', 0);  
+        rex_logger::factory()->log('debug', 'FilePond API called with category_id: ' . $categoryId . ' and func: ' . $func);
+    
         
         try {
             switch ($func) {
@@ -38,7 +43,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
-protected function handleUpload($categoryId)
+    protected function handleUpload($categoryId)
 {
     if (!isset($_FILES['filepond'])) {
         rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
@@ -47,6 +52,44 @@ protected function handleUpload($categoryId)
 
     $file = $_FILES['filepond'];
     
+    // Validate file size
+    $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024; // Convert MB to bytes
+    if ($file['size'] > $maxSize) {
+        throw new rex_api_exception('File too large');
+    }
+
+    // Validate file type
+    $allowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
+    $allowedTypes = array_map('trim', explode(',', $allowedTypes));
+    $isAllowed = false;
+    
+    foreach ($allowedTypes as $type) {
+        if (strpos($type, '*') !== false) {
+            // Handle wildcard mime types (e.g., image/*)
+            $baseType = str_replace('*', '', $type);
+            if (strpos($file['type'], $baseType) === 0) {
+                $isAllowed = true;
+                break;
+            }
+        } elseif (strpos($type, '.') === 0) {
+            // Handle file extensions (e.g., .pdf)
+            if (strtolower(substr($file['name'], -strlen($type))) === strtolower($type)) {
+                $isAllowed = true;
+                break;
+            }
+        } else {
+            // Handle exact mime types
+            if ($file['type'] === $type) {
+                $isAllowed = true;
+                break;
+            }
+        }
+    }
+
+    if (!$isAllowed) {
+        throw new rex_api_exception('File type not allowed');
+    }
+    
     // Generate unique filename
     $originalName = $file['name'];
     $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
@@ -54,6 +97,11 @@ protected function handleUpload($categoryId)
     // Get metadata
     $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
     
+    // Use provided category if valid, otherwise fall back to config default
+    if (!isset($categoryId) || $categoryId < 0) {
+        $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
+    }
+
     // Add to media pool
     $data = [
         'title' => $metadata['title'] ?? $filename,
@@ -78,18 +126,12 @@ protected function handleUpload($categoryId)
             $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
             $sql->update();
 
-            // Log success
-           # rex_logger::factory()->log('info', 'File uploaded successfully: ' . $result['filename']);
             return $result['filename'];
         }
         
-        // Log error details
-       # rex_logger::factory()->log('error', 'Upload failed with messages: ' . implode(', ', $result['messages']));
         throw new rex_api_exception(implode(', ', $result['messages']));
 
     } catch (Exception $e) {
-        // Log error
-        rex_logger::factory()->log('error', 'Error during upload: ' . $e->getMessage());
         throw new rex_api_exception('Upload failed: ' . $e->getMessage());
     }
 }
@@ -97,7 +139,6 @@ protected function handleUpload($categoryId)
     protected function handleDelete()
     {
         $filename = trim(rex_request('filename', 'string', ''));
-        # rex_logger::factory()->log('debug', 'Attempting to delete file: ' . $filename);
         
         if (empty($filename)) {
             throw new rex_api_exception('Missing filename');
@@ -107,7 +148,7 @@ protected function handleUpload($categoryId)
             // Prüfe ob die Datei im Medienpool existiert
             $media = rex_media::get($filename);
             if ($media) {
-                // Prüfe ob die Datei noch in anderen Datensätzen verwendet wird
+                // Prüfe ob die Datei noch von anderen Datensätzen verwendet wird
                 $inUse = false;
                 
                 // Alle YForm Tabellen durchsuchen
@@ -117,16 +158,19 @@ protected function handleUpload($categoryId)
                 foreach ($yformTables as $table) {
                     foreach ($table->getFields() as $field) {
                         if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
-                            $query = "SELECT id FROM " . $table->getTableName() . " WHERE " . 
-                                    $field->getName() . " LIKE :filename";
+                            $tableName = $sql->escapeIdentifier($table->getTableName());
+                            $fieldName = $sql->escapeIdentifier($field->getName());
+                            $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
+                            $query = "SELECT id FROM $tableName WHERE $fieldName LIKE :filename";
                             
-                            # rex_logger::factory()->log('debug', 'Checking table: ' . $table->getTableName() . ' with query: ' . $query);
-                            
-                            $result = $sql->getArray($query, ['filename' => '%' . $filename . '%']);
-                            if (count($result) > 0) {
-                                $inUse = true;
-                                # rex_logger::factory()->log('debug', 'File still in use in table: ' . $table->getTableName());
-                                break 2;
+                            try {
+                                $result = $sql->getArray($query, [':filename' => $filePattern]);
+                                if (count($result) > 0) {
+                                    $inUse = true;
+                                    break 2;
+                                }
+                            } catch (Exception $e) {
+                                continue;
                             }
                         }
                     }
@@ -134,7 +178,6 @@ protected function handleUpload($categoryId)
 
                 // Nur löschen wenn die Datei nicht mehr verwendet wird
                 if (!$inUse) {
-                    # rex_logger::factory()->log('debug', 'Deleting file from mediapool: ' . $filename);
                     if (rex_media_service::deleteMedia($filename)) {
                         rex_response::sendJson(['status' => 'success']);
                         exit;
@@ -143,18 +186,15 @@ protected function handleUpload($categoryId)
                     }
                 } else {
                     // Wenn die Datei noch verwendet wird, senden wir trotzdem Erfolg
-                    # rex_logger::factory()->log('debug', 'File still in use, not deleting from mediapool: ' . $filename);
                     rex_response::sendJson(['status' => 'success']);
                     exit;
                 }
             } else {
                 // Datei existiert nicht im Medienpool
-                # rex_logger::factory()->log('debug', 'File does not exist in mediapool: ' . $filename);
                 rex_response::sendJson(['status' => 'success']);
                 exit;
             }
         } catch (rex_api_exception $e) {
-            rex_logger::factory()->log('error', 'Error deleting file: ' . $e->getMessage());
             throw new rex_api_exception('Error deleting file: ' . $e->getMessage());
         }
     }
