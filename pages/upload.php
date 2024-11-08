@@ -51,7 +51,7 @@ $content = '
         </div>
     </form>
 </div>
-';
+';?>
 <script>
 document.addEventListener("rex:ready", function() {
     $("#rex-mediapool-category").on("change", function() {
