@@ -56,12 +56,14 @@ $content = '
 $(document).on("rex:ready", function() {
     $("#rex-mediapool-category").on("change", function() {
         const newCategory = $(this).val();
-        alert(newCategory);
-        $("#filepond-upload").attr("data-filepond-cat", newCategory);
+        const $input = $("#filepond-upload");
+        $input.attr("data-filepond-cat", newCategory);
         
         const pondElement = document.querySelector("#filepond-upload");
         if (pondElement && pondElement.FilePond) {
             pondElement.FilePond.removeFiles();
+            // FilePond neu initialisieren
+            document.dispatchEvent(new Event('filepond:init'));
         }
     });
 });
