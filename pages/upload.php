@@ -51,6 +51,7 @@ $content .= '
                             data-widget="filepond"
                             data-filepond-cat="'.$selectedCategory.'"
                             data-filepond-maxfiles="1000"
+                            data-filepond-maxsize="'.$settings['max_filesize'].'"
                             data-filepond-lang="'. $langCode .'"
                             value=""
                         >
