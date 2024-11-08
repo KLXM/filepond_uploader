@@ -41,97 +41,97 @@ class rex_api_filepond_uploader extends rex_api_function
     }
 
     protected function handleUpload($categoryId)
-    {
-        if (!isset($_FILES['filepond'])) {
-            rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
-            throw new rex_api_exception('No file uploaded');
-        }
+{
+    if (!isset($_FILES['filepond'])) {
+        rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
+        throw new rex_api_exception('No file uploaded');
+    }
 
-        $file = $_FILES['filepond'];
-        
-        // Validate file size
-        $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024; // Convert MB to bytes
-        if ($file['size'] > $maxSize) {
-            throw new rex_api_exception('File too large');
-        }
+    $file = $_FILES['filepond'];
+    
+    // Validate file size
+    $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024; // Convert MB to bytes
+    if ($file['size'] > $maxSize) {
+        throw new rex_api_exception('File too large');
+    }
 
-        // Validate file type
-        $allowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
-        $allowedTypes = array_map('trim', explode(',', $allowedTypes));
-        $isAllowed = false;
-        
-        foreach ($allowedTypes as $type) {
-            if (strpos($type, '*') !== false) {
-                // Handle wildcard mime types (e.g., image/*)
-                $baseType = str_replace('*', '', $type);
-                if (strpos($file['type'], $baseType) === 0) {
-                    $isAllowed = true;
-                    break;
-                }
-            } elseif (strpos($type, '.') === 0) {
-                // Handle file extensions (e.g., .pdf)
-                if (strtolower(substr($file['name'], -strlen($type))) === strtolower($type)) {
-                    $isAllowed = true;
-                    break;
-                }
-            } else {
-                // Handle exact mime types
-                if ($file['type'] === $type) {
-                    $isAllowed = true;
-                    break;
-                }
+    // Validate file type
+    $allowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
+    $allowedTypes = array_map('trim', explode(',', $allowedTypes));
+    $isAllowed = false;
+    
+    foreach ($allowedTypes as $type) {
+        if (strpos($type, '*') !== false) {
+            // Handle wildcard mime types (e.g., image/*)
+            $baseType = str_replace('*', '', $type);
+            if (strpos($file['type'], $baseType) === 0) {
+                $isAllowed = true;
+                break;
             }
-        }
-
-        if (!$isAllowed) {
-            throw new rex_api_exception('File type not allowed');
-        }
-        
-        // Generate unique filename
-        $originalName = $file['name'];
-        $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
-        
-        // Get metadata
-        $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
-        
-        // Use default category if none provided
-        if ($categoryId <= 0) {
-            $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
-        }
-
-        // Add to media pool
-        $data = [
-            'title' => $metadata['title'] ?? $filename,
-            'category_id' => $categoryId,
-            'file' => [
-                'name' => $originalName,
-                'tmp_name' => $file['tmp_name'],
-                'type' => $file['type'],
-                'size' => $file['size']
-            ]
-        ];
-
-        try {
-            $result = rex_media_service::addMedia($data, true);
-            if ($result['ok']) {
-                // Update metadata
-                $sql = rex_sql::factory();
-                $sql->setTable(rex::getTable('media'));
-                $sql->setWhere(['filename' => $result['filename']]);
-                $sql->setValue('title', $metadata['title'] ?? '');
-                $sql->setValue('med_alt', $metadata['alt'] ?? '');
-                $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
-                $sql->update();
-
-                return $result['filename'];
+        } elseif (strpos($type, '.') === 0) {
+            // Handle file extensions (e.g., .pdf)
+            if (strtolower(substr($file['name'], -strlen($type))) === strtolower($type)) {
+                $isAllowed = true;
+                break;
             }
-            
-            throw new rex_api_exception(implode(', ', $result['messages']));
-
-        } catch (Exception $e) {
-            throw new rex_api_exception('Upload failed: ' . $e->getMessage());
+        } else {
+            // Handle exact mime types
+            if ($file['type'] === $type) {
+                $isAllowed = true;
+                break;
+            }
         }
     }
+
+    if (!$isAllowed) {
+        throw new rex_api_exception('File type not allowed');
+    }
+    
+    // Generate unique filename
+    $originalName = $file['name'];
+    $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
+    
+    // Get metadata
+    $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
+    
+    // Use provided category if valid, otherwise fall back to config default
+    if (!isset($categoryId) || $categoryId < 0) {
+        $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
+    }
+
+    // Add to media pool
+    $data = [
+        'title' => $metadata['title'] ?? $filename,
+        'category_id' => $categoryId,
+        'file' => [
+            'name' => $originalName,
+            'tmp_name' => $file['tmp_name'],
+            'type' => $file['type'],
+            'size' => $file['size']
+        ]
+    ];
+
+    try {
+        $result = rex_media_service::addMedia($data, true);
+        if ($result['ok']) {
+            // Update metadata
+            $sql = rex_sql::factory();
+            $sql->setTable(rex::getTable('media'));
+            $sql->setWhere(['filename' => $result['filename']]);
+            $sql->setValue('title', $metadata['title'] ?? '');
+            $sql->setValue('med_alt', $metadata['alt'] ?? '');
+            $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+            $sql->update();
+
+            return $result['filename'];
+        }
+        
+        throw new rex_api_exception(implode(', ', $result['messages']));
+
+    } catch (Exception $e) {
+        throw new rex_api_exception('Upload failed: ' . $e->getMessage());
+    }
+}
 
     protected function handleDelete()
     {
