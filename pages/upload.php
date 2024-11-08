@@ -53,22 +53,18 @@ $content = '
 </div>
 ';?>
 <script>
-document.addEventListener("rex:ready", function() {
+$(document).on("rex:ready", function() {
     $("#rex-mediapool-category").on("change", function() {
         const newCategory = $(this).val();
-        const $filepond = $("#filepond-upload");
+        alert(newCategory);
+        $("#filepond-upload").attr("data-filepond-cat", newCategory);
         
-        // Update data attribute
-        $filepond.attr("data-filepond-cat", newCategory);
-        
-        // Update FilePond server URL
         const pondElement = document.querySelector("#filepond-upload");
-        if (pondElement && pondElement._pond) {
-            pondElement._pond.server.process.url = 'index.php?rex-api-call=filepond_uploader&func=upload&category_id=' + newCategory;
-            pondElement._pond.removeFiles();
+        if (pondElement && pondElement.FilePond) {
+            pondElement.FilePond.removeFiles();
         }
     });
-});?>
+});
 </script>
 <?php 
 // Fragment ausgeben
