@@ -3,6 +3,7 @@
 if (rex::isBackend() && rex::getUser()?->isAdmin()) {
 
     $addon = rex_addon::get('filepond_uploader');
+    $message = '';
 
     // Generate API token if not exists
     if (!rex_config::get('filepond_uploader', 'api_token')) {
@@ -23,8 +24,6 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         $message .= '<p><strong>Wichtig:</strong> Bewahren Sie den Token sicher auf. Er wird später nur noch verschlüsselt angezeigt.</p>';
         $message .= '</div>';
 
-        $addon->setProperty('successmsg', $message);
-        
         // Log token generation
         rex_logger::factory()->log('info', 'FilePond API: Generated new API token');
     }
@@ -115,6 +114,10 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
                 if (!rex_config::has('filepond_uploader', $key)) {
                     rex_config::set('filepond_uploader', $key, $value);
                 }
+            }
+
+            if ($message) {
+                $addon->setProperty('successmsg', $message);
             }
 
         } catch (rex_sql_exception $e) {
