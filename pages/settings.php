@@ -60,6 +60,15 @@ if (rex_post('btn_save', 'string') !== '') {
     }
 }
 
+// MediaCategory Select vorbereiten
+$mediaSelect = new rex_media_category_select();
+$mediaSelect->setName('category_id');
+$mediaSelect->setId('category_id');
+$mediaSelect->setSize(1);
+$mediaSelect->setAttribute('class', 'form-control selectpicker');
+$mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
+$mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
+
 // Formular erstellen
 $content = '<div class="rex-form">
     <form action="' . rex_url::currentBackendPage() . '" method="post">
@@ -147,14 +156,7 @@ $content = '<div class="rex-form">
                         <div class="col-sm-6">
                             <div class="form-group">
                                 <label for="category_id">' . $addon->i18n('filepond_settings_category_id') . '</label>
-                                ' . rex_media_category_select::factory()
-                                    ->setName('category_id')
-                                    ->setId('category_id')
-                                    ->setSize(1)
-                                    ->setAttribute('class', 'form-control selectpicker')
-                                    ->setSelected(rex_config::get('filepond_uploader', 'category_id', 0))
-                                    ->addOption($addon->i18n('filepond_upload_no_category'), 0)
-                                    ->get() . '
+                                ' . $mediaSelect->get() . '
                                 <p class="help-block">' . $addon->i18n('filepond_settings_category_notice') . '</p>
                             </div>
                         </div>
