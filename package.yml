@@ -4,8 +4,8 @@ author: 'Friends Of REDAXO'
 supportpage: github.com/FriendsOfREDAXO/filepond_uploader
 
 requires:
-    php: '>=7.4'
-    redaxo: '^5.13'
+    php: '>=8.1'
+    redaxo: '^5.17.1'
     packages:
         yform: '>=4.0.0'
         metainfo: '>=2.0.0'
