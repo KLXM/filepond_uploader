@@ -2,6 +2,16 @@
 
 if (rex::isBackend() && rex::getUser()?->isAdmin()) {
 
+    // Generate API token if not exists
+    if (!rex_config::get('filepond_uploader', 'api_token')) {
+        // Generate a secure random token
+        $token = bin2hex(random_bytes(32));
+        rex_config::set('filepond_uploader', 'api_token', $token);
+        
+        // Log token generation
+        rex_logger::factory()->log('info', 'FilePond API: Generated new API token');
+    }
+
     // Prüfe ob die Metainfo-Tabelle existiert
     $sql = rex_sql::factory();
     $sql->setQuery('SHOW TABLES LIKE "' . rex::getTable('metainfo_field') . '"');
@@ -41,7 +51,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             }
             
             // Führe die Änderungen aus
-            $mediaTable->alter();
+            $mediaTable->ensure();
             
             // Erstelle Metainfo Felder
             foreach ($fields as $name => $field) {
@@ -76,7 +86,28 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
                 mkdir($uploadPath, 0775, true);
             }
 
+            // Default-Konfiguration setzen
+            if (!rex_config::get('filepond_uploader', 'max_files')) {
+                rex_config::set('filepond_uploader', 'max_files', 30);
+            }
+            if (!rex_config::get('filepond_uploader', 'max_filesize')) {
+                rex_config::set('filepond_uploader', 'max_filesize', 10);
+            }
+            if (!rex_config::get('filepond_uploader', 'allowed_types')) {
+                rex_config::set('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
+            }
+            if (!rex_config::get('filepond_uploader', 'category_id')) {
+                rex_config::set('filepond_uploader', 'category_id', 0);
+            }
+
+            // Success message for user
+            if ($token = rex_config::get('filepond_uploader', 'api_token')) {
+                rex_logger::factory()->log('info', 'FilePond API: Installation completed successfully');
+                echo rex_view::success('Installation successful! Your API token is: <strong>' . $token . '</strong><br>Please save this token in a secure place.');
+            }
+
         } catch (rex_sql_exception $e) {
+            rex_logger::factory()->log('error', 'FilePond API: Installation error - ' . $e->getMessage());
             throw new rex_functional_exception($e->getMessage());
         }
     }
