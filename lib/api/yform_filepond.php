@@ -1,52 +1,45 @@
 <?php
-// rex_api_filepond_uploader.php
-
 class rex_api_filepond_uploader extends rex_api_function
 {
-    // API ist nicht öffentlich zugänglich
-    protected $published = false;
-
-    /**
-     * Check API permission
-     * @return bool
-     */
-    public function hasPermission()
-    {
-        // Get API token from config
-        $apiToken = rex_config::get('filepond_uploader', 'api_token');
-        
-        // Check if request has valid API token
-        $requestToken = rex_request('api_token', 'string', null);
-        $isValidToken = $requestToken && hash_equals($apiToken, $requestToken);
-
-        // Check if user is authenticated backend user
-        $isBackendUser = rex::isBackend() && rex::getUser();
-        
-        // Check if user is authenticated YCom user
-        $isYComUser = false;
-        if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
-            $ycomUser = rex_ycom_auth::getUser();
-            $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
-        }
-
-        // Log access type for debugging
-        if ($isValidToken) {
-            rex_logger::factory()->log('debug', 'FilePond API: Access via token');
-        } elseif ($isBackendUser) {
-            rex_logger::factory()->log('debug', 'FilePond API: Access via backend user: ' . rex::getUser()->getLogin());
-        } elseif ($isYComUser) {
-            rex_logger::factory()->log('debug', 'FilePond API: Access via YCom user: ' . $ycomUser->getValue('login'));
-        } else {
-            rex_logger::factory()->log('warning', 'FilePond API: Unauthorized access attempt');
-        }
-
-        // Return true if any authentication method is valid
-        return $isValidToken || $isBackendUser || $isYComUser;
-    }
+    // API ist öffentlich, wir prüfen selbst
+    protected $published = true;
 
     public function execute()
     {
         try {
+            // Prüfe Berechtigungen
+            if (rex::isBackend()) {
+                // Im Backend muss der User eingeloggt sein
+                if (!rex::getUser()) {
+                    throw new rex_api_exception('Backend user must be logged in');
+                }
+                rex_logger::factory()->log('debug', 'FilePond API: Access via Backend user: ' . rex::getUser()->getLogin());
+                
+            } else {
+                // Im Frontend: Prüfe YCom User oder API Token
+                $isYComUser = false;
+                if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
+                    $ycomUser = rex_ycom_auth::getUser();
+                    $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
+                }
+                
+                // API Token Check
+                $apiToken = rex_config::get('filepond_uploader', 'api_token');
+                $requestToken = rex_request('api_token', 'string', null);
+                $isValidToken = $requestToken && hash_equals($apiToken, $requestToken);
+
+                if (!$isValidToken && !$isYComUser) {
+                    throw new rex_api_exception('Unauthorized access - requires valid API token or YCom login');
+                }
+
+                // Log access type
+                if ($isValidToken) {
+                    rex_logger::factory()->log('debug', 'FilePond API: Access via token');
+                } elseif ($isYComUser) {
+                    rex_logger::factory()->log('debug', 'FilePond API: Access via YCom user: ' . $ycomUser->getValue('login'));
+                }
+            }
+
             $func = rex_request('func', 'string', '');
             $categoryId = rex_request('category_id', 'int', 0);  
             rex_logger::factory()->log('debug', 'FilePond API called with category_id: ' . $categoryId . ' and func: ' . $func);
@@ -77,7 +70,7 @@ class rex_api_filepond_uploader extends rex_api_function
                     throw new rex_api_exception('Invalid function');
             }
         } catch (Exception $e) {
-            rex_logger::factory()->log('error', 'API Error: ' . $e->getMessage());
+            rex_logger::factory()->log('error', 'FilePond API Error: ' . $e->getMessage());
             rex_response::cleanOutputBuffers();
             rex_response::setStatus(rex_response::HTTP_INTERNAL_ERROR);
             rex_response::sendJson(['error' => $e->getMessage()]);
@@ -168,14 +161,14 @@ class rex_api_filepond_uploader extends rex_api_function
                 $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
                 $sql->update();
 
-                rex_logger::factory()->log('info', 'File uploaded successfully: ' . $result['filename']);
+                rex_logger::factory()->log('info', 'FilePond API: File uploaded successfully: ' . $result['filename']);
                 return $result['filename'];
             }
             
             throw new rex_api_exception(implode(', ', $result['messages']));
 
         } catch (Exception $e) {
-            rex_logger::factory()->log('error', 'Upload failed: ' . $e->getMessage());
+            rex_logger::factory()->log('error', 'FilePond API: Upload failed: ' . $e->getMessage());
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
     }
@@ -183,7 +176,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected function handleDelete()
     {
         $filename = trim(rex_request('filename', 'string', ''));
-        rex_logger::factory()->log('debug', 'Attempting to delete file: ' . $filename);
+        rex_logger::factory()->log('debug', 'FilePond API: Attempting to delete file: ' . $filename);
         
         if (empty($filename)) {
             throw new rex_api_exception('Missing filename');
@@ -212,6 +205,7 @@ class rex_api_filepond_uploader extends rex_api_function
                                 $result = $sql->getArray($query, [':filename' => $filePattern]);
                                 if (count($result) > 0) {
                                     $inUse = true;
+                                    rex_logger::factory()->log('debug', 'FilePond API: File still in use in table: ' . $table->getTableName());
                                     break 2;
                                 }
                             } catch (Exception $e) {
@@ -224,6 +218,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 // Only delete if file is not used anymore
                 if (!$inUse) {
                     if (rex_media_service::deleteMedia($filename)) {
+                        rex_logger::factory()->log('info', 'FilePond API: File deleted successfully: ' . $filename);
                         rex_response::sendJson(['status' => 'success']);
                         exit;
                     } else {
@@ -240,7 +235,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 exit;
             }
         } catch (rex_api_exception $e) {
-            rex_logger::factory()->log('error', 'Error deleting file: ' . $e->getMessage());
+            rex_logger::factory()->log('error', 'FilePond API: Error deleting file: ' . $e->getMessage());
             throw new rex_api_exception('Error deleting file: ' . $e->getMessage());
         }
     }
