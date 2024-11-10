@@ -10,13 +10,14 @@ Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqin
 - 🎭 Moderne Drag & Drop Oberfläche 
 - 👁️ Live-Vorschau während des Uploads
 - ♿️ Barrierefreiheit: Erzwungene Alt-Texte / / Meta wird angelegt, wenn nicht vorhanden
-- ⚖️ Rechtssicherheit Copyright-Abfrage / Meta wird angelegt, wenn nicht vorhanden
+- ⚖️ Rechtssicherheit Copyright-Abfrage / optional
 - 🌍 Mehrsprachig (DE/EN)
 - 📦 Nahtlose Medienpool-Integration
 - 📋 YForm-Value mit automatischer Löschung der Medien, wenn nicht verwendet
 - ⚡ Asynchrone Uploads
 - 📱 Responsive Design
 - 🛡️ Validierung von Dateitypen und -größen
+- 🔒 Abgesichert via API_Token und Benutzerprüfung, auch YCOM
 
 ## Installation
 
