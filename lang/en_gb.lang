@@ -42,3 +42,17 @@ filepond_error_invalid_function = Invalid function
 # Messages
 filepond_upload_success = File successfully uploaded
 filepond_delete_success = File successfully deleted
+
+# Token Settings
+filepond_token_section = API Token Settings
+filepond_current_token = Current API Token
+filepond_copy_token = Copy Token
+filepond_token_help = Use this token for API access from external applications.
+filepond_regenerate_token = Regenerate Token
+filepond_regenerate_token_warning = Warning: Existing API integrations must be updated with the new token!
+filepond_regenerate_token_confirm = Are you sure? All existing API integrations must be updated!
+filepond_token_regenerated = API Token has been regenerated.
+
+# General Settings
+filepond_general_settings = General Settings
+filepond_save = Save
