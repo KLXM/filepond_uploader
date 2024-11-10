@@ -2,11 +2,28 @@
 
 if (rex::isBackend() && rex::getUser()?->isAdmin()) {
 
+    $addon = rex_addon::get('filepond_uploader');
+
     // Generate API token if not exists
     if (!rex_config::get('filepond_uploader', 'api_token')) {
         // Generate a secure random token
         $token = bin2hex(random_bytes(32));
         rex_config::set('filepond_uploader', 'api_token', $token);
+        
+        // Set success message with token
+        $message = '<div class="alert alert-info">';
+        $message .= '<p><strong>Installation erfolgreich!</strong></p>';
+        $message .= '<p>Ihr API-Token wurde generiert. Bitte notieren Sie sich den Token, er wird aus Sicherheitsgründen nur einmal angezeigt:</p>';
+        $message .= '<div class="input-group" style="margin: 10px 0;">';
+        $message .= '<input type="text" class="form-control" id="initial-token" value="' . rex_escape($token) . '" readonly>';
+        $message .= '<span class="input-group-btn">';
+        $message .= '<clipboard-copy for="initial-token" class="btn btn-default"><i class="fa fa-clipboard"></i> Token kopieren</clipboard-copy>';
+        $message .= '</span>';
+        $message .= '</div>';
+        $message .= '<p><strong>Wichtig:</strong> Bewahren Sie den Token sicher auf. Er wird später nur noch verschlüsselt angezeigt.</p>';
+        $message .= '</div>';
+
+        $addon->setProperty('successmsg', $message);
         
         // Log token generation
         rex_logger::factory()->log('info', 'FilePond API: Generated new API token');
@@ -17,7 +34,6 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
     $sql->setQuery('SHOW TABLES LIKE "' . rex::getTable('metainfo_field') . '"');
     
     if ($sql->getRows() > 0) {
-        
         // Prüfe ob die notwendigen Felder bereits existieren
         $fields = [
             'med_alt' => [
@@ -87,23 +103,18 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             }
 
             // Default-Konfiguration setzen
-            if (!rex_config::get('filepond_uploader', 'max_files')) {
-                rex_config::set('filepond_uploader', 'max_files', 30);
-            }
-            if (!rex_config::get('filepond_uploader', 'max_filesize')) {
-                rex_config::set('filepond_uploader', 'max_filesize', 10);
-            }
-            if (!rex_config::get('filepond_uploader', 'allowed_types')) {
-                rex_config::set('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
-            }
-            if (!rex_config::get('filepond_uploader', 'category_id')) {
-                rex_config::set('filepond_uploader', 'category_id', 0);
-            }
+            $defaultConfigs = [
+                'max_files' => 30,
+                'max_filesize' => 10,
+                'allowed_types' => 'image/*,video/*,.pdf,.doc,.docx,.txt',
+                'category_id' => 0,
+                'lang' => rex_i18n::getLanguage()
+            ];
 
-            // Success message for user
-            if ($token = rex_config::get('filepond_uploader', 'api_token')) {
-                rex_logger::factory()->log('info', 'FilePond API: Installation completed successfully');
-                echo rex_view::success('Installation successful! Your API token is: <strong>' . $token . '</strong><br>Please save this token in a secure place.');
+            foreach ($defaultConfigs as $key => $value) {
+                if (!rex_config::has('filepond_uploader', $key)) {
+                    rex_config::set('filepond_uploader', $key, $value);
+                }
             }
 
         } catch (rex_sql_exception $e) {
