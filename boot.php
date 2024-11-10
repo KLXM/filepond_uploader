@@ -1,19 +1,12 @@
 <?php
-if (rex::isBackend()) {
-    rex_yform::addTemplatePath($this->getPath('ytemplates'));
-}
 
+rex_yform::addTemplatePath($this->getPath('ytemplates'));
 
-if (rex::isBackend()) {
-    rex_yform::addTemplatePath($this->getPath('ytemplates'));
-}
-
-// Assets für Backend und Frontend
-if (rex::isBackend() && rex::getUser() || rex::isFrontend()) {
+// Assets für Backend
+if (rex::isBackend() && rex::getUser()) {
     // CSS
     rex_view::addCssFile($this->getAssetsUrl('filepond/filepond.css'));
     rex_view::addCssFile($this->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.css'));
-    
     rex_view::addCssFile($this->getAssetsUrl('filepond_widget.css'));
     
     // JavaScript
