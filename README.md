@@ -100,7 +100,7 @@ foreach($files as $file) {
 | data-filepond-maxfiles | Max. Anzahl Dateien | 10 |
 | data-filepond-types | Erlaubte Dateitypen | image/* |
 | data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
-| data-filepond-lang | Sprache (de/en) | en |
+| data-filepond-lang | Sprache (de/en) | de_de |
 
 ### Erlaubte Dateitypen
 
