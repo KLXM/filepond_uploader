@@ -200,11 +200,13 @@ class SimpleModal {
                 }
             }
 
-            /* Grid System */
+        
             .simple-modal-grid {
-                display: grid;
-                gap: var(--modal-padding);
-            }
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: var(--modal-padding);
+}
+
 
             .simple-modal-col-4 {
                 grid-column: span 4;
