@@ -98,7 +98,7 @@ class SimpleModal {
                 margin: 0;
                 font-size: 1.2rem;
                 font-weight: normal;
-                color: var(--modal-color-text);
+                color: var(--modal-color-header-text);
             }
 
             .simple-modal-close {
