@@ -145,9 +145,3 @@ class filepond_helper {
         ));
     }
 }
-
-// Load assets in backend if user is logged in
-if (rex::isBackend() && rex::getUser()) {
-    filepond_helper::getStyles();
-    filepond_helper::getScripts();
-}
