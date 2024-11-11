@@ -2,14 +2,13 @@
 
 Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqina.nl/filepond/) Framework. Der Uploader wurde mit Fokus auf Barrierefreiheit, UX und rechtliche Anforderungen entwickelt.
 
-
 🚨 Achtung noch nicht für den produktiven Einsatz. Hier wird noch debugt und optimiert. 
 
 ## Features
 
 - 🎭 Moderne Drag & Drop Oberfläche 
 - 👁️ Live-Vorschau während des Uploads
-- ♿️ Barrierefreiheit: Erzwungene Alt-Texte / / Meta wird angelegt, wenn nicht vorhanden
+- ♿️ Barrierefreiheit: Erzwungene Alt-Texte / / Metafeld wird angelegt, wenn nicht vorhanden
 - ⚖️ Rechtssicherheit Copyright-Abfrage / optional
 - 🌍 Mehrsprachig (DE/EN)
 - 📦 Nahtlose Medienpool-Integration
@@ -29,8 +28,6 @@ Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqin
 
 ### Als YForm Feldtyp
 
-Im Table Manager ein neues Feld anlegen:
-
 ```php
 $yform->setValueField('filepond', [
     'name' => 'bilder',
@@ -41,6 +38,8 @@ $yform->setValueField('filepond', [
     'category' => 1
 ]);
 ```
+> Das YForm-Value ist nur eine Möglichkeit in YForm, es kann auch ein normales Input per JSON mit Attributen ausgezeichnet werden, dadurch entfällt das automatische Löschen.  
+
 
 ### Als Modul
 
@@ -203,10 +202,11 @@ npm install
 npm run build 
 ```
 
-## Tipps & Tricks
+## Hinweise
 
 - Maximale Dateigröße wird auch serverseitig geprüft
 - Copyright-Feld ist optional, Title und Alt-Text Pflicht
+- ALT-Text ist und bleibt Pflicht. Wer es nicht will, darf einen PR liefern um es abschalten zu können. 
 - Uploads landen automatisch im Medienpool
 - Metadaten werden im Medienpool gespeichert
 - Videos werden direkt im Upload-Dialog previewt
