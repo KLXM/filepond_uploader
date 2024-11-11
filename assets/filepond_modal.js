@@ -6,33 +6,66 @@ class SimpleModal {
 
         const style = document.createElement('style');
         style.textContent = `
+            :root {
+                /* Colors */
+                --modal-primary: #3bb594;
+                --modal-primary-hover: #318c73;
+                --modal-background: #fff;
+                --modal-backdrop: rgba(40, 53, 66, .95);
+                --modal-header-bg: #283542;
+                --modal-header-color: #fff;
+                --modal-footer-bg: #f3f6fb;
+                --modal-border-color: #e9ecef;
+                --modal-shadow: rgba(40, 53, 66, .2);
+                --modal-text: #495057;
+                --modal-text-light: #6c757d;
+                --modal-close-opacity: 0.75;
+                
+                /* Sizes */
+                --modal-width: 800px;
+                --modal-max-width: 90%;
+                --modal-max-height: 90vh;
+                --modal-border-radius: 4px;
+                --modal-padding: 20px;
+                --modal-header-padding: 15px 20px;
+                --modal-footer-padding: 15px 20px;
+                
+                /* Fonts */
+                --modal-font-size: 14px;
+                --modal-title-size: 1.2rem;
+                --modal-line-height: 1.5;
+                
+                /* Animations */
+                --modal-animation-duration: 0.3s;
+                --modal-animation-timing: ease-in-out;
+            }
+
             .simple-modal {
                 position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(40, 53, 66, .95);
+                inset: 0;
+                background: var(--modal-backdrop);
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                z-index: 1000;
+                z-index: 10000;
                 opacity: 0;
-                transition: opacity 0.3s ease-in-out;
+                transition: opacity var(--modal-animation-duration) var(--modal-animation-timing);
+                padding: calc(var(--modal-padding) * 2);
             }
 
             .simple-modal-content {
-                background: #fff;
-                border-radius: 4px;
-                max-width: 90%;
-                max-height: 90vh;
+                background: var(--modal-background);
+                border-radius: var(--modal-border-radius);
+                width: var(--modal-width);
+                max-width: var(--modal-max-width);
+                max-height: var(--modal-max-height);
                 overflow: auto;
                 position: relative;
-                width: 800px;
-                transform: translateY(-20px);
+                transform: translateY(-20px) scale(0.95);
                 opacity: 0;
-                transition: all 0.3s ease-in-out;
-                box-shadow: 0 10px 25px rgba(40, 53, 66, .2);
+                transition: all var(--modal-animation-duration) var(--modal-animation-timing);
+                box-shadow: 0 10px 25px var(--modal-shadow);
+                margin: auto;
             }
 
             .simple-modal.show {
@@ -40,16 +73,16 @@ class SimpleModal {
             }
 
             .simple-modal.show .simple-modal-content {
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
                 opacity: 1;
             }
 
             .simple-modal-header {
-                padding: 15px 20px;
-                background: #283542;
-                color: white;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
+                padding: var(--modal-header-padding);
+                background: var(--modal-header-bg);
+                color: var(--modal-header-color);
+                border-top-left-radius: var(--modal-border-radius);
+                border-top-right-radius: var(--modal-border-radius);
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -57,86 +90,86 @@ class SimpleModal {
 
             .simple-modal-header h2 {
                 margin: 0;
-                font-size: 1.2rem;
+                font-size: var(--modal-title-size);
                 font-weight: normal;
-                color: white;
+                color: var(--modal-header-color);
             }
 
             .simple-modal-body {
-                padding: 20px;
+                padding: var(--modal-padding);
             }
 
             .simple-modal-footer {
-                padding: 15px 20px;
-                background: #f3f6fb;
-                border-bottom-left-radius: 4px;
-                border-bottom-right-radius: 4px;
+                padding: var(--modal-footer-padding);
+                background: var(--modal-footer-bg);
+                border-bottom-left-radius: var(--modal-border-radius);
+                border-bottom-right-radius: var(--modal-border-radius);
                 text-align: right;
-                border-top: 1px solid #e9ecef;
+                border-top: 1px solid var(--modal-border-color);
             }
 
             .simple-modal-close {
-                color: white;
+                color: var(--modal-header-color);
                 border: none;
                 background: none;
-                font-size: 24px;
+                font-size: calc(var(--modal-title-size) * 1.5);
                 cursor: pointer;
                 padding: 0;
                 line-height: 1;
-                opacity: .75;
-                transition: opacity 0.2s;
+                opacity: var(--modal-close-opacity);
+                transition: opacity var(--modal-animation-duration);
             }
 
             .simple-modal-close:hover {
                 opacity: 1;
             }
 
-            .simple-modal button.modal-btn {
+            .modal-btn {
                 padding: 8px 16px;
-                border-radius: 3px;
-                border: 1px solid #ddd;
-                background: #fff;
+                border-radius: calc(var(--modal-border-radius) - 1px);
+                border: 1px solid var(--modal-border-color);
+                background: var(--modal-background);
                 cursor: pointer;
                 margin-left: 10px;
-                font-size: 14px;
-                line-height: 1.5;
-                transition: all 0.2s;
+                font-size: var(--modal-font-size);
+                line-height: var(--modal-line-height);
+                transition: all var(--modal-animation-duration);
             }
 
-            .simple-modal button.modal-btn:hover {
-                background: #f8f9fa;
-                border-color: #cfcfcf;
+            .modal-btn:hover {
+                background: var(--modal-footer-bg);
+                border-color: var(--modal-text-light);
             }
 
-            .simple-modal button.modal-btn.primary {
-                background: #3bb594;
-                border-color: #3bb594;
+            .modal-btn.primary {
+                background: var(--modal-primary);
+                border-color: var(--modal-primary);
                 color: white;
             }
 
-            .simple-modal button.modal-btn.primary:hover {
-                background: #318c73;
-                border-color: #318c73;
+            .modal-btn.primary:hover {
+                background: var(--modal-primary-hover);
+                border-color: var(--modal-primary-hover);
             }
 
-            /* Form Styling */
+            /* Form elements */
             .simple-modal input[type="text"],
             .simple-modal textarea {
                 display: block;
                 width: 100%;
                 padding: 8px 12px;
-                font-size: 14px;
-                line-height: 1.5;
-                color: #495057;
-                background-color: #fff;
-                border: 1px solid #ced4da;
-                border-radius: 3px;
-                transition: border-color 0.2s;
+                font-size: var(--modal-font-size);
+                line-height: var(--modal-line-height);
+                color: var(--modal-text);
+                background-color: var(--modal-background);
+                border: 1px solid var(--modal-border-color);
+                border-radius: calc(var(--modal-border-radius) - 1px);
+                transition: border-color var(--modal-animation-duration);
             }
 
             .simple-modal input[type="text"]:focus,
             .simple-modal textarea:focus {
-                border-color: #3bb594;
+                border-color: var(--modal-primary);
                 outline: 0;
                 box-shadow: 0 0 0 0.2rem rgba(59, 181, 148, 0.25);
             }
@@ -144,103 +177,74 @@ class SimpleModal {
             .simple-modal label {
                 display: block;
                 margin-bottom: 5px;
-                color: #495057;
+                color: var(--modal-text);
                 font-weight: 500;
             }
 
             .simple-modal .help-text {
-                color: #6c757d;
-                font-size: 12px;
+                color: var(--modal-text-light);
+                font-size: calc(var(--modal-font-size) * 0.85);
                 margin-top: 4px;
             }
 
             @media (prefers-color-scheme: dark) {
-                .simple-modal-content {
-                    background: #32373c;
-                    color: #f1f3f4;
-                }
-                
-                .simple-modal-header {
-                    background: #212529;
-                }
-                
-                .simple-modal-footer {
-                    background: #283542;
-                    border-top-color: #32373c;
-                }
-                
-                .simple-modal button.modal-btn {
-                    background: #3c434a;
-                    border-color: #4a545c;
-                    color: #f1f3f4;
-                }
-
-                .simple-modal button.modal-btn:hover {
-                    background: #4a545c;
-                }
-
-                .simple-modal button.modal-btn.primary {
-                    background: #3bb594;
-                    border-color: #3bb594;
-                }
-
-                .simple-modal button.modal-btn.primary:hover {
-                    background: #318c73;
-                    border-color: #318c73;
-                }
-
-                .simple-modal input[type="text"],
-                .simple-modal textarea {
-                    background-color: #283542;
-                    border-color: #4a545c;
-                    color: #f1f3f4;
-                }
-
-                .simple-modal input[type="text"]:focus,
-                .simple-modal textarea:focus {
-                    border-color: #3bb594;
-                    box-shadow: 0 0 0 0.2rem rgba(59, 181, 148, 0.25);
-                }
-
-                .simple-modal label {
-                    color: #f1f3f4;
-                }
-
-                .simple-modal .help-text {
-                    color: #9aa0a6;
-                }
-
-                .simple-modal-preview {
-                    background: #283542 !important;
-                    border-color: #4a545c !important;
+                :root {
+                    --modal-background: #32373c;
+                    --modal-text: #f1f3f4;
+                    --modal-text-light: #9aa0a6;
+                    --modal-header-bg: #212529;
+                    --modal-footer-bg: #283542;
+                    --modal-border-color: #4a545c;
                 }
             }
 
-            /* Animation keyframes */
-            @keyframes modalIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(-20px);
+            /* Grid System */
+            .simple-modal-grid {
+                display: grid;
+                gap: var(--modal-padding);
+            }
+
+            .simple-modal-col-4 {
+                grid-column: span 4;
+            }
+
+            .simple-modal-col-8 {
+                grid-column: span 8;
+            }
+
+            @media (max-width: 768px) {
+                :root {
+                    --modal-padding: 15px;
                 }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
+                
+                .simple-modal-col-4,
+                .simple-modal-col-8 {
+                    grid-column: span 12;
                 }
             }
 
-            @keyframes modalOut {
-                from {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-                to {
-                    opacity: 0;
-                    transform: translateY(20px);
-                }
+            /* Preview Container */
+            .simple-modal-preview {
+                background: var(--modal-footer-bg);
+                border: 1px solid var(--modal-border-color);
+                border-radius: var(--modal-border-radius);
+                padding: var(--modal-padding);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 200px;
             }
         `;
         document.head.appendChild(style);
         this.handleClose = this.close.bind(this);
+    }
+
+    // Statische Methode zum Überschreiben der CSS-Variablen
+    static setTheme(variables) {
+        const root = document.documentElement;
+        for (const [key, value] of Object.entries(variables)) {
+            root.style.setProperty(`--modal-${key}`, value);
+        }
     }
 
     show(options) {
@@ -284,7 +288,7 @@ class SimpleModal {
             
             options.buttons.forEach(btn => {
                 const button = document.createElement('button');
-                button.className = 'modal-btn' + (btn.primary ? ' primary' : '');
+                button.className = `modal-btn${btn.primary ? ' primary' : ''}`;
                 button.textContent = btn.text;
                 button.onclick = () => {
                     if (btn.handler) {
@@ -330,7 +334,7 @@ class SimpleModal {
             if (this.modal.parentNode) {
                 this.modal.parentNode.removeChild(this.modal);
             }
-        }, 300); // Match transition duration
+        }, 300);
     }
 }
 
