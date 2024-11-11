@@ -1,4 +1,14 @@
-$(document).on('rex:ready', function() {
+// Flag to track initialization
+let isInitialized = false;
+
+// Main initialization function
+function initializeFilePond() {
+    // Prevent multiple initializations
+    if (isInitialized) {
+        return;
+    }
+    isInitialized = true;
+
     // Translations
     const translations = {
         de_de: {
@@ -33,66 +43,68 @@ $(document).on('rex:ready', function() {
         FilePondPluginImagePreview
     );
 
-    $('input[data-widget="filepond"]').each(function() {
-        const input = $(this);
-        const lang = input.data('filepondLang') || 'en_gb';
+    document.querySelectorAll('input[data-widget="filepond"]').forEach(function(input) {
+        const lang = input.dataset.filepondLang || 'en_gb';
         const t = translations[lang] || translations['en_gb'];
         
-        let rawValue = input.val();
+        let rawValue = input.value;
         let initialValue = rawValue.trim();
         
-        input.hide();
+        input.style.display = 'none';
 
-        const fileInput = $('<input type="file" multiple/>');
-        fileInput.insertAfter(input);
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        input.parentNode.insertBefore(fileInput, input.nextSibling);
+
         // Create metadata dialog with preview
         const createMetadataDialog = (file, existingMetadata = null) => {
             return new Promise((resolve, reject) => {
-                const dialog = $(`
-                    <div class="modal fade">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title">${t.metaTitle} ${file.name || file.filename}</h4>
-                                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                                </div>
-                                <div class="modal-body">
-                                    <form class="metadata-form">
-                                        <div class="row">
-                                            <div class="col-md-5">
-                                                <div class="media-preview-container">
-                                                    <!-- Media preview will be inserted here -->
-                                                </div>
-                                                <div class="file-info small text-muted"></div>
+                const dialog = document.createElement('div');
+                dialog.className = 'modal fade';
+                dialog.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h4 class="modal-title">${t.metaTitle} ${file.name || file.filename}</h4>
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <form class="metadata-form">
+                                    <div class="row">
+                                        <div class="col-md-5">
+                                            <div class="media-preview-container">
+                                                <!-- Media preview will be inserted here -->
                                             </div>
-                                            <div class="col-md-7">
-                                                <div class="form-group">
-                                                    <label for="title">${t.titleLabel}</label>
-                                                    <input type="text" class="form-control" name="title" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="alt">${t.altLabel}</label>
-                                                    <input type="text" class="form-control" name="alt" required>
-                                                    <small class="form-text text-muted">${t.altNotice}</small>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="copyright">${t.copyrightLabel}</label>
-                                                    <input type="text" class="form-control" name="copyright">
-                                                </div>
-                                                <div class="form-group mt-4">
-                                                    <button type="submit" class="btn btn-save">${t.saveBtn}</button>
-                                                    <button type="button" class="btn btn-abort" data-dismiss="modal">${t.cancelBtn}</button>
-                                                </div>
+                                            <div class="file-info small text-muted"></div>
+                                        </div>
+                                        <div class="col-md-7">
+                                            <div class="form-group">
+                                                <label for="title">${t.titleLabel}</label>
+                                                <input type="text" class="form-control" name="title" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="alt">${t.altLabel}</label>
+                                                <input type="text" class="form-control" name="alt" required>
+                                                <small class="form-text text-muted">${t.altNotice}</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="copyright">${t.copyrightLabel}</label>
+                                                <input type="text" class="form-control" name="copyright">
+                                            </div>
+                                            <div class="form-group mt-4">
+                                                <button type="submit" class="btn btn-save">${t.saveBtn}</button>
+                                                <button type="button" class="btn btn-abort" data-dismiss="modal">${t.cancelBtn}</button>
                                             </div>
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+                                </form>
                             </div>
                         </div>
                     </div>
-                `);
+                `;
 
-                const previewContainer = dialog.find('.media-preview-container');
+                const previewContainer = dialog.querySelector('.media-preview-container');
 
                 const previewMedia = async () => {
                     try {
@@ -102,20 +114,22 @@ $(document).on('rex:ready', function() {
                                 img.src = URL.createObjectURL(file);
                                 img.alt = file.name;
                                 img.style.maxHeight = '200px';
-                                previewContainer.append(img);
+                                previewContainer.appendChild(img);
                             } else if (file.type.startsWith('video/')) {
                                 const video = document.createElement('video');
                                 video.src = URL.createObjectURL(file);
                                 video.controls = true;
                                 video.muted = true;
                                 video.style.maxHeight = '200px';
-                                previewContainer.append(video);
+                                previewContainer.appendChild(video);
                             } else if (file.type.startsWith('application/pdf')) {
-                                const pdfIcon = $('<i class="fas fa-file-pdf fa-3x"></i>');
-                                previewContainer.append(pdfIcon);
+                                const pdfIcon = document.createElement('i');
+                                pdfIcon.className = 'fas fa-file-pdf fa-3x';
+                                previewContainer.appendChild(pdfIcon);
                             } else {
-                                const docIcon = $('<i class="fas fa-file fa-3x"></i>');
-                                previewContainer.append(docIcon);
+                                const docIcon = document.createElement('i');
+                                docIcon.className = 'fas fa-file fa-3x';
+                                previewContainer.appendChild(docIcon);
                             }
                         } else {
                             if (file.type.startsWith('image/')) {
@@ -123,62 +137,66 @@ $(document).on('rex:ready', function() {
                                 img.src = '/media/' + file.source;
                                 img.alt = file.source;
                                 img.style.maxHeight = '200px';
-                                previewContainer.append(img);
+                                previewContainer.appendChild(img);
                             } else if (file.type.startsWith('video/')) {
                                 const video = document.createElement('video');
                                 video.src = '/media/' + file.source;
                                 video.controls = true;
                                 video.muted = true;
                                 video.style.maxHeight = '200px';
-                                previewContainer.append(video);
+                                previewContainer.appendChild(video);
                             } else if (file.type.startsWith('application/pdf')) {
-                                const pdfIcon = $('<i class="fas fa-file-pdf fa-3x"></i>');
-                                previewContainer.append(pdfIcon);
+                                const pdfIcon = document.createElement('i');
+                                pdfIcon.className = 'fas fa-file-pdf fa-3x';
+                                previewContainer.appendChild(pdfIcon);
                             } else {
-                                const docIcon = $('<i class="fas fa-file fa-3x"></i>');
-                                previewContainer.append(docIcon);
+                                const docIcon = document.createElement('i');
+                                docIcon.className = 'fas fa-file fa-3x';
+                                previewContainer.appendChild(docIcon);
                             }
                         }
                     } catch (error) {
                         console.error('Error loading preview:', error);
-                        previewContainer.html('');
+                        previewContainer.innerHTML = '';
                     }
                 };
 
                 previewMedia();
 
                 if (existingMetadata) {
-                    dialog.find('[name="title"]').val(existingMetadata.title || '');
-                    dialog.find('[name="alt"]').val(existingMetadata.alt || '');
-                    dialog.find('[name="copyright"]').val(existingMetadata.copyright || '');
+                    dialog.querySelector('[name="title"]').value = existingMetadata.title || '';
+                    dialog.querySelector('[name="alt"]').value = existingMetadata.alt || '';
+                    dialog.querySelector('[name="copyright"]').value = existingMetadata.copyright || '';
                 }
 
-                dialog.find('form').on('submit', function(e) {
+                dialog.querySelector('form').addEventListener('submit', function(e) {
                     e.preventDefault();
                     const metadata = {
-                        title: dialog.find('[name="title"]').val(),
-                        alt: dialog.find('[name="alt"]').val(),
-                        copyright: dialog.find('[name="copyright"]').val()
+                        title: dialog.querySelector('[name="title"]').value,
+                        alt: dialog.querySelector('[name="alt"]').value,
+                        copyright: dialog.querySelector('[name="copyright"]').value
                     };
-                    dialog.data('submitted', true);
+                    dialog.dataset.submitted = 'true';
                     resolve(metadata);
-                    dialog.modal('hide');
+                    $(dialog).modal('hide');  // Using jQuery for Bootstrap modal
                 });
 
-                dialog.on('hidden.bs.modal', function() {
-                    if (!dialog.data('submitted')) {
+                dialog.addEventListener('hidden.bs.modal', function() {
+                    if (!dialog.dataset.submitted) {
                         reject(new Error('Metadata input cancelled'));
                     }
                     dialog.remove();
                 });
 
-                dialog.find('.btn-abort').on('click', function() {
-                    dialog.modal('hide');
+                dialog.querySelector('.btn-abort').addEventListener('click', function() {
+                    $(dialog).modal('hide');  // Using jQuery for Bootstrap modal
                 });
 
-                dialog.modal('show');
+                document.body.appendChild(dialog);
+                $(dialog).modal('show');  // Using jQuery for Bootstrap modal
             });
         };
+
         // Prepare existing files
         let existingFiles = [];
         if (initialValue) {
@@ -199,11 +217,11 @@ $(document).on('rex:ready', function() {
         }
 
         // Initialize FilePond
-        const pond = FilePond.create(fileInput[0], {
+        const pond = FilePond.create(fileInput, {
             files: existingFiles,
             allowMultiple: true,
             allowReorder: true,
-            maxFiles: input.data('filepondMaxfiles') || null,
+            maxFiles: input.dataset.filepondMaxfiles || null,
             server: {
                 url: 'index.php',
                 process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
@@ -214,7 +232,7 @@ $(document).on('rex:ready', function() {
                         formData.append(fieldName, file);
                         formData.append('rex-api-call', 'filepond_uploader');
                         formData.append('func', 'upload');
-                        formData.append('category_id', input.data('filepondCat') || '0');
+                        formData.append('category_id', input.dataset.filepondCat || '0');
                         formData.append('metadata', JSON.stringify(fileMetadata));
 
                         const response = await fetch('index.php', {
@@ -277,30 +295,30 @@ $(document).on('rex:ready', function() {
             styleButtonProcessItemPosition: 'right',
             imagePreviewHeight: 100,
             itemPanelAspectRatio: 1,
-            acceptedFileTypes: (input.data('filepondTypes') || 'image/*').split(','),
-            maxFileSize: (input.data('filepondMaxsize') || '10') + 'MB',
+            acceptedFileTypes: (input.dataset.filepondTypes || 'image/*').split(','),
+            maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
             credits: false
         });
 
         // Event handlers
         pond.on('processfile', (error, file) => {
             if (!error && file.serverId) {
-                const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
+                const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                 if (!currentValue.includes(file.serverId)) {
                     currentValue.push(file.serverId);
-                    input.val(currentValue.join(','));
+                    input.value = currentValue.join(',');
                 }
             }
         });
 
         pond.on('removefile', (error, file) => {
             if (!error) {
-                const currentValue = input.val() ? input.val().split(',').filter(Boolean) : [];
+                const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                 const removeValue = file.serverId || file.source;
                 const index = currentValue.indexOf(removeValue);
                 if (index > -1) {
                     currentValue.splice(index, 1);
-                    input.val(currentValue.join(','));
+                    input.value = currentValue.join(',');
                 }
             }
         });
@@ -311,7 +329,20 @@ $(document).on('rex:ready', function() {
                 .map(file => file.serverId || file.source)
                 .filter(Boolean)
                 .join(',');
-            input.val(newValue);
+            input.value = newValue;
         });
     });
-});
+}
+
+// Initialize based on environment
+if (typeof jQuery !== 'undefined') {
+    // If jQuery is available, listen for rex:ready
+    jQuery(document).on('rex:ready', initializeFilePond);
+} else {
+    // If no jQuery, use native DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeFilePond);
+    } else {
+        initializeFilePond();
+    }
+}
