@@ -98,6 +98,7 @@ class SimpleModal {
                 margin: 0;
                 font-size: 1.2rem;
                 font-weight: normal;
+                color: var(--modal-color-text);
             }
 
             .simple-modal-close {
@@ -179,7 +180,7 @@ class SimpleModal {
                 margin-top: 4px;
             }
 
-            .modal-btn {
+            .simple-modal .modal-btn {
                 padding: 8px 16px;
                 border-radius: 4px;
                 border: 0;
@@ -191,15 +192,15 @@ class SimpleModal {
                 color: #fff;
             }
 
-            .modal-btn:hover {
+            .simple-modal .modal-btn:hover {
                 background: var(--modal-color-primary-hover);
             }
 
-            .modal-btn.danger {
+            .simple-modal .modal-btn.danger {
                 background: var(--modal-color-danger);
             }
 
-            .modal-btn.danger:hover {
+            .simple-modal .modal-btn.danger:hover {
                 background: var(--modal-color-danger-hover);
             }
 
