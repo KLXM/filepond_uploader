@@ -1,10 +1,25 @@
 <?php
+declare(strict_types=1);
+
+if (rex::isBackend()) {
+    rex_yform::addTemplatePath($this->getPath('ytemplates'));
+}
+
 class filepond_helper {
     /**
-     * Get JavaScript files
-     * @return string|void Returns HTML string in frontend, adds scripts via rex_view in backend
+     * Default configuration options
      */
-    public static function getScripts():string|void {
+    private const array DEFAULT_OPTIONS = [
+        'required' => false,
+        'class' => '',
+        'id' => '',
+    ];
+
+    /**
+     * Get JavaScript files
+     * @return string Returns HTML string in frontend, empty string in backend after adding scripts via rex_view
+     */
+    public static function getScripts(): string {
         $addon = rex_addon::get('filepond_uploader');
         
         $jsFiles = [
@@ -19,22 +34,23 @@ class filepond_helper {
             foreach($jsFiles as $file) {
                 rex_view::addJsFile($file);
             }
-            return;
+            return '';
         }
 
-        $output = '';
-        foreach($jsFiles as $file) {
-            $output .= '<script type="text/javascript" src="' . $file . '" defer></script>' . PHP_EOL;
-        }
-        
-        return $output;
+        return implode(PHP_EOL, array_map(
+            fn(string $file): string => sprintf(
+                '<script type="text/javascript" src="%s" defer></script>',
+                $file
+            ),
+            $jsFiles
+        ));
     }
 
     /**
      * Get CSS files
-     * @return string|void Returns HTML string in frontend, adds styles via rex_view in backend
+     * @return string Returns HTML string in frontend, empty string in backend after adding styles via rex_view
      */
-    public static function getStyles():string|void {
+    public static function getStyles(): string {
         $addon = rex_addon::get('filepond_uploader');
         
         $cssFiles = [
@@ -47,15 +63,37 @@ class filepond_helper {
             foreach($cssFiles as $file) {
                 rex_view::addCssFile($file);
             }
-            return;
+            return '';
         }
 
-        $output = '';
-        foreach($cssFiles as $file) {
-            $output .= '<link rel="stylesheet" type="text/css" href="' . $file . '">' . PHP_EOL;
-        }
-        
-        return $output;
+        return implode(PHP_EOL, array_map(
+            fn(string $file): string => sprintf(
+                '<link rel="stylesheet" type="text/css" href="%s">',
+                $file
+            ),
+            $cssFiles
+        ));
+    }
+
+    /**
+     * Get default options merged with config values
+     */
+    private static function getDefaultOptions(): array {
+        return [
+            'category' => rex_config::get('filepond_uploader', 'category_id', 0),
+            'maxFiles' => rex_config::get('filepond_uploader', 'max_files', 30),
+            'allowedTypes' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*'),
+            'maxSize' => rex_config::get('filepond_uploader', 'max_filesize', 10),
+            'lang' => rex_config::get('filepond_uploader', 'lang', 'en_gb'),
+            ...self::DEFAULT_OPTIONS
+        ];
+    }
+
+    /**
+     * Clean input value
+     */
+    private static function cleanValue(string $value): string {
+        return str_replace(['"', ' '], '', $value);
     }
 
     /**
@@ -63,34 +101,24 @@ class filepond_helper {
      * 
      * @param string $name Input name
      * @param string $value Current value
-     * @param array $options Additional options
+     * @param array<string, mixed> $options Additional options
      * @return string HTML output
      */
-    public static function getInput($name, $value = '', array $options = []):string {
-        // Default options
-        $defaults = [
-            'category' => rex_config::get('filepond_uploader', 'category_id', 0),
-            'maxFiles' => rex_config::get('filepond_uploader', 'max_files', 30),
-            'allowedTypes' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*'),
-            'maxSize' => rex_config::get('filepond_uploader', 'max_filesize', 10),
-            'lang' => rex_config::get('filepond_uploader', 'lang', 'en_gb'),
-            'required' => false,
-            'class' => '',
-            'id' => ''
-        ];
-
-        // Merge options
-        $options = array_merge($defaults, $options);
+    public static function getInput(
+        string $name,
+        string $value = '',
+        array $options = []
+    ): string {
+        // Merge options with defaults
+        $options = array_merge(self::getDefaultOptions(), $options);
         
         // Clean value
-        $value = str_replace(['"', ' '], '', $value);
+        $value = self::cleanValue($value);
 
         // Generate unique ID if not provided
-        if (empty($options['id'])) {
-            $options['id'] = 'filepond-' . uniqid();
-        }
+        $options['id'] = $options['id'] ?: 'filepond-' . uniqid();
 
-        return sprintf(
+        return trim(sprintf(
             '<input type="hidden" 
                 name="%s" 
                 id="%s"
@@ -104,16 +132,22 @@ class filepond_helper {
                 data-filepond-lang="%s"
                 %s
             >',
-            $name,
-            $options['id'],
-            $value,
-            trim('filepond-input ' . $options['class']),
-            $options['category'],
-            $options['maxFiles'],
-            $options['allowedTypes'],
-            $options['maxSize'],
-            $options['lang'],
+            htmlspecialchars($name),
+            htmlspecialchars($options['id']),
+            htmlspecialchars($value),
+            trim('filepond-input ' . htmlspecialchars($options['class'])),
+            (int)$options['category'],
+            (int)$options['maxFiles'],
+            htmlspecialchars($options['allowedTypes']),
+            (int)$options['maxSize'],
+            htmlspecialchars($options['lang']),
             $options['required'] ? 'required' : ''
-        );
+        ));
     }
+}
+
+// Load assets in backend if user is logged in
+if (rex::isBackend() && rex::getUser()) {
+    filepond_helper::getStyles();
+    filepond_helper::getScripts();
 }
