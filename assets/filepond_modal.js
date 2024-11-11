@@ -53,6 +53,8 @@ class SimpleModal {
                 padding: calc(var(--modal-padding) * 2);
             }
 
+            .simple-modal img, .simple-modal video { max-widht: 100%;}
+
             .simple-modal-content {
                 background: var(--modal-background);
                 border-radius: var(--modal-border-radius);
