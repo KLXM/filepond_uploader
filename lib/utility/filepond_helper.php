@@ -1,4 +1,5 @@
 <?php
+class filepond_helper {
     /**
      * Get JavaScript files
      * @return string Returns HTML string in frontend, empty string in backend after adding scripts via rex_view
