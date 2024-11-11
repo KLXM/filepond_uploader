@@ -22,8 +22,7 @@ class SimpleModal {
                 --modal-backdrop: rgba(40, 53, 66, .95);
             }
             
-            @media (prefers-color-scheme: dark),
-            .rex-theme-dark {
+            @media (prefers-color-scheme: dark) {
                 :root {
                     --modal-color-bg: #32373c;
                     --modal-color-text: #f5f5f5;
@@ -34,6 +33,18 @@ class SimpleModal {
                     --modal-color-input-border: #404448;
                     --modal-backdrop: rgba(0, 0, 0, 0.9);
                 }
+            }
+            
+            // Dark Mode via REDAXO Theme Class
+            .rex-theme-dark .simple-modal {
+                --modal-color-bg: #32373c;
+                --modal-color-text: #f5f5f5;
+                --modal-color-border: #404448;
+                --modal-color-header: #202528;
+                --modal-color-footer: #282c30;
+                --modal-color-input: #32373c;
+                --modal-color-input-border: #404448;
+                --modal-backdrop: rgba(0, 0, 0, 0.9);
             }
 
             .simple-modal {
