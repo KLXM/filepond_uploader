@@ -4,10 +4,10 @@ $addon = rex_addon::get('filepond_uploader');
 // Formular erstellen
 $form = rex_config_form::factory('filepond_uploader');
 
-// API Token Fieldset
-$field = $form->addFieldset($addon->i18n('filepond_token_section'));
+// API Token Bereich
+$form->addFieldset($addon->i18n('filepond_token_section'));
 
-$field->addRawField('
+$form->addRawField('
     <div class="row">
         <div class="col-sm-8">
             <div class="form-group">
@@ -31,8 +31,8 @@ $field->addRawField('
     </div>
 ');
 
-// Allgemeine Einstellungen Fieldset
-$field = $form->addFieldset($addon->i18n('filepond_general_settings'));
+// Allgemeine Einstellungen
+$form->addFieldset($addon->i18n('filepond_general_settings'));
 
 // Maximale Anzahl Dateien
 $field = $form->addInputField('number', 'max_files', null, ['class' => 'form-control', 'min' => '1', 'required' => 'required']);
@@ -57,7 +57,7 @@ $mediaSelect->setAttribute('class', 'form-control selectpicker');
 $mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
 $mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
 
-$field = $form->addRawField('<div class="form-group">
+$form->addRawField('<div class="form-group">
     <label for="category_id">' . $addon->i18n('filepond_settings_category_id') . '</label>
     ' . $mediaSelect->get() . '
     <p class="help-block">' . $addon->i18n('filepond_settings_category_notice') . '</p>
