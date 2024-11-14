@@ -36,8 +36,8 @@
         );
 
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
-            const lang = input.dataset.filepondLang || document.documentElement.lang || 'en_gb';
-            const t = translations[lang] || translations['en_gb'];
+            const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
+            const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
             
