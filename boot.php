@@ -6,6 +6,8 @@ if (rex::isBackend() && rex::getUser()) {
     filepond_helper::getStyles();
     filepond_helper::getScripts();
 }
+if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
+{    
 rex_extension::register('PAGES_PREPARED', function (rex_extension_point $ep) {
     $pages = $ep->getSubject();
     
@@ -19,3 +21,4 @@ rex_extension::register('PAGES_PREPARED', function (rex_extension_point $ep) {
         }
     }
 });
+}
