@@ -4,8 +4,6 @@
 
 Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqina.nl/filepond/) Framework. Der Uploader wurde mit Fokus auf Barrierefreiheit, UX und rechtliche Anforderungen entwickelt.
 
-🚨 Achtung noch nicht für den produktiven Einsatz. Hier wird noch debugt und optimiert. 
-
 ## Features
 
 - 🎭 Moderne Drag & Drop Oberfläche 
