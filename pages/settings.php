@@ -107,6 +107,38 @@ $field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
+
+$form->addFieldset($addon->i18n('filepond_image_settings'));
+
+// Maximale Bildbreite
+$field = $form->addInputField('number', 'image_max_width', null, [
+    'class' => 'form-control',
+    'min' => '100',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_image_max_width'));
+$field->setNotice($addon->i18n('filepond_settings_image_max_width_notice'));
+
+// Maximale Bildhöhe
+$field = $form->addInputField('number', 'image_max_height', null, [
+    'class' => 'form-control',
+    'min' => '100',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_image_max_height'));
+$field->setNotice($addon->i18n('filepond_settings_image_max_height_notice'));
+
+// Qualität
+$field = $form->addInputField('number', 'image_quality', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'max' => '100',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_image_quality'));
+$field->setNotice($addon->i18n('filepond_settings_image_quality_notice'));
+
+
 // Token Regenerierung behandeln
 if (rex_post('regenerate_token', 'boolean')) {
     try {
