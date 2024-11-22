@@ -125,7 +125,9 @@ class rex_api_filepond_uploader extends rex_api_function
         ];
 
         try {
-            $result = rex_media_service::addMedia($data, true);
+            // Resize the image before adding it to the media pool
+            $result = $this->resizeImageBeforeUpload($data);
+
             if ($result['ok']) {
                 $sql = rex_sql::factory();
                 $sql->setTable(rex::getTable('media'));
@@ -143,6 +145,53 @@ class rex_api_filepond_uploader extends rex_api_function
         } catch (Exception $e) {
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
+    }
+
+    protected function resizeImageBeforeUpload($data)
+    {
+        $file = $data['file'];
+
+        if ($file['type'] !== 'application/pdf' && $file['type'] !== 'application/msword' && $file['type'] !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && $file['type'] !== 'text/plain') {
+            try {
+                if (class_exists(Imagick::class)) {
+                    $image = new Imagick();
+                    $image->readImage($file['tmp_name']);
+
+                    $width = $image->getImageWidth();
+                    $height = $image->getImageHeight();
+
+                    if ($width > 320 || $height > 320) {
+                        if ($width > $height) {
+                            $image->thumbnailImage(320, 0);
+                        } else {
+                            $image->thumbnailImage(0, 320);
+                        }
+                        $image->writeImage($file['tmp_name']);
+                    }
+                } else {
+                    // Use command-line tools if Imagick is not available
+                    $convertPath = $this->getConvertPath();
+                    if ($convertPath !== '') {
+                        $filename = $file['name'];
+                        $filenameWoExt = substr($filename, 0, strlen($filename) - strrpos($filename, '.'));
+                        $toPath = rex_path::addonCache('media_manager', 'media_manager__resized_' . md5($file['tmp_name']) . '_' . $filenameWoExt . '.jpg');
+
+                        $cmd = $convertPath . ' -resize 320x320 ' . escapeshellarg($file['tmp_name']) . ' ' . escapeshellarg($toPath);
+                        exec($cmd, $out, $ret);
+
+                        if ($ret !== 0) {
+                            throw new rex_exception('Unable to exec command ' . $cmd);
+                        }
+
+                        $file['tmp_name'] = $toPath;
+                    }
+                }
+            } catch (Exception $e) {
+                throw new rex_api_exception('Error resizing image: ' . $e->getMessage());
+            }
+        }
+
+        return rex_media_service::addMedia($data, true);
     }
 
     protected function handleDelete()
@@ -239,5 +288,21 @@ class rex_api_filepond_uploader extends rex_api_function
         } else {
             throw new rex_api_exception('File not found in media pool');
         }
+    }
+
+    private function getConvertPath()
+    {
+        $path = '';
+
+        if (function_exists('exec')) {
+            $out = [];
+            $cmd = 'command -v convert || which convert';
+            exec($cmd, $out, $ret);
+
+            if ($ret === 0) {
+                $path = (string) $out[0];
+            }
+        }
+        return $path;
     }
 }
