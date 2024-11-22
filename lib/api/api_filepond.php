@@ -184,6 +184,9 @@ class rex_api_filepond_uploader extends rex_api_function
                         }
 
                         $file['tmp_name'] = $toPath;
+                    } else {
+                        // Log a message if ImageMagick is not available
+                        rex_logger::factory()->info('ImageMagick not found, unable to resize images.');
                     }
                 }
             } catch (Exception $e) {
