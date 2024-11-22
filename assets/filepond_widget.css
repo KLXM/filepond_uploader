@@ -177,33 +177,6 @@
     color: var(--fp-text-light);
 }
 
-/* Buttons */
-.btn-save {
-    background: var(--fp-primary);
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-}
-
-.btn-save:hover {
-    background: var(--fp-primary-hover);
-    color: #fff;
-}
-
-.btn-abort {
-    background: var(--fp-danger);
-    color: #fff;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-}
-
-.btn-abort:hover {
-    background: var(--fp-danger-hover);
-    color: #fff;
-}
-
 /* File Info */
 .file-info {
     text-align: center;
