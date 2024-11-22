@@ -62,7 +62,40 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
-    protected function handleUpload($categoryId)
+    
+protected function handleUpload($categoryId)
+{
+    // Prüfen, ob eine Datei hochgeladen wurde
+    if (!isset($_FILES['filepond'])) {
+        throw new rex_api_exception('No file uploaded');
+    }
+
+    $file = $_FILES['filepond'];
+
+    // Überprüfen, ob die Datei ein Bild ist
+    $imageInfo = getimagesize($file['tmp_name']);
+    if ($imageInfo === false) {
+        throw new rex_api_exception('Uploaded file is not a valid image');
+    }
+
+    // Skalierung nur bei Bedarf durchführen
+    list($width, $height) = $imageInfo;
+    if ($width > 320 || $height > 320) {
+        if (class_exists('Imagick')) {
+            // Resize mit ImageMagick API
+            $imagick = new Imagick($file['tmp_name']);
+            $imagick->resizeImage(320, 320, Imagick::FILTER_LANCZOS, 1, true);
+            $imagick->writeImage($file['tmp_name']);
+        } else {
+            // Fallback auf CLI `convert`
+            exec("convert {$file['tmp_name']} -resize 320x320\> {$file['tmp_name']}");
+        }
+    }
+
+    // Weiter mit dem Standard-Upload-Prozess
+    // ...
+}
+
     {
         if (!isset($_FILES['filepond'])) {
             rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
@@ -125,9 +158,7 @@ class rex_api_filepond_uploader extends rex_api_function
         ];
 
         try {
-            // Resize the image before adding it to the media pool
-            $result = $this->resizeImageBeforeUpload($data);
-
+            $result = rex_media_service::addMedia($data, true);
             if ($result['ok']) {
                 $sql = rex_sql::factory();
                 $sql->setTable(rex::getTable('media'));
@@ -145,56 +176,6 @@ class rex_api_filepond_uploader extends rex_api_function
         } catch (Exception $e) {
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
-    }
-
-    protected function resizeImageBeforeUpload($data)
-    {
-        $file = $data['file'];
-
-        if ($file['type'] !== 'application/pdf' && $file['type'] !== 'application/msword' && $file['type'] !== 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' && $file['type'] !== 'text/plain') {
-            try {
-                if (class_exists(Imagick::class)) {
-                    $image = new Imagick();
-                    $image->readImage($file['tmp_name']);
-
-                    $width = $image->getImageWidth();
-                    $height = $image->getImageHeight();
-
-                    if ($width > 320 || $height > 320) {
-                        if ($width > $height) {
-                            $image->thumbnailImage(320, 0);
-                        } else {
-                            $image->thumbnailImage(0, 320);
-                        }
-                        $image->writeImage($file['tmp_name']);
-                    }
-                } else {
-                    // Use command-line tools if Imagick is not available
-                    $convertPath = $this->getConvertPath();
-                    if ($convertPath !== '') {
-                        $filename = $file['name'];
-                        $filenameWoExt = substr($filename, 0, strlen($filename) - strrpos($filename, '.'));
-                        $toPath = rex_path::addonCache('media_manager', 'media_manager__resized_' . md5($file['tmp_name']) . '_' . $filenameWoExt . '.jpg');
-
-                        $cmd = $convertPath . ' -resize 320x320 ' . escapeshellarg($file['tmp_name']) . ' ' . escapeshellarg($toPath);
-                        exec($cmd, $out, $ret);
-
-                        if ($ret !== 0) {
-                            throw new rex_exception('Unable to exec command ' . $cmd);
-                        }
-
-                        $file['tmp_name'] = $toPath;
-                    } else {
-                        // Log a message if ImageMagick is not available
-                        rex_logger::factory()->info('ImageMagick not found, unable to resize images.');
-                    }
-                }
-            } catch (Exception $e) {
-                throw new rex_api_exception('Error resizing image: ' . $e->getMessage());
-            }
-        }
-
-        return rex_media_service::addMedia($data, true);
     }
 
     protected function handleDelete()
@@ -291,21 +272,5 @@ class rex_api_filepond_uploader extends rex_api_function
         } else {
             throw new rex_api_exception('File not found in media pool');
         }
-    }
-
-    private function getConvertPath()
-    {
-        $path = '';
-
-        if (function_exists('exec')) {
-            $out = [];
-            $cmd = 'command -v convert || which convert';
-            exec($cmd, $out, $ret);
-
-            if ($ret === 0) {
-                $path = (string) $out[0];
-            }
-        }
-        return $path;
     }
 }
