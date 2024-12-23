@@ -83,8 +83,10 @@ $form->addRawField('</div>');
 $form->addRawField('<div class="col-sm-6">');
 
 // Erlaubte Dateitypen
-$field = $form->addInputField('text', 'allowed_types', null, [
-    'class' => 'form-control'
+$field = $form->addTextAreaField('allowed_types', null, [
+    'class' => 'form-control',
+    'rows' => '5',
+    'style' => 'font-family: monospace;'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_allowed_types'));
 $field->setNotice($addon->i18n('filepond_settings_allowed_types_notice'));
