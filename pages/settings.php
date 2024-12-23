@@ -59,12 +59,12 @@ $field->setLabel($addon->i18n('filepond_settings_maxsize'));
 $field->setNotice($addon->i18n('filepond_settings_maxsize_notice'));
 
 // Maximale Pixelgröße
-$field = $form->addInputField('number', 'max_pixels', null, [
+$field = $form->addInputField('number', 'max_pixel', null, [
     'class' => 'form-control',
     'min' => '100',
     'required' => 'required'
 ]);
-$field->setLabel($addon->i18n('filepond_settings_max_pixels'));
+$field->setLabel($addon->i18n('filepond_settings_max_pixel'));
 $field->setNotice($addon->i18n('filepond_settings_max_pixels_notice'));
 
 // Sprache
