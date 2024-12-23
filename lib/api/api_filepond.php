@@ -1,15 +1,16 @@
-Okay, lass uns das Problem mit dem Resizing debuggen. Hier sind ein paar Punkte, die wir durchgehen und überprüfen sollten, um das Problem zu finden:
-
-1. Debugging-Informationen:
-
-Ausgabe von ImageMagick: Füge Debugging-Informationen hinzu, um zu sehen, ob convert überhaupt ausgeführt wird und ob es Fehler gibt.
-Dateigrößen: Gib vor und nach der ImageMagick Verarbeitung die Dateigrößen aus.
-2. Codeanpassungen mit Debugging:
-
 <?php
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
+    private $logger;
+
+    public function __construct() {
+         // Logger initialisieren
+        $this->logger = rex_logger::factory('filepond', [
+            'file' => rex_path::log('filepond.log'),
+            'level' => 'debug',
+        ]);
+    }
 
     public function execute()
     {
@@ -70,7 +71,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
-    protected function handleUpload($categoryId)
+   protected function handleUpload($categoryId)
     {
         if (!isset($_FILES['filepond'])) {
             rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
@@ -78,6 +79,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES['filepond'];
+        $this->logger->debug('Start upload', ['file_name' => $file['name'], 'file_size' => $file['size'], 'file_type' => $file['type']]);
 
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
@@ -131,45 +133,49 @@ class rex_api_filepond_uploader extends rex_api_function
 
 
         if ($isImage && !$isAnimatedGif) {
+           $this->logger->debug('Image processing', ['isImage' => $isImage, 'isAnimatedGif' => $isAnimatedGif, 'tmpFilePath' => $tmpFilePath]);
+
             if ($this->isImagemagickAvailable()) {
-                 try {
-                     $originalFileSize = filesize($tmpFilePath);
-                     
-                     $newTmpFile = tempnam(sys_get_temp_dir(), 'resized_');
-                     $cmd = sprintf(
+                  try {
+                    $originalFileSize = filesize($tmpFilePath);
+
+                    $newTmpFile = tempnam(sys_get_temp_dir(), 'resized_');
+                    $cmd = sprintf(
                          'convert %s -resize %dx%d\> %s',
-                         escapeshellarg($tmpFilePath),
-                         $maxWidth,
-                         $maxHeight,
-                         escapeshellarg($newTmpFile)
-                     );
-    
-                     exec($cmd, $output, $return_var);
-                     
-                    
-                     if ($return_var !== 0) {
-                        unlink($newTmpFile);
-                         throw new Exception('ImageMagick processing failed: ' .  implode(" ", $output) . ' return_var: ' . $return_var);
-                     }
-                    
-                     $newFileSize = filesize($newTmpFile);
-                     rex_logger::log('filepond', 'debug', 'ImageMagick resize', ['originalFileSize' => $originalFileSize, 'newFileSize' => $newFileSize, 'output' => $output, 'cmd' => $cmd]);
-    
-                     $tmpFilePath = $newTmpFile;
-    
-                     $file['size'] = $newFileSize;
-    
-                 } catch (Exception $e) {
-                     unlink($tmpFilePath);
-                     throw new rex_api_exception('Image processing failed: ' . $e->getMessage());
-                 }
-            } else {
-                // If Imagemagick is not available, check image dimensions
-                list($width, $height) = getimagesize($tmpFilePath);
-                if ($width > $maxWidth || $height > $maxHeight) {
+                        escapeshellarg($tmpFilePath),
+                        $maxWidth,
+                        $maxHeight,
+                        escapeshellarg($newTmpFile)
+                    );
+
+                    $this->logger->debug('ImageMagick command', ['cmd' => $cmd]);
+                    exec($cmd, $output, $return_var);
+
+
+                    if ($return_var !== 0) {
+                       unlink($newTmpFile);
+                        throw new Exception('ImageMagick processing failed: ' .  implode(" ", $output) . ' return_var: ' . $return_var);
+                    }
+
+                    $newFileSize = filesize($newTmpFile);
+                    $this->logger->debug('ImageMagick resize', ['originalFileSize' => $originalFileSize, 'newFileSize' => $newFileSize, 'output' => $output, 'cmd' => $cmd]);
+
+                    $tmpFilePath = $newTmpFile;
+
+                    $file['size'] = $newFileSize;
+
+                } catch (Exception $e) {
                     unlink($tmpFilePath);
-                    throw new rex_api_exception('Image dimensions too large. Please install ImageMagick or resize manually.');
+                    throw new rex_api_exception('Image processing failed: ' . $e->getMessage());
                 }
+            } else {
+               // If Imagemagick is not available, check image dimensions
+               list($width, $height) = getimagesize($tmpFilePath);
+               if ($width > $maxWidth || $height > $maxHeight) {
+                    unlink($tmpFilePath);
+                   throw new rex_api_exception('Image dimensions too large. Please install ImageMagick or resize manually.');
+               }
+                $this->logger->debug('No ImageMagick, checking image dimensions', ['width' => $width, 'height' => $height]);
             }
         }
 
@@ -198,12 +204,14 @@ class rex_api_filepond_uploader extends rex_api_function
                 if (isset($newTmpFile)) {
                     unlink($newTmpFile);
                 }
+                 $this->logger->debug('Upload successful', ['filename' => $result['filename']]);
                 return $result['filename'];
             }
 
-             if (isset($newTmpFile)) {
-                    unlink($newTmpFile);
-             }
+            if (isset($newTmpFile)) {
+                unlink($newTmpFile);
+            }
+            $this->logger->debug('Upload failed', ['messages' => $result['messages']]);
 
             throw new rex_api_exception(implode(', ', $result['messages']));
 
@@ -211,14 +219,16 @@ class rex_api_filepond_uploader extends rex_api_function
            if (isset($newTmpFile)) {
                 unlink($newTmpFile);
            }
-
+            $this->logger->error('Upload Exception', ['message' => $e->getMessage()]);
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
     }
 
+
     private function isImagemagickAvailable()
     {
         exec('command -v convert', $output, $return_var);
+         $this->logger->debug('Check ImageMagick', ['return_var' => $return_var, 'output' => $output]);
         return $return_var === 0;
     }
 
