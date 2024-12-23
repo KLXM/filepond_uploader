@@ -24,8 +24,8 @@ filepond_settings_category_id = Default media category
 filepond_settings_category_notice = ID of the media category where files should be uploaded to
 filepond_settings_lang = Default language
 filepond_settings_lang_notice = Example: en_gb, de_de
-filepond_settings_max_pixels = Maximum image size
-filepond_settings_max_pixels_notice = Maximum width/height in pixels to which large images will be resized. GIF files will remain unchanged.
+filepond_settings_max_pixel = Maximum image size
+filepond_settings_max_pixel_notice = Maximum width/height in pixels to which large images will be resized. GIF files will remain unchanged.
 
 # YForm field
 filepond_empty_value_label = Error message if empty
