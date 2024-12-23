@@ -17,6 +17,7 @@ Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqin
 - 📱 Responsive Design
 - 🛡️ Validierung von Dateitypen und -größen
 - 🔒 Abgesichert via API_Token und Benutzerprüfung, auch YCOM
+- 🖼️ Automatische Bildoptimierung für große Bilder
 
 ## Installation
 
@@ -40,7 +41,6 @@ $yform->setValueField('filepond', [
 ```
 > Das YForm-Value ist nur eine Möglichkeit in YForm, es kann auch ein normales Input per JSON mit Attributen ausgezeichnet werden, dadurch entfällt das automatische Löschen.  
 
-
 ### Als Modul
 
 #### Eingabe
@@ -52,7 +52,7 @@ $yform->setValueField('filepond', [
     data-widget="filepond"
     data-filepond-cat="1"
     data-filepond-maxfiles="5" 
-    data-filepond-types="mime/type, .extension"
+    data-filepond-types="image/*"
     data-filepond-maxsize="10"
     data-filepond-lang="de_de"
 >
@@ -86,9 +86,6 @@ foreach($files as $file) {
 >
 ```
 
-
-
-
 ## Konfiguration
 
 ### Attribute
@@ -100,64 +97,40 @@ foreach($files as $file) {
 | data-filepond-types | Erlaubte Dateitypen | image/* |
 | data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
 | data-filepond-lang | Sprache (de/en) | de_de |
+| data-filepond-maxpixels | Max. Bildgröße (Pixel) | 1200 |
 
 ### Erlaubte Dateitypen
 
-#### Grunsätzliche Syntax
+#### Grundsätzliche Syntax
 
-`data-filepond-types="mime/type, .extension"`
+`data-filepond-types="mime/type"`
 
 - Bilder: `image/*`
 - Videos: `video/*` 
-- PDFs: `.pdf`
-- Dokumente: `.doc,.docx,.txt`
-- Mehrere: `image/*,video/*,.pdf`
+- PDFs: `application/pdf`
+- Medienformate: `image/*, video/*, audio/*`
 
 ```html
 <!-- Alle Bildtypen -->
 data-filepond-types="image/*"
 
-<!-- Spezifische Bildformate -->
-data-filepond-types="image/jpeg, image/png, image/gif, image/webp"
-
-<!-- Mit Dateiendungen -->
-data-filepond-types=".jpg, .jpeg, .png, .gif, .webp"
-```
-
-```html
-<!-- Office Dokumente -->
-data-filepond-types=".doc, .docx, .xls, .xlsx, .ppt, .pptx"
-
-<!-- PDF -->
-data-filepond-types="application/pdf, .pdf"
-
-<!-- Text -->
-data-filepond-types="text/plain, .txt"
-```
-
-
-```html
-<!-- Office Dokumente -->
-data-filepond-types=".doc, .docx, .xls, .xlsx, .ppt, .pptx"
-
-<!-- PDF -->
-data-filepond-types="application/pdf, .pdf"
-
-<!-- Text -->
-data-filepond-types="text/plain, .txt"
-```
-
-```html
 <!-- Bilder und PDFs -->
 data-filepond-types="image/*, application/pdf"
 
-<!-- Nur bestimmte Bildtypen und Dokumente -->
-data-filepond-types="image/jpeg, image/png, .pdf, .doc, .docx"
-
-<!-- Medienformate -->
-data-filepond-types="image/*, video/*, audio/*"
+<!-- Office und PDF -->
+data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/pdf"
 ```
 
+## Bildoptimierung
+
+Bilder werden automatisch optimiert, wenn sie die konfigurierte maximale Pixelgröße überschreiten:
+
+- Große Bilder werden proportional verkleinert
+- Die Qualität bleibt erhalten
+- GIF-Dateien werden nicht verändert
+- Die Originaldatei wird durch die optimierte Version ersetzt
+
+Der Standardwert ist 1200 Pixel (Breite oder Höhe). Dies kann über die Einstellungen oder das data-filepond-maxpixels Attribut angepasst werden.
 
 ## Metadaten
 
@@ -206,10 +179,11 @@ npm run build
 
 - Maximale Dateigröße wird auch serverseitig geprüft
 - Copyright-Feld ist optional, Title und Alt-Text Pflicht
-- ALT-Text ist und bleibt Pflicht. Wer es nicht will, darf einen PR liefern um es abschalten zu können. 
+- ALT-Text ist und bleibt Pflicht. Wer es nicht will, darf einen PR liefern um es abschalten zu können.
 - Uploads landen automatisch im Medienpool
 - Metadaten werden im Medienpool gespeichert
 - Videos werden direkt im Upload-Dialog previewt
+- Bilder werden automatisch auf die konfigurierte Maximalgröße optimiert
 
 ## Credits
 
@@ -222,4 +196,3 @@ npm run build
 - GitHub Issues
 - REDAXO Slack
 - [www.redaxo.org](https://www.redaxo.org)
-
