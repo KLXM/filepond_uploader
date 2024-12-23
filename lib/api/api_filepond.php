@@ -167,8 +167,11 @@ class rex_api_filepond_uploader extends rex_api_function
         list($width, $height, $type) = $imageInfo;
         // error_log("FILEPOND: Image dimensions: {$width}x{$height}, type: {$type}");
         
+        $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
+
+    
         // Return if image is smaller than max dimensions
-        if ($width <= 1200 && $height <= 1200) {
+        if ($width <= $maxPixel  && $height <= $maxPixel) {
             // error_log('FILEPOND: Image is already small enough, skipping resize');
             return;
         }
@@ -177,10 +180,10 @@ class rex_api_filepond_uploader extends rex_api_function
         // Calculate new dimensions
         $ratio = $width / $height;
         if ($width > $height) {
-            $newWidth = min($width, 4000);
+            $newWidth = min($width, $maxPixel);
             $newHeight = floor($newWidth / $ratio);
         } else {
-            $newHeight = min($height, 4000);
+            $newHeight = min($height, $maxPixel);
             $newWidth = floor($newHeight * $ratio);
         }
         
