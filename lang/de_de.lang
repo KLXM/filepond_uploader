@@ -27,6 +27,8 @@ filepond_settings_category_id = Standard Medien-Kategorie
 filepond_settings_category_notice = ID der Medienkategorie in die die Dateien geladen werden sollen
 filepond_settings_lang = Standardsprache
 filepond_settings_lang_notice = Beispiel: en_gb, de_de
+filepond_settings_max_pixel = Maximale Bildgröße
+filepond_settings_max_pixel_notice = Maximale Breite/Höhe in Pixeln, auf die große Bilder verkleinert werden. GIF-Dateien werden nicht verändert.
 
 # YForm field
 filepond_empty_value_label = Fehlermeldung wenn leer

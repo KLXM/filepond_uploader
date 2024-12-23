@@ -70,6 +70,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES['filepond'];
+        // error_log('FILEPOND: Uploaded file type: ' . $file['type'] . ', name: ' . $file['name']);
         
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
@@ -103,6 +104,14 @@ class rex_api_filepond_uploader extends rex_api_function
         if (!$isAllowed) {
             throw new rex_api_exception('File type not allowed');
         }
+
+        // Process image if it's not a GIF
+        if (strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
+            // error_log('FILEPOND: Starting image processing for: ' . $file['type'] . ' - ' . $file['name']);
+            $this->processImage($file['tmp_name']);
+        } else {
+            // error_log('FILEPOND: Skipping image processing - file type: ' . $file['type']);
+        }
         
         $originalName = $file['name'];
         $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
@@ -120,7 +129,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 'name' => $originalName,
                 'tmp_name' => $file['tmp_name'],
                 'type' => $file['type'],
-                'size' => $file['size']
+                'size' => filesize($file['tmp_name']) // Update filesize after potential resize
             ]
         ];
 
@@ -143,6 +152,101 @@ class rex_api_filepond_uploader extends rex_api_function
         } catch (Exception $e) {
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
+    }
+
+    protected function processImage($tmpFile)
+    {
+        // error_log('FILEPOND: Processing image: ' . $tmpFile);
+        
+        $imageInfo = getimagesize($tmpFile);
+        if (!$imageInfo) {
+            // error_log('FILEPOND: Could not get image size for file: ' . $tmpFile);
+            return;
+        }
+
+        list($width, $height, $type) = $imageInfo;
+        // error_log("FILEPOND: Image dimensions: {$width}x{$height}, type: {$type}");
+        
+        $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
+
+    
+        // Return if image is smaller than max dimensions
+        if ($width <= $maxPixel  && $height <= $maxPixel) {
+            // error_log('FILEPOND: Image is already small enough, skipping resize');
+            return;
+        }
+        // error_log('FILEPOND: Image needs resizing');
+        
+        // Calculate new dimensions
+        $ratio = $width / $height;
+        if ($width > $height) {
+            $newWidth = min($width, $maxPixel);
+            $newHeight = floor($newWidth / $ratio);
+        } else {
+            $newHeight = min($height, $maxPixel);
+            $newWidth = floor($newHeight * $ratio);
+        }
+        
+        // Create new image based on type
+        $srcImage = null;
+        switch ($type) {
+            case IMAGETYPE_JPEG:
+                // error_log('FILEPOND: Processing as JPEG');
+                $srcImage = imagecreatefromjpeg($tmpFile);
+                break;
+            case IMAGETYPE_PNG:
+                // error_log('FILEPOND: Processing as PNG');
+                $srcImage = imagecreatefrompng($tmpFile);
+                break;
+            default:
+                // error_log('FILEPOND: Unsupported image type: ' . $type);
+                return;
+        }
+
+        if (!$srcImage) {
+            // error_log('FILEPOND: Could not create image resource');
+            return;
+        }
+
+        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+        // error_log("FILEPOND: Creating new image with dimensions: {$newWidth}x{$newHeight}");
+        
+        // Preserve transparency for PNG images
+        if ($type === IMAGETYPE_PNG) {
+            imagealphablending($dstImage, false);
+            imagesavealpha($dstImage, true);
+            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
+            imagefilledrectangle($dstImage, 0, 0, $newWidth, $newHeight, $transparent);
+        }
+        
+        // Resize image
+        imagecopyresampled(
+            $dstImage,
+            $srcImage,
+            0, 0, 0, 0,
+            $newWidth,
+            $newHeight,
+            $width,
+            $height
+        );
+        
+        // Save image
+        $success = false;
+        if ($type === IMAGETYPE_JPEG) {
+            $success = imagejpeg($dstImage, $tmpFile, 90);
+        } elseif ($type === IMAGETYPE_PNG) {
+            $success = imagepng($dstImage, $tmpFile, 9);
+        }
+        
+        /*if ($success) {
+            error_log('FILEPOND: Successfully saved resized image');
+        } else {
+            error_log('FILEPOND: Failed to save resized image');
+        }*/
+        
+        // Free memory
+        imagedestroy($srcImage);
+        imagedestroy($dstImage);
     }
 
     protected function handleDelete()

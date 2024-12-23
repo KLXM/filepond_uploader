@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '1.0.1'
+version: '1.1.0'
 author: 'Friends Of REDAXO'
 supportpage: github.com/FriendsOfREDAXO/filepond_uploader
 
@@ -18,9 +18,10 @@ page:
         settings: { title: 'translate:filepond_uploader_settings' }
 
 default_config:
-    allowed_types: 'image/*,video/*,.pdf,.docx,.txt'
+    allowed_types: 'image/*,video/*,application/pdf'
     max_size: 200
     max_files: 30
+    max_pixel: 2100
     category_id: 0
 
 installer_ignore:
