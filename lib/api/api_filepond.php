@@ -113,12 +113,57 @@ class rex_api_filepond_uploader extends rex_api_function
             $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
         }
 
+        $tmpFilePath = $file['tmp_name'];
+
+        // ImageMagick processing
+        $maxWidth = 1200;
+        $maxHeight = 1200;
+        $isImage = strpos($file['type'], 'image/') === 0;
+        $isAnimatedGif = $file['type'] === 'image/gif' && $this->isAnimatedGif($tmpFilePath);
+
+
+        if ($isImage && !$isAnimatedGif) {
+            if ($this->isImagemagickAvailable()) {
+                try {
+                    $newTmpFile = tempnam(sys_get_temp_dir(), 'resized_');
+                    $cmd = sprintf(
+                        'convert %s -resize %dx%d\> %s',
+                        escapeshellarg($tmpFilePath),
+                        $maxWidth,
+                        $maxHeight,
+                        escapeshellarg($newTmpFile)
+                    );
+                    
+                    exec($cmd, $output, $return_var);
+                    
+                    if ($return_var !== 0) {
+                        throw new Exception('ImageMagick processing failed');
+                    }
+
+                    $tmpFilePath = $newTmpFile;
+                   
+                    $file['size'] = filesize($tmpFilePath);
+                    
+                } catch (Exception $e) {
+                    unlink($tmpFilePath);
+                    throw new rex_api_exception('Image processing failed: ' . $e->getMessage());
+                }
+            } else {
+              // If Imagemagick is not available, check image dimensions
+              list($width, $height) = getimagesize($tmpFilePath);
+              if ($width > $maxWidth || $height > $maxHeight) {
+                   unlink($tmpFilePath);
+                   throw new rex_api_exception('Image dimensions too large. Please install ImageMagick or resize manually.');
+                }
+            }
+        }
+
         $data = [
             'title' => $metadata['title'] ?? $filename,
             'category_id' => $categoryId,
             'file' => [
                 'name' => $originalName,
-                'tmp_name' => $file['tmp_name'],
+                'tmp_name' => $tmpFilePath,
                 'type' => $file['type'],
                 'size' => $file['size']
             ]
@@ -134,16 +179,39 @@ class rex_api_filepond_uploader extends rex_api_function
                 $sql->setValue('med_alt', $metadata['alt'] ?? '');
                 $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
                 $sql->update();
-
+                
+                if (isset($newTmpFile)) {
+                    unlink($newTmpFile);
+                }
                 return $result['filename'];
             }
             
+             if (isset($newTmpFile)) {
+                    unlink($newTmpFile);
+             }
+             
             throw new rex_api_exception(implode(', ', $result['messages']));
 
         } catch (Exception $e) {
+           if (isset($newTmpFile)) {
+                unlink($newTmpFile);
+           }
+           
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
     }
+
+     private function isImagemagickAvailable()
+    {
+         exec('command -v convert', $output, $return_var);
+          return $return_var === 0;
+    }
+    
+    private function isAnimatedGif($filePath) {
+        $fileContent = file_get_contents($filePath);
+         return strpos($fileContent, 'NETSCAPE2.0') !== false;
+    }
+
 
     protected function handleDelete()
     {
