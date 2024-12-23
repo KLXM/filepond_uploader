@@ -1,3 +1,11 @@
+Okay, lass uns das Problem mit dem Resizing debuggen. Hier sind ein paar Punkte, die wir durchgehen und überprüfen sollten, um das Problem zu finden:
+
+1. Debugging-Informationen:
+
+Ausgabe von ImageMagick: Füge Debugging-Informationen hinzu, um zu sehen, ob convert überhaupt ausgeführt wird und ob es Fehler gibt.
+Dateigrößen: Gib vor und nach der ImageMagick Verarbeitung die Dateigrößen aus.
+2. Codeanpassungen mit Debugging:
+
 <?php
 class rex_api_filepond_uploader extends rex_api_function
 {
@@ -16,7 +24,7 @@ class rex_api_filepond_uploader extends rex_api_function
                     $ycomUser = rex_ycom_auth::getUser();
                     $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
                 }
-                
+
                 $apiToken = rex_config::get('filepond_uploader', 'api_token');
                 $requestToken = rex_request('api_token', 'string', null);
                 $isValidToken = $requestToken && hash_equals($apiToken, $requestToken);
@@ -27,30 +35,30 @@ class rex_api_filepond_uploader extends rex_api_function
             }
 
             $func = rex_request('func', 'string', '');
-            $categoryId = rex_request('category_id', 'int', 0);  
-        
+            $categoryId = rex_request('category_id', 'int', 0);
+
             switch ($func) {
                 case 'upload':
                     $result = $this->handleUpload($categoryId);
                     rex_response::cleanOutputBuffers();
                     rex_response::sendJson($result);
                     exit;
-                    
+
                 case 'delete':
                     $result = $this->handleDelete();
                     rex_response::cleanOutputBuffers();
                     rex_response::sendJson($result);
                     exit;
-                    
+
                 case 'load':
                     return $this->handleLoad();
-                    
+
                 case 'restore':
                     $result = $this->handleRestore();
                     rex_response::cleanOutputBuffers();
                     rex_response::sendJson($result);
                     exit;
-                    
+
                 default:
                     throw new rex_api_exception('Invalid function');
             }
@@ -70,7 +78,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES['filepond'];
-        
+
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
             throw new rex_api_exception('File too large');
@@ -79,7 +87,7 @@ class rex_api_filepond_uploader extends rex_api_function
         $allowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
         $allowedTypes = array_map('trim', explode(',', $allowedTypes));
         $isAllowed = false;
-        
+
         foreach ($allowedTypes as $type) {
             if (strpos($type, '*') !== false) {
                 $baseType = str_replace('*', '', $type);
@@ -103,12 +111,12 @@ class rex_api_filepond_uploader extends rex_api_function
         if (!$isAllowed) {
             throw new rex_api_exception('File type not allowed');
         }
-        
+
         $originalName = $file['name'];
         $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
-        
+
         $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
-        
+
         if (!isset($categoryId) || $categoryId < 0) {
             $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
         }
@@ -124,36 +132,43 @@ class rex_api_filepond_uploader extends rex_api_function
 
         if ($isImage && !$isAnimatedGif) {
             if ($this->isImagemagickAvailable()) {
-                try {
-                    $newTmpFile = tempnam(sys_get_temp_dir(), 'resized_');
-                    $cmd = sprintf(
-                        'convert %s -resize %dx%d\> %s',
-                        escapeshellarg($tmpFilePath),
-                        $maxWidth,
-                        $maxHeight,
-                        escapeshellarg($newTmpFile)
-                    );
+                 try {
+                     $originalFileSize = filesize($tmpFilePath);
+                     
+                     $newTmpFile = tempnam(sys_get_temp_dir(), 'resized_');
+                     $cmd = sprintf(
+                         'convert %s -resize %dx%d\> %s',
+                         escapeshellarg($tmpFilePath),
+                         $maxWidth,
+                         $maxHeight,
+                         escapeshellarg($newTmpFile)
+                     );
+    
+                     exec($cmd, $output, $return_var);
+                     
                     
-                    exec($cmd, $output, $return_var);
+                     if ($return_var !== 0) {
+                        unlink($newTmpFile);
+                         throw new Exception('ImageMagick processing failed: ' .  implode(" ", $output) . ' return_var: ' . $return_var);
+                     }
                     
-                    if ($return_var !== 0) {
-                        throw new Exception('ImageMagick processing failed');
-                    }
-
-                    $tmpFilePath = $newTmpFile;
-                   
-                    $file['size'] = filesize($tmpFilePath);
-                    
-                } catch (Exception $e) {
-                    unlink($tmpFilePath);
-                    throw new rex_api_exception('Image processing failed: ' . $e->getMessage());
-                }
+                     $newFileSize = filesize($newTmpFile);
+                     rex_logger::log('filepond', 'debug', 'ImageMagick resize', ['originalFileSize' => $originalFileSize, 'newFileSize' => $newFileSize, 'output' => $output, 'cmd' => $cmd]);
+    
+                     $tmpFilePath = $newTmpFile;
+    
+                     $file['size'] = $newFileSize;
+    
+                 } catch (Exception $e) {
+                     unlink($tmpFilePath);
+                     throw new rex_api_exception('Image processing failed: ' . $e->getMessage());
+                 }
             } else {
-              // If Imagemagick is not available, check image dimensions
-              list($width, $height) = getimagesize($tmpFilePath);
-              if ($width > $maxWidth || $height > $maxHeight) {
-                   unlink($tmpFilePath);
-                   throw new rex_api_exception('Image dimensions too large. Please install ImageMagick or resize manually.');
+                // If Imagemagick is not available, check image dimensions
+                list($width, $height) = getimagesize($tmpFilePath);
+                if ($width > $maxWidth || $height > $maxHeight) {
+                    unlink($tmpFilePath);
+                    throw new rex_api_exception('Image dimensions too large. Please install ImageMagick or resize manually.');
                 }
             }
         }
@@ -179,34 +194,34 @@ class rex_api_filepond_uploader extends rex_api_function
                 $sql->setValue('med_alt', $metadata['alt'] ?? '');
                 $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
                 $sql->update();
-                
+
                 if (isset($newTmpFile)) {
                     unlink($newTmpFile);
                 }
                 return $result['filename'];
             }
-            
+
              if (isset($newTmpFile)) {
                     unlink($newTmpFile);
              }
-             
+
             throw new rex_api_exception(implode(', ', $result['messages']));
 
         } catch (Exception $e) {
            if (isset($newTmpFile)) {
                 unlink($newTmpFile);
            }
-           
+
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         }
     }
 
-     private function isImagemagickAvailable()
+    private function isImagemagickAvailable()
     {
-         exec('command -v convert', $output, $return_var);
-          return $return_var === 0;
+        exec('command -v convert', $output, $return_var);
+        return $return_var === 0;
     }
-    
+
     private function isAnimatedGif($filePath) {
         $fileContent = file_get_contents($filePath);
          return strpos($fileContent, 'NETSCAPE2.0') !== false;
@@ -216,7 +231,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected function handleDelete()
     {
         $filename = trim(rex_request('filename', 'string', ''));
-        
+
         if (empty($filename)) {
             throw new rex_api_exception('Missing filename');
         }
@@ -225,10 +240,10 @@ class rex_api_filepond_uploader extends rex_api_function
             $media = rex_media::get($filename);
             if ($media) {
                 $inUse = false;
-                
+
                 $sql = rex_sql::factory();
                 $yformTables = rex_yform_manager_table::getAll();
-                
+
                 foreach ($yformTables as $table) {
                     foreach ($table->getFields() as $field) {
                         if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
@@ -236,7 +251,7 @@ class rex_api_filepond_uploader extends rex_api_function
                             $fieldName = $sql->escapeIdentifier($field->getName());
                             $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
                             $query = "SELECT id FROM $tableName WHERE $fieldName LIKE :filename";
-                            
+
                             try {
                                 $result = $sql->getArray($query, [':filename' => $filePattern]);
                                 if (count($result) > 0) {
@@ -290,7 +305,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 exit;
             }
         }
-        
+
         throw new rex_api_exception('File not found');
     }
 
