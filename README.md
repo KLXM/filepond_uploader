@@ -17,7 +17,7 @@ Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqin
 - 📱 Responsive Design
 - 🛡️ Validierung von Dateitypen und -größen
 - 🔒 Abgesichert via API_Token und Benutzerprüfung, auch YCOM
-- 🖼️ Automatische Bildoptimierung für große Bilder
+- 🖼️ Automatische Bildverkleinerung für große Bilder (außer .gif)
 
 ## Installation
 
