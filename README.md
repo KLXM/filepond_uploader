@@ -17,7 +17,7 @@ Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqin
 - 📱 Responsive Design
 - 🛡️ Validierung von Dateitypen und -größen
 - 🔒 Abgesichert via API_Token und Benutzerprüfung, auch YCOM
-- 🖼️ Automatische Bildoptimierung für große Bilder
+- 🖼️ Automatische Bildverkleinerung für große Bilder (außer .gif)
 
 ## Installation
 
@@ -94,7 +94,7 @@ foreach($files as $file) {
 |----------|--------------|-----------|
 | data-filepond-cat | Medienpool Kategorie ID | 1 |
 | data-filepond-maxfiles | Max. Anzahl Dateien | 10 |
-| data-filepond-types | Erlaubte Dateitypen | image/* |
+| data-filepond-types | Erlaubte Dateitypen | image/*,video/*,application/pdf |
 | data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
 | data-filepond-lang | Sprache (de/en) | de_de |
 | data-filepond-maxpixels | Max. Bildgröße (Pixel) | 1200 |
@@ -117,8 +117,14 @@ data-filepond-types="image/*"
 <!-- Bilder und PDFs -->
 data-filepond-types="image/*, application/pdf"
 
-<!-- Office und PDF -->
-data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/pdf"
+<!-- Microsoft Office -->
+data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation"
+
+<!-- OpenOffice/LibreOffice -->
+data-filepond-types="application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation"
+
+<!-- Office und PDF kombiniert -->
+data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation, application/pdf"
 ```
 
 ## Bildoptimierung
