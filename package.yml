@@ -18,7 +18,7 @@ page:
         settings: { title: 'translate:filepond_uploader_settings' }
 
 default_config:
-    allowed_types: 'image/*,video/*,.pdf,.docx,.txt'
+    allowed_types: 'image/*,video/*,application/pdf'
     max_size: 200
     max_files: 30
     max_pixel: 2100
