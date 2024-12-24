@@ -166,7 +166,6 @@ Im Frontend werden die Assets als HTML-String zurückgegeben:
 | data-filepond-types | Erlaubte Dateitypen | image/'*',video/'*',application/pdf |
 | data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
 | data-filepond-lang | Sprache (de/en) | de_de |
-| data-filepond-maxpixels | Max. Bildgröße (Pixel) | 1200 |
 
 ### Erlaubte Dateitypen
 
