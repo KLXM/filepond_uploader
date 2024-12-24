@@ -156,11 +156,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected function processImage($tmpFile)
     {
         // error_log('FILEPOND: Processing image: ' . $tmpFile);
-        // Skip processing if max_pixel is 0
         $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
-        if ($maxPixel === 0) {
-            return;
-        }
 
         $imageInfo = getimagesize($tmpFile);
         if (!$imageInfo) {
