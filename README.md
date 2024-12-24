@@ -74,7 +74,7 @@ foreach($files as $file) {
 ?>
 ```
 
-### Es kann auch in ein Medialist-Value schreiben. 
+### Medialist-Value Integration
 
 ```php
 <input 
@@ -82,8 +82,77 @@ foreach($files as $file) {
     name="REX_INPUT_MEDIALIST[1]" 
     value="REX_MEDIALIST[1]" 
     data-widget="filepond"
-…
+    ...
 >
+```
+
+## Helper Class
+
+Das AddOn stellt eine Helper-Klasse bereit, die das Einbinden der benötigten Assets (JavaScript und CSS) im Frontend vereinfacht. 
+
+### Basis-Verwendung
+
+```php
+// Im Template oder Modul
+<?php
+echo filepond_helper::getScripts();
+echo filepond_helper::getStyles();
+?>
+```
+
+### Methoden
+
+#### getScripts()
+
+Lädt alle benötigten JavaScript-Dateien:
+
+```php
+/**
+ * Get JavaScript files
+ * @return string Returns HTML string in frontend, empty string in backend after adding scripts via rex_view
+ */
+public static function getScripts(): string
+```
+
+Eingebundene Dateien:
+- Validierungs-Plugins (Dateityp und -größe)
+- Image Preview Plugin
+- FilePond Core
+- Modal und Widget Scripts
+
+#### getStyles()
+
+Lädt alle benötigten CSS-Dateien:
+
+```php
+/**
+ * Get CSS files
+ * @return string Returns HTML string in frontend, empty string in backend after adding styles via rex_view
+ */
+public static function getStyles(): string
+```
+
+Eingebundene Dateien:
+- FilePond Core CSS
+- Image Preview Plugin CSS
+- Widget Styles
+
+### Verwendung im Frontend
+
+Im Frontend werden die Assets als HTML-String zurückgegeben:
+
+```php
+// In einem Template
+<!DOCTYPE html>
+<html>
+<head>
+    <?= filepond_helper::getStyles() ?>
+</head>
+<body>
+    <!-- Content -->
+    <?= filepond_helper::getScripts() ?>
+</body>
+</html>
 ```
 
 ## Konfiguration
@@ -94,7 +163,7 @@ foreach($files as $file) {
 |----------|--------------|-----------|
 | data-filepond-cat | Medienpool Kategorie ID | 1 |
 | data-filepond-maxfiles | Max. Anzahl Dateien | 10 |
-| data-filepond-types | Erlaubte Dateitypen | image/*,video/*,application/pdf |
+| data-filepond-types | Erlaubte Dateitypen | image/'*',video/'*',application/pdf |
 | data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
 | data-filepond-lang | Sprache (de/en) | de_de |
 | data-filepond-maxpixels | Max. Bildgröße (Pixel) | 1200 |
