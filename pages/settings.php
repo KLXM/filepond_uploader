@@ -44,7 +44,7 @@ $form->addRawField('<div class="col-sm-6">');
 // Maximale Anzahl Dateien
 $field = $form->addInputField('number', 'max_files', null, [
     'class' => 'form-control',
-    'min' => '1',
+    'min' => '0',
     'required' => 'required'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_max_files'));
