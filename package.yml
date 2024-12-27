@@ -13,7 +13,7 @@ page:
     subpages:
         upload: { 
             title: 'translate:filepond_uploader_upload',
-            perm: rex_filepond_uploader[upload]  
+            perm: filepond_uploader[upload]  
         }
         settings: { 
             title: 'translate:filepond_uploader_settings',
