@@ -1,6 +1,7 @@
 # General
 filepond_uploader_title = FilePond Uploader
 filepond_description = Modern file upload field with media pool integration
+perm_general_filepond_uploader[upload] = Use Filepond upload page
 
 # Tabs
 filepond_uploader_upload = Upload
