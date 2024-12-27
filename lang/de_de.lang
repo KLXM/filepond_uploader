@@ -4,6 +4,7 @@ filepond_description = Modernes Upload-Feld mit Medienpool-Integration
 filepond_general_settings = Allgemeine Einstellungen
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
+perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
 
 # Tabs
 filepond_uploader_upload = Upload
