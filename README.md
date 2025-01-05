@@ -261,8 +261,9 @@ npm run build
 
 ## Credits
 
-- KLXM Crossmedia GmbH - [klxm.de](https://klxm.de)
-- FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
+- KLXM Crossmedia GmbH: [klxm.de](https://klxm.de)
+- Developed by: [Thomas Skerbis](https://github.com/skerbis)
+- Vendor: FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
 - Lizenz: MIT
 
 ## Support
