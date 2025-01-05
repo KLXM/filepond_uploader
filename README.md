@@ -1,6 +1,6 @@
 # filepond Uploader für REDAXO
 
-![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screen1.png?raw=true)
+![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
 Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqina.nl/filepond/) Framework. Der Uploader wurde mit Fokus auf Barrierefreiheit, UX und rechtliche Anforderungen entwickelt.
 
