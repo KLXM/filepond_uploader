@@ -271,4 +271,4 @@ npm run build
 - GitHub Issues
 - REDAXO Slack
 - [www.redaxo.org](https://www.redaxo.org)
-- [AddOn Homepage](https://github.com/KLXM/filepond_uploader/blob/main/package.yml)
+- [AddOn Homepage](https://github.com/KLXM/filepond_uploader/tree/main)
