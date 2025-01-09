@@ -1,5 +1,6 @@
 (function() {
     const initFilePond = () => {
+      console.log('initFilePond function called');
         // Translations
         const translations = {
             de_de: {
@@ -36,11 +37,12 @@
         );
 
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+           console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
-             const skipMeta = input.dataset.filepondSkipMeta === 'true';
+            const skipMeta = input.dataset.filepondSkipMeta === 'true';
             
             input.style.display = 'none';
 
@@ -256,8 +258,8 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                        const url = '/media/' + source.replace(/^"|"$/g, '');
-                        console.log('FilePond load url:', url);
+                         const url = '/media/' + source.replace(/^"|"$/g, '');
+                         console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
@@ -267,12 +269,12 @@
                                 }
                                 return response.blob();
                             })
-                            .then(blob => {
-                                  console.log('FilePond load blob:', blob);
+                             .then(blob => {
+                                 console.log('FilePond load blob:', blob);
                                 load(blob);
                             })
                             .catch(e => {
-                                console.error('FilePond load error:', e);
+                                 console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
@@ -327,11 +329,19 @@
     };
 
     // Initialize based on environment
-    if (typeof jQuery !== 'undefined') {
-        jQuery(document).on('rex:ready', initFilePond);
-    } else if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initFilePond);
+    if (document.body.classList.contains('rex-is-logged-in')) {
+        if (typeof jQuery !== 'undefined') {
+             jQuery(document).on('rex:ready', initFilePond);
+        }
     } else {
-        initFilePond();
+         if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+               console.log('DOMContentLoaded event triggered');
+               initFilePond();
+            });
+         } else {
+             console.log('DOM already loaded, initializing FilePond');
+             initFilePond();
+        }
     }
 })();
