@@ -195,7 +195,7 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                    url: 'index.php',
+                     url: 'index.php',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                          try {
                             let fileMetadata = {};
@@ -257,16 +257,22 @@
                     },
                     load: (source, load, error, progress, abort, headers) => {
                         const url = '/media/' + source.replace(/^"|"$/g, '');
+                        console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
+                                 console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
-                            .then(load)
+                            .then(blob => {
+                                  console.log('FilePond load blob:', blob);
+                                load(blob);
+                            })
                             .catch(e => {
+                                console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
