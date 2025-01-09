@@ -195,6 +195,72 @@ data-filepond-types="application/vnd.oasis.opendocument.text, application/vnd.oa
 data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation, application/pdf"
 ```
 
+## Session-Konfiguration für individuelle Änderungen 
+
+> Hinweis: Bei Verwendung von Yform/Yorm vor Yform/YOrm ausführen. 
+
+Im Frontend sollte die Session gestartet werden
+
+```
+rex_login::startSession();
+
+```
+Wenn die Werte nicht mehr gebraucht werden, sollten sie zurückgesetzt werden. 
+
+
+### API-Token übergeben 
+```php
+rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
+
+```
+Hiermit kann der API-Token übergeben werden. Damit ist es möglich auch ußerhalb von YCOM im Frontend Datei-Uploads zu erlauben. 
+
+### Meta-Abfrage deaktivieren
+
+```php
+rex_set_session('filepond_no_meta', true);
+```
+Hiermit lässt sich die Meta-Abfrage deaktivieren. Bool: true/false
+
+### Modulbeispiel
+
+```php
+<?php
+rex_login::startSession();
+// Session-Token für API-Zugriff setzen (für Frontend)
+rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
+
+// Optional: Meta-Eingabe deaktivieren
+rex_set_session('filepond_no_meta', true);
+
+// Filepond Assets einbinden , besser im Template ablegen
+if (rex::isFrontend()) {
+   echo filepond_helper::getStyles();
+   echo filepond_helper::getScripts();
+}
+?>
+
+<form class="uploadform" method="post" enctype="multipart/form-data">
+    <input 
+        type="hidden" 
+        name="REX_INPUT_MEDIALIST[1]" 
+        value="REX_MEDIALIST[1]" 
+        data-widget="filepond"
+        data-filepond-cat="1"
+        data-filepond-types="image/*,video/*,application/pdf"
+        data-filepond-maxfiles="3"
+        data-filepond-maxsize="10"
+        data-filepond-lang="de_de"
+        data-filepond-skip-meta="<?= rex_session('filepond_no_meta', 'boolean', false) ? 'true' : 'false' ?>"
+    >
+</form>
+
+```
+
+
+
+
+
 ## Bildoptimierung
 
 Bilder werden automatisch optimiert, wenn sie die konfigurierte maximale Pixelgröße überschreiten:
