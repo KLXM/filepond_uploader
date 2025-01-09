@@ -45,16 +45,6 @@
             // Create metadata dialog with SimpleModal
             const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
-                    // Wenn Metadaten übersprungen werden sollen
-                    if (skipMeta) {
-                        resolve({
-                            title: file.name,
-                            alt: file.name,
-                            copyright: ''
-                        });
-                        return;
-                    }
-
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
@@ -198,7 +188,19 @@
                     url: 'index.php',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                         try {
-                            const fileMetadata = await createMetadataDialog(file);
+                            let fileMetadata = {};
+                            
+                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
+                            if (!skipMeta) {
+                                fileMetadata = await createMetadataDialog(file);
+                            } else {
+                                // Standard-Metadaten wenn übersprungen
+                                fileMetadata = {
+                                    title: file.name,
+                                    alt: file.name,
+                                    copyright: ''
+                                };
+                            }
                             
                             const formData = new FormData();
                             formData.append(fieldName, file);
@@ -308,12 +310,18 @@
         });
     };
 
-    // Initialize based on environment
-    if (typeof jQuery !== 'undefined') {
+
+
+    // Initialisierung je nach Kontext
+    if (typeof rex !== 'undefined' && rex.backend) {
+        // Backend: jQuery und rex:ready nutzen
         jQuery(document).on('rex:ready', initFilePond);
-    } else if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initFilePond);
     } else {
-        initFilePond();
+        // Frontend: DOMContentLoaded nutzen
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initFilePond);
+        } else {
+            initFilePond();
+        }
     }
 })();
