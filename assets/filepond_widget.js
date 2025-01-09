@@ -343,9 +343,7 @@
     // Initialize based on environment
     if (typeof jQuery !== 'undefined') {
        jQuery(document).on('rex:ready', initFilePond);
-    } else {
-      document.addEventListener('DOMContentLoaded', initFilePond);
-    }
+    } 
    
     // Expose initFilePond globally if needed
     window.initFilePond = initFilePond;
