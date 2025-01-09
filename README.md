@@ -257,8 +257,15 @@ if (rex::isFrontend()) {
 
 ```
 
+## Intitialisierung im Frontend 
 
+```js
+document.addEventListener('DOMContentLoaded', function() {
+  // Dieser Code wird ausgeführt, nachdem das HTML vollständig geladen wurde.
+  initFilePond();
+});
 
+```
 
 
 ## Bildoptimierung
