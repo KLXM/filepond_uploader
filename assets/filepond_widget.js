@@ -1,6 +1,6 @@
 (function() {
     const initFilePond = () => {
-      console.log('initFilePond function called');
+        console.log('initFilePond function called');
         // Translations
         const translations = {
             de_de: {
@@ -36,8 +36,20 @@
             FilePondPluginImagePreview
         );
 
-        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
-           console.log('FilePond input element found:', input);
+        // Funktion zum Ermitteln des Basepaths
+        const getBasePath = () => {
+            const baseElement = document.querySelector('base');
+            if (baseElement && baseElement.href) {
+                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+            }
+           // Fallback, wenn kein <base>-Tag vorhanden ist
+           return  window.location.origin;
+        };
+        const basePath = getBasePath();
+         console.log('Basepath ermittelt:', basePath);
+        
+         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+            console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
             
@@ -51,6 +63,7 @@
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
+            // Create metadata dialog with SimpleModal
            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
@@ -179,6 +192,7 @@
                         source: file,
                         options: {
                             type: 'local',
+                           // poster nur bei videos setzen
                              ...(file.type?.startsWith('video/') ? {
                                     metadata: {
                                         poster: '/media/' + file
@@ -195,14 +209,16 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                     url: 'index.php',
+                     url: basePath, // Verwende den Basepath
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                          try {
                             let fileMetadata = {};
                             
+                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
+                                // Standard-Metadaten wenn übersprungen
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
@@ -217,7 +233,7 @@
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const response = await fetch('index.php', {
+                            const response = await fetch(basePath, {  // Verwende den Basepath
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
@@ -253,7 +269,7 @@
                             return formData;
                         }
                     },
-                   load: (source, load, error, progress, abort, headers) => {
+                    load: (source, load, error, progress, abort, headers) => {
                          const url = '/media/' + source.replace(/^"|"$/g, '');
                          console.log('FilePond load url:', url);
                         
