@@ -320,12 +320,9 @@
         });
     };
 
-    // Initialize based on environment
+    // JQUERY REDAXO BACKEND
     if (typeof jQuery !== 'undefined') {
         jQuery(document).on('rex:ready', initFilePond);
-    } else if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initFilePond);
-    } else {
-        initFilePond();
+    } 
     }
 })();
