@@ -191,16 +191,18 @@
                             let fileMetadata = {};
                             
                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
-                            if (!skipMeta) {
-                                fileMetadata = await createMetadataDialog(file);
-                            } else {
-                                // Standard-Metadaten wenn übersprungen
-                                fileMetadata = {
-                                    title: file.name,
-                                    alt: file.name,
-                                    copyright: ''
-                                };
-                            }
+            if (!skipMeta) {
+                console.log('Getting metadata from dialog');
+                fileMetadata = await createMetadataDialog(file);
+            } else {
+                console.log('Using default metadata');
+                // Standard-Metadaten wenn übersprungen
+                fileMetadata = {
+                    title: file.name,
+                    alt: file.name,
+                    copyright: ''
+                };
+            }
                             
                             const formData = new FormData();
                             formData.append(fieldName, file);
