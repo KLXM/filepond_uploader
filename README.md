@@ -159,13 +159,16 @@ Im Frontend werden die Assets als HTML-String zurückgegeben:
 
 ### Attribute
 
+Folgende data-Attribute stehen zur Verfügung:
+
 | Attribut | Beschreibung | Standard |
-|----------|--------------|-----------|
-| data-filepond-cat | Medienpool Kategorie ID | 1 |
-| data-filepond-maxfiles | Max. Anzahl Dateien | 10 |
-| data-filepond-types | Erlaubte Dateitypen | image/'*',video/'*',application/pdf |
-| data-filepond-maxsize | Max. Dateigröße (MB) | 10 |
-| data-filepond-lang | Sprache (de/en) | de_de |
+|----------|-------------|-----------|
+| data-filepond-cat | Medienpool Kategorie ID | 0 |
+| data-filepond-types | Erlaubte Dateitypen | image/* |
+| data-filepond-maxfiles | Max. Anzahl Dateien | 30 |
+| data-filepond-maxsize | Max. Dateigröße in MB | 10 |
+| data-filepond-lang | Sprache (de_de/en_gb) | de_de |
+| data-filepond-skip-meta | Meta-Eingabe deaktivieren | false |
 
 ### Erlaubte Dateitypen
 
