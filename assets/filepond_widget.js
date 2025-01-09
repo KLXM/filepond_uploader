@@ -28,13 +28,20 @@
             }
         };
 
+        // Register FilePond plugins
+        FilePond.registerPlugin(
+            FilePondPluginFileValidateType,
+            FilePondPluginFileValidateSize,
+            FilePondPluginImagePreview
+        );
+
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
-            const skipMeta = input.dataset.filepondSkipMeta === 'true';
-
+             const skipMeta = input.dataset.filepondSkipMeta === 'true';
+            
             input.style.display = 'none';
 
             const fileInput = document.createElement('input');
@@ -43,7 +50,7 @@
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
             // Create metadata dialog with SimpleModal
-            const createMetadataDialog = (file, existingMetadata = null) => {
+           const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -167,14 +174,17 @@
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                    return {
+                     return {
                         source: file,
                         options: {
                             type: 'local',
-                            metadata: {
-                                poster: '/media/' + file
-                            }
-                        }
+                           // poster nur bei videos setzen
+                             ...(file.type?.startsWith('video/') ? {
+                                    metadata: {
+                                        poster: '/media/' + file
+                                    }
+                                } : {} )
+                           }
                     };
                 }) : [];
 
@@ -185,12 +195,12 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                    url: (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/',
+                    url: 'index.php',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                        try {
+                         try {
                             let fileMetadata = {};
                             
-                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
+                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
@@ -209,9 +219,7 @@
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const uploadUrl = (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/';
-
-                            const response = await fetch(uploadUrl, {
+                            const response = await fetch('index.php', {
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
@@ -236,7 +244,6 @@
                         }
                     },
                     revert: {
-                        url: (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/',
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
@@ -313,16 +320,12 @@
         });
     };
 
-    // Initialisierung je nach Kontext
-    if (typeof rex !== 'undefined' && rex.backend) {
-        // Backend: jQuery und rex:ready nutzen
+    // Initialize based on environment
+    if (typeof jQuery !== 'undefined') {
         jQuery(document).on('rex:ready', initFilePond);
+    } else if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFilePond);
     } else {
-        // Frontend: DOMContentLoaded nutzen
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initFilePond);
-        } else {
-            initFilePond();
-        }
+        initFilePond();
     }
 })();
