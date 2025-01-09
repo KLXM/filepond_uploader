@@ -257,7 +257,7 @@ if (rex::isFrontend()) {
 
 ```
 
-## Intitialisierung im Frontend 
+## Intitialisierung im Frontend und Tipps
 
 ```js
 document.addEventListener('DOMContentLoaded', function() {
@@ -266,6 +266,21 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 ```
+
+Falls das Panel nicht schön gestaltet dargestellt wird, hilft es diesen Stil anzupassen
+
+Hier ein hässliches Beispiel: 
+
+```
+.filepond--panel-root {
+    border: 1px solid var(--fp-border);
+    background-color: #eedede;
+    min-height: 150px;
+
+}
+```
+
+
 
 
 ## Bildoptimierung
