@@ -159,7 +159,7 @@
                 'allowed_types' => [
                     'type' => 'text',   
                     'label' => 'Erlaubte Dateitypen',
-                    'notice' => 'z.B.: image/*,video/*,.pdf',
+                    'notice' => 'z.B.: image/*,video/*,application/pdf',
                     'default' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*')
                 ],
                 'allowed_filesize' => [
