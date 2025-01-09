@@ -28,19 +28,13 @@
             }
         };
 
-        // Register FilePond plugins
-        FilePond.registerPlugin(
-            FilePondPluginFileValidateType,
-            FilePondPluginFileValidateSize,
-            FilePondPluginImagePreview
-        );
-
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
-            
+            const skipMeta = input.dataset.filepondSkipMeta === 'true';
+
             input.style.display = 'none';
 
             const fileInput = document.createElement('input');
@@ -51,6 +45,16 @@
             // Create metadata dialog with SimpleModal
             const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
+                    // Wenn Metadaten übersprungen werden sollen
+                    if (skipMeta) {
+                        resolve({
+                            title: file.name,
+                            alt: file.name,
+                            copyright: ''
+                        });
+                        return;
+                    }
+
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
