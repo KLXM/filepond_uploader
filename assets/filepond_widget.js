@@ -185,24 +185,22 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                    url: '/index.php',
+                    url: (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                         try {
                             let fileMetadata = {};
                             
                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
-            if (!skipMeta) {
-                console.log('Getting metadata from dialog');
-                fileMetadata = await createMetadataDialog(file);
-            } else {
-                console.log('Using default metadata');
-                // Standard-Metadaten wenn übersprungen
-                fileMetadata = {
-                    title: file.name,
-                    alt: file.name,
-                    copyright: ''
-                };
-            }
+                            if (!skipMeta) {
+                                fileMetadata = await createMetadataDialog(file);
+                            } else {
+                                // Standard-Metadaten wenn übersprungen
+                                fileMetadata = {
+                                    title: file.name,
+                                    alt: file.name,
+                                    copyright: ''
+                                };
+                            }
                             
                             const formData = new FormData();
                             formData.append(fieldName, file);
@@ -211,7 +209,9 @@
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const response = await fetch('index.php', {
+                            const uploadUrl = (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/';
+
+                            const response = await fetch(uploadUrl, {
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
@@ -236,6 +236,7 @@
                         }
                     },
                     revert: {
+                        url: (typeof rex !== 'undefined' && rex.backend) ? 'index.php' : '/',
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
@@ -311,8 +312,6 @@
             });
         });
     };
-
-
 
     // Initialisierung je nach Kontext
     if (typeof rex !== 'undefined' && rex.backend) {
