@@ -51,7 +51,6 @@
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
-            // Create metadata dialog with SimpleModal
            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
@@ -180,7 +179,6 @@
                         source: file,
                         options: {
                             type: 'local',
-                           // poster nur bei videos setzen
                              ...(file.type?.startsWith('video/') ? {
                                     metadata: {
                                         poster: '/media/' + file
@@ -202,11 +200,9 @@
                          try {
                             let fileMetadata = {};
                             
-                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
-                                // Standard-Metadaten wenn übersprungen
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
@@ -257,7 +253,7 @@
                             return formData;
                         }
                     },
-                    load: (source, load, error, progress, abort, headers) => {
+                   load: (source, load, error, progress, abort, headers) => {
                          const url = '/media/' + source.replace(/^"|"$/g, '');
                          console.log('FilePond load url:', url);
                         
@@ -331,6 +327,10 @@
     // Initialize based on environment
     if (typeof jQuery !== 'undefined') {
        jQuery(document).on('rex:ready', initFilePond);
+    } else {
+      document.addEventListener('DOMContentLoaded', initFilePond);
     }
+   
+    // Expose initFilePond globally if needed
+    window.initFilePond = initFilePond;
 })();
-
