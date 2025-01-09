@@ -40,6 +40,7 @@
             const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
+             const skipMeta = input.dataset.filepondSkipMeta === 'true';
             
             input.style.display = 'none';
 
@@ -49,7 +50,7 @@
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
             // Create metadata dialog with SimpleModal
-            const createMetadataDialog = (file, existingMetadata = null) => {
+           const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -173,14 +174,17 @@
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                    return {
+                     return {
                         source: file,
                         options: {
                             type: 'local',
-                            metadata: {
-                                poster: '/media/' + file
-                            }
-                        }
+                           // poster nur bei videos setzen
+                             ...(file.type?.startsWith('video/') ? {
+                                    metadata: {
+                                        poster: '/media/' + file
+                                    }
+                                } : {} )
+                           }
                     };
                 }) : [];
 
@@ -193,8 +197,20 @@
                 server: {
                     url: 'index.php',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                        try {
-                            const fileMetadata = await createMetadataDialog(file);
+                         try {
+                            let fileMetadata = {};
+                            
+                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
+                            if (!skipMeta) {
+                                fileMetadata = await createMetadataDialog(file);
+                            } else {
+                                // Standard-Metadaten wenn übersprungen
+                                fileMetadata = {
+                                    title: file.name,
+                                    alt: file.name,
+                                    copyright: ''
+                                };
+                            }
                             
                             const formData = new FormData();
                             formData.append(fieldName, file);
