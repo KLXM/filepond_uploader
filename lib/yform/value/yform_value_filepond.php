@@ -179,7 +179,8 @@
                     'type' => 'text',    
                     'label' => 'Fehlermeldung wenn leer',
                     'default' => 'Bitte eine Datei auswählen.'
-                ]
+                ],
+                'show_meta' => ['type' => 'checkbox',  'label' => 'Metasabfrage deaktivieren', 'default' => '0', 'options' => '0,1']
             ],
             'description' => 'Filepond Dateiupload mit Medienpool-Integration',
             'db_type' => ['text'],
