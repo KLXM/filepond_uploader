@@ -329,19 +329,8 @@
     };
 
     // Initialize based on environment
-    if (document.body.classList.contains('rex-is-logged-in')) {
-        if (typeof jQuery !== 'undefined') {
-             jQuery(document).on('rex:ready', initFilePond);
-        }
-    } else {
-         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-               console.log('DOMContentLoaded event triggered');
-               initFilePond();
-            });
-         } else {
-             console.log('DOM already loaded, initializing FilePond');
-             initFilePond();
-        }
+    if (typeof jQuery !== 'undefined') {
+       jQuery(document).on('rex:ready', initFilePond);
     }
 })();
+
