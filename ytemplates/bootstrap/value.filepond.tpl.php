@@ -38,8 +38,17 @@ if ($this->getElement('skip_meta') !== null) {
     $skipMeta = (bool) $this->getElement('skip_meta');
 }
 
-// Priorität: Session überschreibt Element
-$skipMeta = rex_session('filepond_no_meta', 'boolean', $skipMeta);
+
+// Prüfe ob Metadaten übersprungen werden sollen
+$skipMeta = rex_session('filepond_no_meta', 'boolean');
+
+// Wenn keine Session vorhanden ist, dann lese den Wert aus dem Element, wenn gesetzt und wandele es zu bool
+if($skipMeta === null){
+    $skipMeta = false;
+    if ($this->getElement('skip_meta') !== null) {
+        $skipMeta = (bool) $this->getElement('skip_meta');
+    }
+}
 
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
