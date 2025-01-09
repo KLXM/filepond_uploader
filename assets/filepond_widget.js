@@ -214,7 +214,6 @@
                          try {
                             let fileMetadata = {};
                             
-                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
@@ -340,11 +339,8 @@
         });
     };
 
-    // Initialize based on environment
+    // JQUERY REDAXO BACKEND
     if (typeof jQuery !== 'undefined') {
        jQuery(document).on('rex:ready', initFilePond);
     } 
-   
-    // Expose initFilePond globally if needed
-    window.initFilePond = initFilePond;
-})();
+
