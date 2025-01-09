@@ -31,7 +31,16 @@ $currentUser = rex::getUser();
 $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
 
 // Prüfe ob Metadaten übersprungen werden sollen
-$skipMeta = rex_session('filepond_no_meta', 'boolean', false);
+$skipMeta = false;
+
+// Hole den Wert aus dem Element, wenn gesetzt und wandele es zu bool
+if ($this->getElement('skip_meta') !== null) {
+    $skipMeta = (bool) $this->getElement('skip_meta');
+}
+
+// Priorität: Session überschreibt Element
+$skipMeta = rex_session('filepond_no_meta', 'boolean', $skipMeta);
+
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
     <label class="control-label" for="<?= $this->getFieldId() ?>"><?= $this->getLabel() ?></label>
