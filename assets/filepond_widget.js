@@ -1,5 +1,6 @@
 (function() {
     const initFilePond = () => {
+        console.log('initFilePond function called');
         // Translations
         const translations = {
             de_de: {
@@ -35,12 +36,25 @@
             FilePondPluginImagePreview
         );
 
-        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+        // Funktion zum Ermitteln des Basepaths
+        const getBasePath = () => {
+            const baseElement = document.querySelector('base');
+            if (baseElement && baseElement.href) {
+                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+            }
+           // Fallback, wenn kein <base>-Tag vorhanden ist
+           return  window.location.origin;
+        };
+        const basePath = getBasePath();
+         console.log('Basepath ermittelt:', basePath);
+        
+         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+            console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
-             const skipMeta = input.dataset.filepondSkipMeta === 'true';
+            const skipMeta = input.dataset.filepondSkipMeta === 'true';
             
             input.style.display = 'none';
 
@@ -195,12 +209,11 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                    url: 'index.php',
+                     url: basePath, // Verwende den Basepath
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                          try {
                             let fileMetadata = {};
                             
-                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
@@ -219,7 +232,7 @@
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const response = await fetch('index.php', {
+                            const response = await fetch(basePath, {  // Verwende den Basepath
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
@@ -256,17 +269,23 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                        const url = '/media/' + source.replace(/^"|"$/g, '');
+                         const url = '/media/' + source.replace(/^"|"$/g, '');
+                         console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
+                                 console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
-                            .then(load)
+                             .then(blob => {
+                                 console.log('FilePond load blob:', blob);
+                                load(blob);
+                            })
                             .catch(e => {
+                                 console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
@@ -322,7 +341,6 @@
 
     // JQUERY REDAXO BACKEND
     if (typeof jQuery !== 'undefined') {
-        jQuery(document).on('rex:ready', initFilePond);
+       jQuery(document).on('rex:ready', initFilePond);
     } 
-    }
-})();
+

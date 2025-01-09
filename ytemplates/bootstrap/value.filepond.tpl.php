@@ -29,6 +29,9 @@ foreach ($fileNames as $fileName) {
 
 $currentUser = rex::getUser();
 $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
+
+// Prüfe ob Metadaten übersprungen werden sollen
+$skipMeta = rex_session('filepond_no_meta', 'boolean', false);
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
     <label class="control-label" for="<?= $this->getFieldId() ?>"><?= $this->getLabel() ?></label>
@@ -42,6 +45,7 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
        data-filepond-types="<?= $this->getElement('allowed_types') ?: rex_config::get('filepond_uploader', 'allowed_types', 'image/*') ?>"
        data-filepond-maxsize="<?= $this->getElement('allowed_filesize') ?: rex_config::get('filepond_uploader', 'max_filesize', 10) ?>"
        data-filepond-lang="<?= $langCode ?>"
+       data-filepond-skip-meta="<?= $skipMeta ? 'true' : 'false' ?>"
     />
 
     <?php if ($notice = $this->getElement('notice')): ?>
