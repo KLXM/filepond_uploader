@@ -40,7 +40,7 @@ if ($this->getElement('skip_meta') !== null) {
 
 
 // Prüfe ob Metadaten übersprungen werden sollen
-$skipMeta = (bool) $this->getElement('skip_meta');
+$skipMeta = (bool) $this->getElement('filepond_skip_meta');
 dump($skipMeta);
 $skipMeta = rex_session('filepond_no_meta', 'boolean', $skipMeta);
 
