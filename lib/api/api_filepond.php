@@ -19,7 +19,10 @@ class rex_api_filepond_uploader extends rex_api_function
 
                 $apiToken = rex_config::get('filepond_uploader', 'api_token');
                 $requestToken = rex_request('api_token', 'string', null);
-                $isValidToken = $requestToken && hash_equals($apiToken, $requestToken);
+                $sessionToken = rex_session('filepond_token', 'string', '');
+                
+                $isValidToken = ($requestToken && hash_equals($apiToken, $requestToken)) || 
+                               ($sessionToken && hash_equals($apiToken, $sessionToken));
 
                 if (!$isValidToken && !$isYComUser) {
                     throw new rex_api_exception('Unauthorized access - requires valid API token or YCom login');
@@ -107,16 +110,19 @@ class rex_api_filepond_uploader extends rex_api_function
 
         // Process image if it's not a GIF
         if (strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
-            // error_log('FILEPOND: Starting image processing for: ' . $file['type'] . ' - ' . $file['name']);
             $this->processImage($file['tmp_name']);
-        } else {
-            // error_log('FILEPOND: Skipping image processing - file type: ' . $file['type']);
         }
 
         $originalName = $file['name'];
         $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
 
-        $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
+        // Prüfe ob Metadaten übersprungen werden sollen
+        $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
+        $metadata = [];
+        
+        if (!$skipMeta) {
+            $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
+        }
 
         if (!isset($categoryId) || $categoryId < 0) {
             $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
@@ -129,20 +135,22 @@ class rex_api_filepond_uploader extends rex_api_function
                 'name' => $originalName,
                 'tmp_name' => $file['tmp_name'],
                 'type' => $file['type'],
-                'size' => filesize($file['tmp_name']) // Update filesize after potential resize
+                'size' => filesize($file['tmp_name'])
             ]
         ];
 
         try {
             $result = rex_media_service::addMedia($data, true);
             if ($result['ok']) {
-                $sql = rex_sql::factory();
-                $sql->setTable(rex::getTable('media'));
-                $sql->setWhere(['filename' => $result['filename']]);
-                $sql->setValue('title', $metadata['title'] ?? '');
-                $sql->setValue('med_alt', $metadata['alt'] ?? '');
-                $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
-                $sql->update();
+                if (!$skipMeta) {
+                    $sql = rex_sql::factory();
+                    $sql->setTable(rex::getTable('media'));
+                    $sql->setWhere(['filename' => $result['filename']]);
+                    $sql->setValue('title', $metadata['title'] ?? '');
+                    $sql->setValue('med_alt', $metadata['alt'] ?? '');
+                    $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    $sql->update();
+                }
 
                 return $result['filename'];
             }
@@ -155,24 +163,19 @@ class rex_api_filepond_uploader extends rex_api_function
 
     protected function processImage($tmpFile)
     {
-        // error_log('FILEPOND: Processing image: ' . $tmpFile);
         $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
 
         $imageInfo = getimagesize($tmpFile);
         if (!$imageInfo) {
-            // error_log('FILEPOND: Could not get image size for file: ' . $tmpFile);
             return;
         }
 
         list($width, $height, $type) = $imageInfo;
-        // error_log("FILEPOND: Image dimensions: {$width}x{$height}, type: {$type}");
 
         // Return if image is smaller than max dimensions
-        if ($width <= $maxPixel  && $height <= $maxPixel) {
-            // error_log('FILEPOND: Image is already small enough, skipping resize');
+        if ($width <= $maxPixel && $height <= $maxPixel) {
             return;
         }
-        // error_log('FILEPOND: Image needs resizing');
 
         // Calculate new dimensions
         $ratio = $width / $height;
@@ -188,25 +191,20 @@ class rex_api_filepond_uploader extends rex_api_function
         $srcImage = null;
         switch ($type) {
             case IMAGETYPE_JPEG:
-                // error_log('FILEPOND: Processing as JPEG');
                 $srcImage = imagecreatefromjpeg($tmpFile);
                 break;
             case IMAGETYPE_PNG:
-                // error_log('FILEPOND: Processing as PNG');
                 $srcImage = imagecreatefrompng($tmpFile);
                 break;
             default:
-                // error_log('FILEPOND: Unsupported image type: ' . $type);
                 return;
         }
 
         if (!$srcImage) {
-            // error_log('FILEPOND: Could not create image resource');
             return;
         }
 
         $dstImage = imagecreatetruecolor($newWidth, $newHeight);
-        // error_log("FILEPOND: Creating new image with dimensions: {$newWidth}x{$newHeight}");
 
         // Preserve transparency for PNG images
         if ($type === IMAGETYPE_PNG) {
@@ -231,18 +229,11 @@ class rex_api_filepond_uploader extends rex_api_function
         );
 
         // Save image
-        $success = false;
         if ($type === IMAGETYPE_JPEG) {
-            $success = imagejpeg($dstImage, $tmpFile, 90);
+            imagejpeg($dstImage, $tmpFile, 90);
         } elseif ($type === IMAGETYPE_PNG) {
-            $success = imagepng($dstImage, $tmpFile, 9);
+            imagepng($dstImage, $tmpFile, 9);
         }
-
-        /*if ($success) {
-            error_log('FILEPOND: Successfully saved resized image');
-        } else {
-            error_log('FILEPOND: Failed to save resized image');
-        }*/
 
         // Free memory
         imagedestroy($srcImage);
