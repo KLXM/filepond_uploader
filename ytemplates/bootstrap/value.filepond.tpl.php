@@ -46,9 +46,6 @@ $skipMeta = false;
 if ($this->getElement('skip_meta') !== null) {
     $skipMeta = (bool) $this->getElement('skip_meta');
 }
-dump($skipMeta);
-// Priorität: Session überschreibt Element
-#$skipMeta = rex_session('filepond_no_meta', 'boolean', $skipMeta);
 
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
