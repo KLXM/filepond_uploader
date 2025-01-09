@@ -185,7 +185,7 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                    url: 'index.php',
+                    url: '/index.php',
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                         try {
                             let fileMetadata = {};
