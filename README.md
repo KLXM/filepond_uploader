@@ -1,57 +1,75 @@
 # filepond Uploader für REDAXO
 
+**Ein moderner Datei-Uploader für REDAXO, der auf dem FilePond Framework basiert.**
+
 ![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
-Ein modernes Upload-System für REDAXO basierend auf dem [FilePond](https://pqina.nl/filepond/) Framework. Der Uploader wurde mit Fokus auf Barrierefreiheit, UX und rechtliche Anforderungen entwickelt.
+Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreiheit und rechtliche Anforderungen entwickelt. Er bietet eine moderne Drag-and-Drop-Oberfläche und integriert sich nahtlos in den REDAXO-Medienpool.
 
-## Features
+## Hauptmerkmale
 
-- 🎭 Moderne Drag & Drop Oberfläche 
-- 👁️ Live-Vorschau während des Uploads
-- ♿️ Barrierefreiheit: Erzwungene Alt-Texte / / Metafeld wird angelegt, wenn nicht vorhanden
-- ⚖️ Rechtssicherheit Copyright-Abfrage / optional
-- 🌍 Mehrsprachig (DE/EN)
-- 📦 Nahtlose Medienpool-Integration
-- 📋 YForm-Value mit automatischer Löschung der Medien, wenn nicht verwendet
-- ⚡ Asynchrone Uploads
-- 📱 Responsive Design
-- 🛡️ Validierung von Dateitypen und -größen
-- 🔒 Abgesichert via API_Token und Benutzerprüfung, auch YCOM
-- 🖼️ Automatische Bildverkleinerung für große Bilder (außer .gif)
+*   **Moderne Oberfläche:**
+    *   Drag & Drop für einfaches Hochladen von Dateien.
+    *   Live-Vorschau der Bilder während des Uploads.
+    *   Responsives Design für alle Bildschirmgrößen.
+
+*   **Barrierefreiheit:**
+    *   Erzwingt das Setzen von Alt-Texten für Bilder.
+    *   Legt automatisch ein Metafeld an, falls es noch nicht existiert.
+
+*   **Rechtliche Sicherheit:**
+    *   Optionale Abfrage des Copyrights für Bilder.
+
+*   **Mehrsprachigkeit:**
+    *   Verfügbar in Deutsch (DE) und Englisch (EN).
+
+*   **Nahtlose Integration:**
+    *   Direkte Speicherung von Dateien im REDAXO-Medienpool.
+    *   YForm-Value-Feld mit automatischer Löschung nicht verwendeter Medien.
+    *   Asynchrone Uploads für eine flüssige Benutzererfahrung.
+
+*   **Validierung und Sicherheit:**
+    *   Überprüfung von Dateitypen und -größen.
+    *   Sichere API-Token-basierte Authentifizierung (auch mit YCOM).
+
+*   **Automatische Bildoptimierung:**
+    *   Verkleinerung großer Bilder (außer GIFs) zur Optimierung der Webseitenperformance.
 
 ## Installation
 
-1. Im REDAXO Installer das AddOn "filepond_uploader" installieren
-2. Im Backend unter "AddOns" aktivieren
-3. Fertig!
+1.  **AddOn installieren:** Gehe im REDAXO-Installer zum AddOn-Bereich und installiere das AddOn "filepond\_uploader".
+2.  **AddOn aktivieren:** Aktiviere das AddOn im Backend unter "AddOns".
+3.  **Fertig:** Der Uploader ist nun einsatzbereit!
 
-## Quick Start
+## Schnellstart
 
-### Als YForm Feldtyp
+### Verwendung als YForm-Feldtyp
 
 ```php
 $yform->setValueField('filepond', [
     'name' => 'bilder',
-    'label' => 'Bildergalerie', 
+    'label' => 'Bildergalerie',
     'max_files' => 5,
     'allowed_types' => 'image/*',
     'max_size' => 10,
     'category' => 1
 ]);
 ```
-> Das YForm-Value ist nur eine Möglichkeit in YForm, es kann auch ein normales Input per JSON mit Attributen ausgezeichnet werden, dadurch entfällt das automatische Löschen.  
 
-### Als Modul
+> **Hinweis:** Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden. Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden. In diesem Fall entfällt die automatische Löschung nicht verwendeter Medien.
+
+### Verwendung in Modulen
 
 #### Eingabe
-```php
-<input 
+
+```html
+<input
     type="hidden"
-    name="REX_INPUT_VALUE[1]" 
+    name="REX_INPUT_VALUE[1]"
     value="REX_VALUE[1]"
     data-widget="filepond"
     data-filepond-cat="1"
-    data-filepond-maxfiles="5" 
+    data-filepond-maxfiles="5"
     data-filepond-types="image/*"
     data-filepond-maxsize="10"
     data-filepond-lang="de_de"
@@ -59,12 +77,13 @@ $yform->setValueField('filepond', [
 ```
 
 #### Ausgabe
+
 ```php
 <?php
 $files = explode(',', 'REX_VALUE[1]');
 foreach($files as $file) {
     if($media = rex_media::get($file)) {
-        echo '<img 
+        echo '<img
             src="'.$media->getUrl().'"
             alt="'.$media->getValue('med_alt').'"
             title="'.$media->getValue('title').'"
@@ -74,23 +93,23 @@ foreach($files as $file) {
 ?>
 ```
 
-### Medialist-Value Integration
+### Integration mit Medialisten
 
-```php
-<input 
-    type="hidden" 
-    name="REX_INPUT_MEDIALIST[1]" 
-    value="REX_MEDIALIST[1]" 
+```html
+<input
+    type="hidden"
+    name="REX_INPUT_MEDIALIST[1]"
+    value="REX_MEDIALIST[1]"
     data-widget="filepond"
     ...
 >
 ```
 
-## Helper Class
+## Helper-Klasse
 
-Das AddOn stellt eine Helper-Klasse bereit, die das Einbinden der benötigten Assets (JavaScript und CSS) im Frontend vereinfacht. 
+Das AddOn enthält eine Helper-Klasse, die das Einbinden von CSS- und JavaScript-Dateien vereinfacht.
 
-### Basis-Verwendung
+### Basisverwendung
 
 ```php
 // Im Template oder Modul
@@ -102,44 +121,44 @@ echo filepond_helper::getStyles();
 
 ### Methoden
 
-#### getScripts()
+#### `getScripts()`
 
-Lädt alle benötigten JavaScript-Dateien:
+Gibt alle benötigten JavaScript-Dateien zurück:
 
 ```php
 /**
- * Get JavaScript files
- * @return string Returns HTML string in frontend, empty string in backend after adding scripts via rex_view
+ * Gibt die JavaScript-Dateien zurück
+ * @return string HTML-String im Frontend, leerer String im Backend (nach dem Hinzufügen der Scripte via rex_view)
  */
 public static function getScripts(): string
 ```
 
-Eingebundene Dateien:
-- Validierungs-Plugins (Dateityp und -größe)
-- Image Preview Plugin
-- FilePond Core
-- Modal und Widget Scripts
+**Enthaltene Dateien:**
 
-#### getStyles()
+*   Validierungs-Plugins (Dateityp und -größe)
+*   Image Preview Plugin
+*   FilePond Core
+*   Modal- und Widget-Skripte
 
-Lädt alle benötigten CSS-Dateien:
+#### `getStyles()`
+
+Gibt alle benötigten CSS-Dateien zurück:
 
 ```php
 /**
- * Get CSS files
- * @return string Returns HTML string in frontend, empty string in backend after adding styles via rex_view
+ * Gibt die CSS-Dateien zurück
+ * @return string HTML-String im Frontend, leerer String im Backend (nach dem Hinzufügen der Stile via rex_view)
  */
 public static function getStyles(): string
 ```
 
-Eingebundene Dateien:
-- FilePond Core CSS
-- Image Preview Plugin CSS
-- Widget Styles
+**Enthaltene Dateien:**
+
+*   FilePond Core CSS
+*   Image Preview Plugin CSS
+*   Widget-Stile
 
 ### Verwendung im Frontend
-
-Im Frontend werden die Assets als HTML-String zurückgegeben:
 
 ```php
 // In einem Template
@@ -157,29 +176,31 @@ Im Frontend werden die Assets als HTML-String zurückgegeben:
 
 ## Konfiguration
 
-### Attribute
+### Data-Attribute
 
-Folgende data-Attribute stehen zur Verfügung:
+Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 
-| Attribut | Beschreibung | Standard |
-|----------|-------------|-----------|
-| data-filepond-cat | Medienpool Kategorie ID | 0 |
-| data-filepond-types | Erlaubte Dateitypen | image/* |
-| data-filepond-maxfiles | Max. Anzahl Dateien | 30 |
-| data-filepond-maxsize | Max. Dateigröße in MB | 10 |
-| data-filepond-lang | Sprache (de_de/en_gb) | de_de |
-| data-filepond-skip-meta | Meta-Eingabe deaktivieren | false |
+| Attribut                | Beschreibung                            | Standardwert |
+| ----------------------- | --------------------------------------- | ------------ |
+| `data-filepond-cat`     | Medienpool Kategorie ID                | `0`          |
+| `data-filepond-types`   | Erlaubte Dateitypen                    | `image/*`    |
+| `data-filepond-maxfiles` | Maximale Anzahl an Dateien             | `30`         |
+| `data-filepond-maxsize` | Maximale Dateigröße in MB              | `10`         |
+| `data-filepond-lang`    | Sprache (`de_de` / `en_gb`)            | `de_de`      |
+| `data-filepond-skip-meta` | Meta-Eingabe deaktivieren | `false` |
 
-### Erlaubte Dateitypen
+### Erlaubte Dateitypen (MIME-Types)
 
-#### Grundsätzliche Syntax
+#### Grundlegende Syntax
 
 `data-filepond-types="mime/type"`
 
-- Bilder: `image/*`
-- Videos: `video/*` 
-- PDFs: `application/pdf`
-- Medienformate: `image/*, video/*, audio/*`
+*   **Bilder:** `image/*`
+*   **Videos:** `video/*`
+*   **PDFs:** `application/pdf`
+*   **Medienformate (Bilder, Videos, Audio):** `image/*, video/*, audio/*`
+
+**Beispiele:**
 
 ```html
 <!-- Alle Bildtypen -->
@@ -198,32 +219,33 @@ data-filepond-types="application/vnd.oasis.opendocument.text, application/vnd.oa
 data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation, application/pdf"
 ```
 
-## Session-Konfiguration für individuelle Änderungen 
+## Session-Konfiguration für individuelle Anpassungen
 
-> Hinweis: Bei Verwendung von Yform/Yorm vor Yform/YOrm ausführen. 
+> **Hinweis:** Bei Verwendung von YForm/Yorm muss `rex_login::startSession()` vor Yform/YOrm aufgerufen werden.
 
-Im Frontend sollte die Session gestartet werden
+Im Frontend sollte die Session gestartet werden:
 
-```
+```php
 rex_login::startSession();
-
 ```
-Wenn die Werte nicht mehr gebraucht werden, sollten sie zurückgesetzt werden. 
 
+Die Werte sollten zurückgesetzt werden, wenn sie nicht mehr benötigt werden.
 
-### API-Token übergeben 
+### API-Token übergeben
+
 ```php
 rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
-
 ```
-Hiermit kann der API-Token übergeben werden. Damit ist es möglich auch ußerhalb von YCOM im Frontend Datei-Uploads zu erlauben. 
+
+Dadurch wird der API-Token übergeben, um Datei-Uploads auch außerhalb von YCOM im Frontend zu ermöglichen.
 
 ### Meta-Abfrage deaktivieren
 
 ```php
 rex_set_session('filepond_no_meta', true);
 ```
-Hiermit lässt sich die Meta-Abfrage deaktivieren. Bool: true/false
+
+Dadurch lässt sich die Meta-Abfrage (Titel, Alt-Text, Copyright) deaktivieren (boolescher Wert: `true` / `false`).
 
 ### Modulbeispiel
 
@@ -236,18 +258,18 @@ rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_toke
 // Optional: Meta-Eingabe deaktivieren
 rex_set_session('filepond_no_meta', true);
 
-// Filepond Assets einbinden , besser im Template ablegen
+// Filepond Assets einbinden (besser im Template ablegen)
 if (rex::isFrontend()) {
-   echo filepond_helper::getStyles();
-   echo filepond_helper::getScripts();
+    echo filepond_helper::getStyles();
+    echo filepond_helper::getScripts();
 }
 ?>
 
 <form class="uploadform" method="post" enctype="multipart/form-data">
-    <input 
-        type="hidden" 
-        name="REX_INPUT_MEDIALIST[1]" 
-        value="REX_MEDIALIST[1]" 
+    <input
+        type="hidden"
+        name="REX_INPUT_MEDIALIST[1]"
+        value="REX_MEDIALIST[1]"
         data-widget="filepond"
         data-filepond-cat="1"
         data-filepond-types="image/*,video/*,application/pdf"
@@ -257,67 +279,49 @@ if (rex::isFrontend()) {
         data-filepond-skip-meta="<?= rex_session('filepond_no_meta', 'boolean', false) ? 'true' : 'false' ?>"
     >
 </form>
-
 ```
 
-## Intitialisierung im Frontend und Tipps
+## Initialisierung im Frontend und Tipps
 
 ```js
 document.addEventListener('DOMContentLoaded', function() {
   // Dieser Code wird ausgeführt, nachdem das HTML vollständig geladen wurde.
   initFilePond();
 });
-
 ```
 
-Falls das Panel nicht schön gestaltet dargestellt wird, hilft es diesen Stil anzupassen
+Falls das Panel nicht richtig dargestellt wird, kann es helfen, den Stil anzupassen:
 
-Hier ein hässliches Beispiel: 
-
-```
+```css
 .filepond--panel-root {
     border: 1px solid var(--fp-border);
     background-color: #eedede;
     min-height: 150px;
-
 }
 ```
 
-
-
-
 ## Bildoptimierung
 
-Bilder werden automatisch optimiert, wenn sie die konfigurierte maximale Pixelgröße überschreiten:
+Bilder werden automatisch optimiert, wenn sie eine konfigurierte maximale Pixelgröße überschreiten:
 
-- Große Bilder werden proportional verkleinert
-- Die Qualität bleibt erhalten
-- GIF-Dateien werden nicht verändert
-- Die Originaldatei wird durch die optimierte Version ersetzt
+*   Große Bilder werden proportional verkleinert.
+*   Die Qualität bleibt erhalten.
+*   GIF-Dateien werden nicht verändert.
+*   Die Originaldatei wird durch die optimierte Version ersetzt.
 
-Der Standardwert ist 1200 Pixel (Breite oder Höhe). Dies kann über die Einstellungen oder das data-filepond-maxpixels Attribut angepasst werden.
+Standardmäßig ist die maximale Größe 1200 Pixel (Breite oder Höhe). Dieser Wert kann in den Einstellungen oder via dem `data-filepond-maxpixels` Attribut angepasst werden.
 
 ## Metadaten
 
-Für jede Datei müssen folgende Metadaten erfasst werden:
+Folgende Metadaten müssen für jede hochgeladene Datei erfasst werden:
 
-### 1. Titel
-- Dient der Verwaltung im Medienpool
-- Hilft bei der Organisation
-
-### 2. Alt-Text  
-- Beschreibt den Inhalt für Screenreader
-- Wichtig für Barrierefreiheit & SEO
-- Wird in `med_alt` gespeichert
-
-### 3. Copyright
-- Erfasst Bildrechte und Urheber
-- Rechtssichere Verwendung
-- Wird in `med_copyright` gespeichert
+1.  **Titel:** Wird im Medienpool zur Verwaltung der Datei verwendet.
+2.  **Alt-Text:** Beschreibt den Bildinhalt für Screenreader (wichtig für Barrierefreiheit und SEO), gespeichert in `med_alt`.
+3.  **Copyright:** Information zu Bildrechten und Urhebern, gespeichert in `med_copyright` (optional).
 
 ## Events
 
-Wichtige JavaScript Events für eigene Entwicklungen:
+Wichtige JavaScript-Events für eigene Entwicklungen:
 
 ```js
 // Upload erfolgreich
@@ -327,39 +331,39 @@ pond.on('processfile', (error, file) => {
     }
 });
 
-// Datei gelöscht  
+// Datei gelöscht
 pond.on('removefile', (error, file) => {
     console.log('Datei entfernt:', file.serverId);
 });
 ```
 
-## Assets aktualisieren 
+## Assets aktualisieren
 
 ```cli
-npm install 
-npm run build 
+npm install
+npm run build
 ```
 
 ## Hinweise
 
-- Maximale Dateigröße wird auch serverseitig geprüft
-- Copyright-Feld ist optional, Title und Alt-Text Pflicht
-- ALT-Text ist und bleibt Pflicht. Wer es nicht will, darf einen PR liefern um es abschalten zu können.
-- Uploads landen automatisch im Medienpool
-- Metadaten werden im Medienpool gespeichert
-- Videos werden direkt im Upload-Dialog previewt
-- Bilder werden automatisch auf die konfigurierte Maximalgröße optimiert
+*   Die maximale Dateigröße wird auch serverseitig überprüft.
+*   Das Copyright-Feld ist optional, Titel und Alt-Text sind Pflicht.
+*   **ALT-Text ist verpflichtend** – wer dies ändern möchte, kann einen Pull Request einreichen.
+*   Uploads landen automatisch im Medienpool.
+*   Metadaten werden im Medienpool gespeichert.
+*   Videos können direkt im Upload-Dialog betrachtet werden.
+*   Bilder werden automatisch auf die maximale Größe optimiert.
 
 ## Credits
 
-- KLXM Crossmedia GmbH: [klxm.de](https://klxm.de)
-- Developed by: [Thomas Skerbis](https://github.com/skerbis)
-- Vendor: FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
-- Lizenz: MIT
+*   **KLXM Crossmedia GmbH:** [klxm.de](https://klxm.de)
+*   **Entwickler:** [Thomas Skerbis](https://github.com/skerbis)
+*   **Vendor:** FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
+*   **Lizenz:** MIT
 
 ## Support
 
-- GitHub Issues
-- REDAXO Slack
-- [www.redaxo.org](https://www.redaxo.org)
-- [AddOn Homepage](https://github.com/KLXM/filepond_uploader/tree/main)
+*   **GitHub Issues:** Für Fehlermeldungen und Feature-Anfragen.
+*   **REDAXO Slack:** Für Community-Support und Diskussionen.
+*   **[www.redaxo.org](https://www.redaxo.org):** Offizielle REDAXO-Website.
+*   **[AddOn Homepage](https://github.com/KLXM/filepond_uploader/tree/main):** Für aktuelle Informationen und Updates.
