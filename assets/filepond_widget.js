@@ -273,7 +273,7 @@
                             return formData;
                        }
                     },
-                    load: (source, load, error, progress, abort, headers) => {
+                     load: (source, load, error, progress, abort, headers) => {
                         const url = basePath + 'media/' + source.replace(/^"|"$/g, '');
                          console.log('FilePond load url:', url);
 
@@ -293,11 +293,8 @@
                                 console.error('FilePond load error:', e);
                                  error(e.message);
                             });
-
-                        return {
-                            abort
-                        };
-                    }
+                            abort;
+                      }
                },
                labelIdle: t.labelIdle,
                styleButtonRemoveItemPosition: 'right',
