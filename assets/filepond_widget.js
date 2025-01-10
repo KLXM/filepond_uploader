@@ -1,6 +1,7 @@
 (function() {
     const initFilePond = () => {
         console.log('initFilePond function called');
+
         // Translations
         const translations = {
             de_de: {
@@ -40,22 +41,26 @@
         const getBasePath = () => {
             const baseElement = document.querySelector('base');
             if (baseElement && baseElement.href) {
-                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+                let path = baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+                if(!path.endsWith('/')) {
+                    path = path + '/';
+                }
+                return path;
             }
-           // Fallback, wenn kein <base>-Tag vorhanden ist
-           return  window.location.origin;
+            // Fallback, wenn kein <base>-Tag vorhanden ist
+            return window.location.origin + '/';
         };
         const basePath = getBasePath();
-         console.log('Basepath ermittelt:', basePath);
-        
-         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+        console.log('Basepath ermittelt:', basePath);
+
+        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
-            
+
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
-            
+
             input.style.display = 'none';
 
             const fileInput = document.createElement('input');
@@ -63,7 +68,8 @@
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
-            // Create metadata dialog with SimpleModal
+
+             // Create metadata dialog with SimpleModal
            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
@@ -100,8 +106,8 @@
 
                     const modal = new SimpleModal();
 
-                    // Preview media
-                    const previewMedia = async () => {
+                     // Preview media
+                     const previewMedia = async () => {
                         try {
                             if (file instanceof File) {
                                 if (file.type.startsWith('image/')) {
@@ -121,7 +127,7 @@
                                     previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
                                 }
                             } else {
-                                const mediaUrl = '/media/' + file.source;
+                                const mediaUrl = basePath + 'media/' + file.source;
                                 if (file.type?.startsWith('image/')) {
                                     const img = document.createElement('img');
                                     img.src = mediaUrl;
@@ -184,25 +190,29 @@
             };
 
             // Prepare existing files
-            const existingFiles = initialValue ? initialValue.split(',')
+           const existingFiles = initialValue ? initialValue.split(',')
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
+                    const fileType = file.toLowerCase().endsWith('.pdf') ? 'application/pdf' :  (file.toLowerCase().endsWith('.mp4') ? 'video/mp4' : (file.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (file.toLowerCase().endsWith('.webm') ? 'video/webm' : (file.toLowerCase().endsWith('.ogg') ? 'video/ogg' : (file.toLowerCase().endsWith('.jpg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.png') ? 'image/png' : (file.toLowerCase().endsWith('.gif') ? 'image/gif' : (file.toLowerCase().endsWith('.webp') ? 'image/webp' : ''))))))));
+
+
                      return {
                         source: file,
                         options: {
                             type: 'local',
-                           // poster nur bei videos setzen
-                             ...(file.type?.startsWith('video/') ? {
-                                    metadata: {
-                                        poster: '/media/' + file
-                                    }
-                                } : {} )
+                           ...(fileType.startsWith('video/') ? {
+                                metadata: {
+                                    poster: basePath + 'media/' + file
+                                 },
+                            type: fileType
+                            } : { type: fileType } )
                            }
                     };
                 }) : [];
 
-            // Initialize FilePond
+
+             // Initialize FilePond
             const pond = FilePond.create(fileInput, {
                 files: existingFiles,
                 allowMultiple: true,
@@ -213,7 +223,7 @@
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                          try {
                             let fileMetadata = {};
-                            
+
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
@@ -224,7 +234,7 @@
                                     copyright: ''
                                 };
                             }
-                            
+
                             const formData = new FormData();
                             formData.append(fieldName, file);
                             formData.append('rex-api-call', 'filepond_uploader');
@@ -249,7 +259,7 @@
 
                             load(result);
                         } catch (err) {
-                            if (err.message !== 'Metadata input cancelled') {
+                           if (err.message !== 'Metadata input cancelled') {
                                 console.error('Upload error:', err);
                             }
                             error('Upload cancelled');
@@ -269,9 +279,9 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                         const url = '/media/' + source.replace(/^"|"$/g, '');
-                         console.log('FilePond load url:', url);
-                        
+                        const url = basePath + 'media/' + source.replace(/^"|"$/g, '');
+                        console.log('FilePond load url:', url);
+
                         fetch(url)
                             .then(response => {
                                  console.log('FilePond load response:', response);
@@ -280,7 +290,7 @@
                                 }
                                 return response.blob();
                             })
-                             .then(blob => {
+                            .then(blob => {
                                  console.log('FilePond load blob:', blob);
                                 load(blob);
                             })
@@ -288,7 +298,7 @@
                                  console.error('FilePond load error:', e);
                                 error(e.message);
                             });
-                        
+
                         return {
                             abort
                         };
@@ -307,7 +317,7 @@
             });
 
             // Event handlers
-            pond.on('processfile', (error, file) => {
+           pond.on('processfile', (error, file) => {
                 if (!error && file.serverId) {
                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                     if (!currentValue.includes(file.serverId)) {
@@ -317,7 +327,7 @@
                 }
             });
 
-            pond.on('removefile', (error, file) => {
+           pond.on('removefile', (error, file) => {
                 if (!error) {
                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                     const removeValue = file.serverId || file.source;
@@ -329,11 +339,11 @@
                 }
             });
 
-            pond.on('reorderfiles', (files) => {
+           pond.on('reorderfiles', (files) => {
                 const newValue = files
-                    .map(file => file.serverId || file.source)
-                    .filter(Boolean)
-                    .join(',');
+                   .map(file => file.serverId || file.source)
+                   .filter(Boolean)
+                   .join(',');
                 input.value = newValue;
             });
         });
@@ -341,6 +351,13 @@
 
     // JQUERY REDAXO BACKEND
     if (typeof jQuery !== 'undefined') {
-       jQuery(document).on('rex:ready', initFilePond);
-    } 
-
+      jQuery(document).on('rex:ready', function(){
+         try {
+            console.log('rex:ready event fired');
+                initFilePond();
+            } catch (error){
+                console.error('Error during init', error);
+            }
+        });
+    }
+})();
