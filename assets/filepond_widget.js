@@ -40,11 +40,9 @@
         // Fallback, wenn kein <base>-Tag vorhanden ist
         return  window.location.origin + '/';
     };
-    // Initialisierungsfunktion für FilePond
+     // Initialisierungsfunktion für FilePond
     window.initFilePond = function() {
-        console.log('initFilePond function called');
         const basePath = getBasePath();
-        console.log('Basepath ermittelt:', basePath);
 
          // Register FilePond plugins
         FilePond.registerPlugin(
@@ -53,34 +51,27 @@
             FilePondPluginImagePreview
         );
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
-            console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
-
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
-
             input.style.display = 'none';
-
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
-             // Create metadata dialog with SimpleModal
+
+            // Create metadata dialog with SimpleModal
             const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
-
-                    // Preview Container
                     const previewCol = document.createElement('div');
                     previewCol.className = 'simple-modal-col-4';
                     const previewContainer = document.createElement('div');
                     previewContainer.className = 'simple-modal-preview';
                     previewCol.appendChild(previewContainer);
-
-                    // Form Fields
                     const formCol = document.createElement('div');
                     formCol.className = 'simple-modal-col-8';
                     formCol.innerHTML = `
@@ -98,16 +89,15 @@
                             <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
                         </div>
                     `;
-
                     form.appendChild(previewCol);
                     form.appendChild(formCol);
-
                     const modal = new SimpleModal();
 
                     // Preview media
                     const previewMedia = async () => {
                         try {
-                            if (file instanceof File) {
+                            let mediaUrl;
+                           if (file instanceof File) {
                                 if (file.type.startsWith('image/')) {
                                     const img = document.createElement('img');
                                     img.src = URL.createObjectURL(file);
@@ -120,12 +110,12 @@
                                     video.muted = true;
                                     previewContainer.appendChild(video);
                                 } else if (file.type.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
+                                     previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
                                 } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
+                                     previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
                                 }
                             } else {
-                                const mediaUrl = basePath + 'media/' + file.source;
+                                mediaUrl = basePath + 'media/' + file.source;
                                 if (file.type?.startsWith('image/')) {
                                     const img = document.createElement('img');
                                     img.src = mediaUrl;
@@ -138,17 +128,16 @@
                                     video.muted = true;
                                     previewContainer.appendChild(video);
                                 } else if (file.type?.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
+                                     previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
                                 } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
+                                     previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
                                 }
                             }
                         } catch (error) {
-                            console.error('Error loading preview:', error);
-                            previewContainer.innerHTML = '';
+                             console.error('Error loading preview:', error);
+                             previewContainer.innerHTML = '';
                         }
                     };
-
                     previewMedia();
 
                     modal.show({
@@ -167,7 +156,6 @@
                                     const titleInput = form.querySelector('[name="title"]');
                                     const altInput = form.querySelector('[name="alt"]');
                                     const copyrightInput = form.querySelector('[name="copyright"]');
-
                                     if (titleInput.value && altInput.value) {
                                         const metadata = {
                                             title: titleInput.value,
@@ -187,155 +175,145 @@
                 });
             };
 
-             // Prepare existing files
-             const existingFiles = initialValue ? initialValue.split(',')
-                 .filter(Boolean)
-                 .map(filename => {
-                      const file = filename.trim().replace(/^"|"$/g, '');
-                      const fileType = file.toLowerCase().endsWith('.pdf') ? 'application/pdf' :  (file.toLowerCase().endsWith('.mp4') ? 'video/mp4' : (file.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (file.toLowerCase().endsWith('.webm') ? 'video/webm' : (file.toLowerCase().endsWith('.ogg') ? 'video/ogg' : (file.toLowerCase().endsWith('.jpg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.png') ? 'image/png' : (file.toLowerCase().endsWith('.gif') ? 'image/gif' : (file.toLowerCase().endsWith('.webp') ? 'image/webp' : ''))))))));
-                     return {
-                         source: file,
-                          options: {
-                             type: 'local',
-                               ...(fileType.startsWith('video/') ? {
+            // Prepare existing files
+            const existingFiles = initialValue ? initialValue.split(',')
+                .filter(Boolean)
+                .map(filename => {
+                     const file = filename.trim().replace(/^"|"$/g, '');
+                     const fileType = file.toLowerCase().endsWith('.pdf') ? 'application/pdf' :  (file.toLowerCase().endsWith('.mp4') ? 'video/mp4' : (file.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (file.toLowerCase().endsWith('.webm') ? 'video/webm' : (file.toLowerCase().endsWith('.ogg') ? 'video/ogg' : (file.toLowerCase().endsWith('.jpg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.png') ? 'image/png' : (file.toLowerCase().endsWith('.gif') ? 'image/gif' : (file.toLowerCase().endsWith('.webp') ? 'image/webp' : ''))))))));
+                    return {
+                        source: file,
+                        options: {
+                           type: 'local',
+                             ...(fileType.startsWith('video/') ? {
                                 metadata: {
                                     poster: basePath + 'media/' + file
                                 },
-                                    type: fileType
-                                    } : { type: fileType })
-                             }
+                                type: fileType
+                                } : { type: fileType })
+                            }
                     };
-                 }) : [];
+                }) : [];
 
-           // Initialize FilePond
+            // Initialize FilePond
             const pond = FilePond.create(fileInput, {
                 files: existingFiles,
-                 allowMultiple: true,
+                allowMultiple: true,
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                     url: basePath,
+                    url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                         try {
+                        try {
                             let fileMetadata = {};
-
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
-                                // Standard-Metadaten wenn übersprungen
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
                                     copyright: ''
                                 };
                             }
-
                             const formData = new FormData();
                             formData.append(fieldName, file);
-                             formData.append('rex-api-call', 'filepond_uploader');
+                            formData.append('rex-api-call', 'filepond_uploader');
                             formData.append('func', 'upload');
-                             formData.append('category_id', input.dataset.filepondCat || '0');
+                            formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                             const response = await fetch(basePath, {
+                            const response = await fetch(basePath, {
                                 method: 'POST',
-                                 headers: {
+                                headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
                                 body: formData
                             });
-
                             const result = await response.json();
-
-                             if (!response.ok) {
+                            if (!response.ok) {
                                 error(result.error || 'Upload failed');
                                 return;
                             }
-
                             load(result);
                         } catch (err) {
                             if (err.message !== 'Metadata input cancelled') {
                                 console.error('Upload error:', err);
-                           }
+                            }
                             error('Upload cancelled');
-                             abort();
+                            abort();
                         }
                     },
                     revert: {
                         method: 'POST',
                         headers: {
-                             'X-Requested-With': 'XMLHttpRequest'
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
-                        ondata: (formData) => {
+                         ondata: (formData) => {
                             formData.append('rex-api-call', 'filepond_uploader');
                             formData.append('func', 'delete');
                             formData.append('filename', formData.get('serverId'));
                             return formData;
-                       }
+                        }
                     },
-                     load: (source, load, error, progress, abort, headers) => {
+                    load: (source, load, error, progress, abort, headers) => {
                         const url = basePath + 'media/' + source.replace(/^"|"$/g, '');
-                         console.log('FilePond load url:', url);
-
-                         fetch(url)
+                           fetch(url)
                             .then(response => {
-                                console.log('FilePond load response:', response);
                                 if (!response.ok) {
-                                     throw new Error('HTTP error! status: ' + response.status);
+                                    throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
                             .then(blob => {
-                                console.log('FilePond load blob:', blob);
                                 load(blob);
-                           })
-                           .catch(e => {
-                                console.error('FilePond load error:', e);
+                            })
+                            .catch(e => {
                                  error(e.message);
                             });
-                            abort;
-                      }
-               },
-               labelIdle: t.labelIdle,
-               styleButtonRemoveItemPosition: 'right',
-                styleLoadIndicatorPosition: 'right',
-               styleProgressIndicatorPosition: 'right',
-                styleButtonProcessItemPosition: 'right',
-               imagePreviewHeight: 100,
-                itemPanelAspectRatio: 1,
-                acceptedFileTypes: (input.dataset.filepondTypes || 'image/*').split(','),
-                maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
-               credits: false
-            });
-           // Event handlers
-            pond.on('processfile', (error, file) => {
-                if (!error && file.serverId) {
-                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
-                     if (!currentValue.includes(file.serverId)) {
-                        currentValue.push(file.serverId);
-                        input.value = currentValue.join(',');
+                       abort;
                     }
-                }
+                },
+                 labelIdle: t.labelIdle,
+                styleButtonRemoveItemPosition: 'right',
+                 styleLoadIndicatorPosition: 'right',
+                styleProgressIndicatorPosition: 'right',
+                 styleButtonProcessItemPosition: 'right',
+                 imagePreviewHeight: 100,
+                itemPanelAspectRatio: 1,
+                 acceptedFileTypes: (input.dataset.filepondTypes || 'image/*').split(','),
+                maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
+                credits: false
+            });
+
+           // Event handlers
+             pond.on('processfile', (error, file) => {
+                 if (!error && file.serverId) {
+                    const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
+                    if (!currentValue.includes(file.serverId)) {
+                       currentValue.push(file.serverId);
+                       input.value = currentValue.join(',');
+                    }
+                 }
             });
 
            pond.on('removefile', (error, file) => {
-               if (!error) {
-                    const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
+                if (!error) {
+                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                     const removeValue = file.serverId || file.source;
                     const index = currentValue.indexOf(removeValue);
-                    if (index > -1) {
-                         currentValue.splice(index, 1);
+                     if (index > -1) {
+                        currentValue.splice(index, 1);
                          input.value = currentValue.join(',');
-                   }
-                }
+                    }
+                 }
             });
 
-             pond.on('reorderfiles', (files) => {
+           pond.on('reorderfiles', (files) => {
                 const newValue = files
                     .map(file => file.serverId || file.source)
                     .filter(Boolean)
                     .join(',');
-                input.value = newValue;
+                 input.value = newValue;
             });
         });
     };
@@ -344,19 +322,18 @@
     if (typeof jQuery !== 'undefined') {
         jQuery(document).on('rex:ready', function(){
             try {
-                console.log('rex:ready event fired');
-                 window.initFilePond();
-             } catch (error){
+                window.initFilePond();
+            } catch (error){
                  console.error('Error during init', error);
             }
 
-       });
+        });
     } else {
         // Init, wenn jQuery nicht vorhanden
-          try {
-               window.initFilePond();
-           } catch (error){
-                console.error('Error during init', error);
-            }
+        try {
+            window.initFilePond();
+        } catch (error){
+             console.error('Error during init', error);
+        }
     }
 })();
