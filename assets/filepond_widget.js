@@ -1,58 +1,57 @@
 (function() {
-    const initFilePond = () => {
-        console.log('initFilePond function called');
+    // Translations
+    const translations = {
+        de_de: {
+            labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
+            metaTitle: 'Metadaten für',
+            titleLabel: 'Titel:',
+            altLabel: 'Alt-Text:',
+            altNotice: 'Alternativtext für Screenreader und SEO',
+            copyrightLabel: 'Copyright:',
+            fileInfo: 'Datei',
+            fileSize: 'Größe',
+            saveBtn: 'Speichern',
+            cancelBtn: 'Abbrechen'
+        },
+        en_gb: {
+            labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
+            metaTitle: 'Metadata for',
+            titleLabel: 'Title:',
+            altLabel: 'Alt Text:',
+            altNotice: 'Alternative text for screen readers and SEO',
+            copyrightLabel: 'Copyright:',
+            fileInfo: 'File',
+            fileSize: 'Size',
+            saveBtn: 'Save',
+            cancelBtn: 'Cancel'
+        }
+    };
 
-        // Translations
-        const translations = {
-            de_de: {
-                labelIdle: 'Dateien hierher ziehen oder <span class="filepond--label-action">durchsuchen</span>',
-                metaTitle: 'Metadaten für',
-                titleLabel: 'Titel:',
-                altLabel: 'Alt-Text:',
-                altNotice: 'Alternativtext für Screenreader und SEO',
-                copyrightLabel: 'Copyright:',
-                fileInfo: 'Datei',
-                fileSize: 'Größe',
-                saveBtn: 'Speichern',
-                cancelBtn: 'Abbrechen'
-            },
-            en_gb: {
-                labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
-                metaTitle: 'Metadata for',
-                titleLabel: 'Title:',
-                altLabel: 'Alt Text:',
-                altNotice: 'Alternative text for screen readers and SEO',
-                copyrightLabel: 'Copyright:',
-                fileInfo: 'File',
-                fileSize: 'Size',
-                saveBtn: 'Save',
-                cancelBtn: 'Cancel'
+    // Funktion zum Ermitteln des Basepaths
+    const getBasePath = () => {
+        const baseElement = document.querySelector('base');
+        if (baseElement && baseElement.href) {
+            let path = baseElement.href.replace(/\/$/, '');
+            if(!path.endsWith('/')) {
+                path = path + '/';
             }
-        };
+            return path;
+        }
+        // Fallback, wenn kein <base>-Tag vorhanden ist
+        return  window.location.origin + '/';
+    };
+    // Initialisierungsfunktion für FilePond
+    window.initFilePond = function() {
+        console.log('initFilePond function called');
+        const basePath = getBasePath();
+        console.log('Basepath ermittelt:', basePath);
 
-        // Register FilePond plugins
+         // Register FilePond plugins
         FilePond.registerPlugin(
             FilePondPluginFileValidateType,
             FilePondPluginFileValidateSize,
             FilePondPluginImagePreview
         );
-
-        // Funktion zum Ermitteln des Basepaths
-        const getBasePath = () => {
-            const baseElement = document.querySelector('base');
-            if (baseElement && baseElement.href) {
-                let path = baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
-                if(!path.endsWith('/')) {
-                    path = path + '/';
-                }
-                return path;
-            }
-            // Fallback, wenn kein <base>-Tag vorhanden ist
-            return window.location.origin + '/';
-        };
-        const basePath = getBasePath();
-        console.log('Basepath ermittelt:', basePath);
-
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
@@ -68,9 +67,8 @@
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
-
              // Create metadata dialog with SimpleModal
-           const createMetadataDialog = (file, existingMetadata = null) => {
+            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -106,8 +104,8 @@
 
                     const modal = new SimpleModal();
 
-                     // Preview media
-                     const previewMedia = async () => {
+                    // Preview media
+                    const previewMedia = async () => {
                         try {
                             if (file instanceof File) {
                                 if (file.type.startsWith('image/')) {
@@ -189,37 +187,34 @@
                 });
             };
 
-            // Prepare existing files
-           const existingFiles = initialValue ? initialValue.split(',')
-                .filter(Boolean)
-                .map(filename => {
-                    const file = filename.trim().replace(/^"|"$/g, '');
-                    const fileType = file.toLowerCase().endsWith('.pdf') ? 'application/pdf' :  (file.toLowerCase().endsWith('.mp4') ? 'video/mp4' : (file.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (file.toLowerCase().endsWith('.webm') ? 'video/webm' : (file.toLowerCase().endsWith('.ogg') ? 'video/ogg' : (file.toLowerCase().endsWith('.jpg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.png') ? 'image/png' : (file.toLowerCase().endsWith('.gif') ? 'image/gif' : (file.toLowerCase().endsWith('.webp') ? 'image/webp' : ''))))))));
-
-
+             // Prepare existing files
+             const existingFiles = initialValue ? initialValue.split(',')
+                 .filter(Boolean)
+                 .map(filename => {
+                      const file = filename.trim().replace(/^"|"$/g, '');
+                      const fileType = file.toLowerCase().endsWith('.pdf') ? 'application/pdf' :  (file.toLowerCase().endsWith('.mp4') ? 'video/mp4' : (file.toLowerCase().endsWith('.mov') ? 'video/quicktime' : (file.toLowerCase().endsWith('.webm') ? 'video/webm' : (file.toLowerCase().endsWith('.ogg') ? 'video/ogg' : (file.toLowerCase().endsWith('.jpg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.jpeg') ? 'image/jpeg' : (file.toLowerCase().endsWith('.png') ? 'image/png' : (file.toLowerCase().endsWith('.gif') ? 'image/gif' : (file.toLowerCase().endsWith('.webp') ? 'image/webp' : ''))))))));
                      return {
-                        source: file,
-                        options: {
-                            type: 'local',
-                           ...(fileType.startsWith('video/') ? {
+                         source: file,
+                          options: {
+                             type: 'local',
+                               ...(fileType.startsWith('video/') ? {
                                 metadata: {
                                     poster: basePath + 'media/' + file
-                                 },
-                            type: fileType
-                            } : { type: fileType } )
-                           }
+                                },
+                                    type: fileType
+                                    } : { type: fileType })
+                             }
                     };
-                }) : [];
+                 }) : [];
 
-
-             // Initialize FilePond
+           // Initialize FilePond
             const pond = FilePond.create(fileInput, {
                 files: existingFiles,
-                allowMultiple: true,
+                 allowMultiple: true,
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                     url: basePath, // Verwende den Basepath
+                     url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                          try {
                             let fileMetadata = {};
@@ -237,14 +232,14 @@
 
                             const formData = new FormData();
                             formData.append(fieldName, file);
-                            formData.append('rex-api-call', 'filepond_uploader');
+                             formData.append('rex-api-call', 'filepond_uploader');
                             formData.append('func', 'upload');
-                            formData.append('category_id', input.dataset.filepondCat || '0');
+                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const response = await fetch(basePath, {  // Verwende den Basepath
+                             const response = await fetch(basePath, {
                                 method: 'POST',
-                                headers: {
+                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
                                 body: formData
@@ -252,75 +247,74 @@
 
                             const result = await response.json();
 
-                            if (!response.ok) {
+                             if (!response.ok) {
                                 error(result.error || 'Upload failed');
                                 return;
                             }
 
                             load(result);
                         } catch (err) {
-                           if (err.message !== 'Metadata input cancelled') {
+                            if (err.message !== 'Metadata input cancelled') {
                                 console.error('Upload error:', err);
-                            }
+                           }
                             error('Upload cancelled');
-                            abort();
+                             abort();
                         }
                     },
                     revert: {
                         method: 'POST',
                         headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
+                             'X-Requested-With': 'XMLHttpRequest'
                         },
                         ondata: (formData) => {
                             formData.append('rex-api-call', 'filepond_uploader');
                             formData.append('func', 'delete');
                             formData.append('filename', formData.get('serverId'));
                             return formData;
-                        }
+                       }
                     },
                     load: (source, load, error, progress, abort, headers) => {
                         const url = basePath + 'media/' + source.replace(/^"|"$/g, '');
-                        console.log('FilePond load url:', url);
+                         console.log('FilePond load url:', url);
 
-                        fetch(url)
+                         fetch(url)
                             .then(response => {
-                                 console.log('FilePond load response:', response);
+                                console.log('FilePond load response:', response);
                                 if (!response.ok) {
-                                    throw new Error('HTTP error! status: ' + response.status);
+                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
                             .then(blob => {
-                                 console.log('FilePond load blob:', blob);
+                                console.log('FilePond load blob:', blob);
                                 load(blob);
-                            })
-                            .catch(e => {
-                                 console.error('FilePond load error:', e);
-                                error(e.message);
+                           })
+                           .catch(e => {
+                                console.error('FilePond load error:', e);
+                                 error(e.message);
                             });
 
                         return {
                             abort
                         };
                     }
-                },
-                labelIdle: t.labelIdle,
-                styleButtonRemoveItemPosition: 'right',
+               },
+               labelIdle: t.labelIdle,
+               styleButtonRemoveItemPosition: 'right',
                 styleLoadIndicatorPosition: 'right',
-                styleProgressIndicatorPosition: 'right',
+               styleProgressIndicatorPosition: 'right',
                 styleButtonProcessItemPosition: 'right',
-                imagePreviewHeight: 100,
+               imagePreviewHeight: 100,
                 itemPanelAspectRatio: 1,
                 acceptedFileTypes: (input.dataset.filepondTypes || 'image/*').split(','),
                 maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
-                credits: false
+               credits: false
             });
-
-            // Event handlers
-           pond.on('processfile', (error, file) => {
+           // Event handlers
+            pond.on('processfile', (error, file) => {
                 if (!error && file.serverId) {
-                    const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
-                    if (!currentValue.includes(file.serverId)) {
+                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
+                     if (!currentValue.includes(file.serverId)) {
                         currentValue.push(file.serverId);
                         input.value = currentValue.join(',');
                     }
@@ -328,22 +322,22 @@
             });
 
            pond.on('removefile', (error, file) => {
-                if (!error) {
+               if (!error) {
                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                     const removeValue = file.serverId || file.source;
                     const index = currentValue.indexOf(removeValue);
                     if (index > -1) {
-                        currentValue.splice(index, 1);
-                        input.value = currentValue.join(',');
-                    }
+                         currentValue.splice(index, 1);
+                         input.value = currentValue.join(',');
+                   }
                 }
             });
 
-           pond.on('reorderfiles', (files) => {
+             pond.on('reorderfiles', (files) => {
                 const newValue = files
-                   .map(file => file.serverId || file.source)
-                   .filter(Boolean)
-                   .join(',');
+                    .map(file => file.serverId || file.source)
+                    .filter(Boolean)
+                    .join(',');
                 input.value = newValue;
             });
         });
@@ -351,13 +345,21 @@
 
     // JQUERY REDAXO BACKEND
     if (typeof jQuery !== 'undefined') {
-      jQuery(document).on('rex:ready', function(){
-         try {
-            console.log('rex:ready event fired');
-                initFilePond();
-            } catch (error){
+        jQuery(document).on('rex:ready', function(){
+            try {
+                console.log('rex:ready event fired');
+                 window.initFilePond();
+             } catch (error){
+                 console.error('Error during init', error);
+            }
+
+       });
+    } else {
+        // Init, wenn jQuery nicht vorhanden
+          try {
+               window.initFilePond();
+           } catch (error){
                 console.error('Error during init', error);
             }
-        });
     }
 })();
