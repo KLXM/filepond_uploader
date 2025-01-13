@@ -94,7 +94,13 @@
                         break;
                     }
                 }
+            } elseif ($this->params['real_field_names']) {
+                if (isset($_REQUEST[$this->getName()])) {
+                    $value = $_REQUEST[$this->getName()];
+                    $this->setValue($value);
+                }
             }
+
 
             $errors = [];
             if ($this->getElement('required') == 1 && $value == '') {
