@@ -290,7 +290,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 ```
 
-Falls das zu einer Fehlermeldung führt, kann auch rex:ready im Frontend getriggert werden.
+### JQuery-Variante
+Falls JQuery im Einsatz ist, rex:ready im Frontend triggern.
 
 ```js
 document.addEventListener('DOMContentLoaded', function() {
