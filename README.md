@@ -290,6 +290,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 ```
 
+Falls das zu einer Fehlermeldung führt, kann auch rex:ready im Frontend getriggert werden.
+
+```js
+document.addEventListener('DOMContentLoaded', function() {
+  // Dieser Code wird ausgeführt, nachdem das HTML vollständig geladen wurde.
+  $('body').trigger('rex:ready', [$('body')]);
+});
+```
+
 Falls das Panel nicht richtig dargestellt wird, kann es helfen, den Stil anzupassen:
 
 ```css
