@@ -307,6 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 ```
 
+### Stylefix für das Frontend 
 Falls das Panel nicht richtig dargestellt wird, kann es helfen, den Stil anzupassen:
 
 ```css
