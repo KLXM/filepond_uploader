@@ -3,7 +3,7 @@ $class       = $this->getElement('required') ? 'form-is-required ' : '';
 $class_group = trim('form-group ' . $class . $this->getWarningClass());
 
 // Value bereinigen
-$value = str_replace(['"', ' '], '', $this->getValue());
+$value = str_replace(['"', ' '], '', $this->getValue() ?: '');
 $fileNames = array_filter(explode(',', $value));
 
 // Existierende Dateien für FilePond vorbereiten
