@@ -56,6 +56,13 @@ $yform->setValueField('filepond', [
 ]);
 ```
 
+PIPE-Variante
+Ja, es geht sogar Pipe! Und zwar so:
+```
+filepond|pic|Profilbild|1|image/*|3|1|de_de
+```
+Kopiert Bilder in den Medienpool in die Kategorie 1, erlaubt nur Bilder mit max. 3 MB Größe und erlaubt max. ein Bild. Sprache ist de_de.
+
 > **Hinweis:** Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden. Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden. In diesem Fall entfällt die automatische Löschung nicht verwendeter Medien.
 
 ### Verwendung in Modulen
