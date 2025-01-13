@@ -348,7 +348,7 @@ npm run build
 
 *   Die maximale Dateigröße wird auch serverseitig überprüft.
 *   Das Copyright-Feld ist optional, Titel und Alt-Text sind Pflicht.
-*   **ALT-Text ist verpflichtend** – wer dies ändern möchte, kann einen Pull Request einreichen.
+*   ALT-Text ist verpflichtend
 *   Uploads landen automatisch im Medienpool.
 *   Metadaten werden im Medienpool gespeichert.
 *   Videos können direkt im Upload-Dialog betrachtet werden.
