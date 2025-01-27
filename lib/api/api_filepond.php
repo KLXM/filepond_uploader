@@ -3,65 +3,72 @@ class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
 
-  public function execute()
+public function execute()
 {
-    try {
-        $logger = rex_logger::factory();
-        $logger->log('info', 'FILEPOND: Starting execute()');
-        
-        // Debug Backend-Status
-        $logger->log('info', 'FILEPOND: isBackend = ' . (rex::isBackend() ? 'true' : 'false'));
-        $logger->log('info', 'FILEPOND: hasUser = ' . (rex::getUser() ? 'true' : 'false'));
-        
-        // Test der ursprünglichen Request-Daten
-        $logger->log('info', 'FILEPOND: REQUEST_URI = ' . $_SERVER['REQUEST_URI']);
-        $logger->log('info', 'FILEPOND: func = ' . rex_request('func', 'string', ''));
+   try {
+       $logger = rex_logger::factory();
+       $logger->log('info', 'FILEPOND: Starting execute()');
 
-        if (rex::isBackend()) {
-            $logger->log('info', 'FILEPOND: Is Backend');
-            if (!rex::getUser()) {
-                $logger->log('warning', 'FILEPOND: No Backend User');
-                throw new rex_api_exception('Backend user must be logged in');
-            }
-            $logger->log('info', 'FILEPOND: Has Backend User');
-        }
+       // Backend User Check
+       $user = rex_backend_login::createUser();
+       $isBackendUser = $user ? true : false;
+       
+       $logger->log('info', 'FILEPOND: isBackendUser = ' . ($isBackendUser ? 'true' : 'false'));
 
-        $func = rex_request('func', 'string', '');
-        $categoryId = rex_request('category_id', 'int', 0);
+       // YCom Check
+       $isYComUser = false;
+       if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
+           $ycomUser = rex_ycom_auth::getUser();
+           $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
+       }
 
-        switch ($func) {
-            case 'upload':
-                $logger->log('info', 'FILEPOND: Starting upload process');
-                $result = $this->handleUpload($categoryId);
-                rex_response::cleanOutputBuffers();
-                rex_response::sendJson($result);
-                exit;
+       // Token Check
+       $apiToken = rex_config::get('filepond_uploader', 'api_token');
+       $requestToken = rex_request('api_token', 'string', null);
+       $sessionToken = rex_session('filepond_token', 'string', '');
+       
+       $isValidToken = ($apiToken && $requestToken && hash_equals($apiToken, $requestToken)) || 
+                      ($apiToken && $sessionToken && hash_equals($apiToken, $sessionToken));
 
-            case 'delete':
-                $result = $this->handleDelete();
-                rex_response::cleanOutputBuffers();
-                rex_response::sendJson($result);
-                exit;
+       if (!$isBackendUser && !$isYComUser && !$isValidToken) {
+           throw new rex_api_exception('Unauthorized access - requires valid API token, Backend login or YCom login');
+       }
 
-            case 'load':
-                return $this->handleLoad();
+       $func = rex_request('func', 'string', '');
+       $categoryId = rex_request('category_id', 'int', 0);
 
-            case 'restore':
-                $result = $this->handleRestore();
-                rex_response::cleanOutputBuffers();
-                rex_response::sendJson($result);
-                exit;
+       switch ($func) {
+           case 'upload':
+               $result = $this->handleUpload($categoryId);
+               rex_response::cleanOutputBuffers();
+               rex_response::sendJson($result);
+               exit;
 
-            default:
-                throw new rex_api_exception('Invalid function');
-        }
-    } catch (Exception $e) {
-        rex_logger::logException($e);
-        rex_response::cleanOutputBuffers();
-        rex_response::setStatus(rex_response::HTTP_INTERNAL_ERROR);
-        rex_response::sendJson(['error' => $e->getMessage()]);
-        exit;
-    }
+           case 'delete':
+               $result = $this->handleDelete();
+               rex_response::cleanOutputBuffers();
+               rex_response::sendJson($result);
+               exit;
+
+           case 'load':
+               return $this->handleLoad();
+
+           case 'restore':
+               $result = $this->handleRestore();
+               rex_response::cleanOutputBuffers();
+               rex_response::sendJson($result);
+               exit;
+
+           default:
+               throw new rex_api_exception('Invalid function');
+       }
+   } catch (Exception $e) {
+       rex_logger::logException($e);
+       rex_response::cleanOutputBuffers();
+       rex_response::setStatus(rex_response::HTTP_INTERNAL_ERROR);
+       rex_response::sendJson(['error' => $e->getMessage()]);
+       exit;
+   }
 }
     protected function handleUpload($categoryId)
     {
