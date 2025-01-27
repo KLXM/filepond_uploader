@@ -6,27 +6,23 @@ class rex_api_filepond_uploader extends rex_api_function
     public function execute()
     {
         try {
-            if (rex::isBackend()) {
-                if (!rex::getUser()) {
-                    throw new rex_api_exception('Backend user must be logged in');
-                }
-            } else {
-                $isYComUser = false;
-                if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
-                    $ycomUser = rex_ycom_auth::getUser();
-                    $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
-                }
+            // Neue Authentifizierungslogik
+            $isBackendUser = rex::isBackend() && rex::getUser();
+            $isYComUser = false;
+            if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
+                $ycomUser = rex_ycom_auth::getUser();
+                $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
+            }
 
-                $apiToken = rex_config::get('filepond_uploader', 'api_token');
-                $requestToken = rex_request('api_token', 'string', null);
-                $sessionToken = rex_session('filepond_token', 'string', '');
-                
-                $isValidToken = ($requestToken && hash_equals($apiToken, $requestToken)) || 
-                               ($sessionToken && hash_equals($apiToken, $sessionToken));
+            $apiToken = rex_config::get('filepond_uploader', 'api_token');
+            $requestToken = rex_request('api_token', 'string', null);
+            $sessionToken = rex_session('filepond_token', 'string', '');
 
-                if (!$isValidToken && !$isYComUser) {
-                    throw new rex_api_exception('Unauthorized access - requires valid API token or YCom login');
-                }
+            $isValidToken = ($requestToken && hash_equals($apiToken, $requestToken)) ||
+                ($sessionToken && hash_equals($apiToken, $sessionToken));
+
+            if (!$isValidToken && !$isBackendUser && !$isYComUser) {
+                throw new rex_api_exception('Unauthorized access - requires valid API token, Backend login or YCom login');
             }
 
             $func = rex_request('func', 'string', '');
@@ -119,7 +115,7 @@ class rex_api_filepond_uploader extends rex_api_function
         // Prüfe ob Metadaten übersprungen werden sollen
         $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
         $metadata = [];
-        
+
         if (!$skipMeta) {
             $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
         }
