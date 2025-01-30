@@ -10,6 +10,7 @@ requires:
         metainfo: '>=2.0.0'
 page:
     title: 'translate:filepond_uploader_title'
+    perm: filepond_uploader[upload] 
     subpages:
         upload: { 
             title: 'translate:filepond_uploader_upload',
