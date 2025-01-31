@@ -15,27 +15,24 @@ class rex_api_filepond_uploader extends rex_api_function
 
             $logger->log('info', 'FILEPOND: isBackendUser = ' . ($isBackendUser ? 'true' : 'false'));
 
-            // YCom Check
-            $isYComUser = false;
-            if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
-                if(rex_ycom_auth::getUser())
-                {
-                $isYComUser = true;
-                }
-            }
-           // Token Check
+            // Token Check
             $apiToken = rex_config::get('filepond_uploader', 'api_token');
             $requestToken = rex_request('api_token', 'string', null);
             $sessionToken = rex_session('filepond_token', 'string', '');
-            
-            $isValidToken = ($apiToken && $requestToken && hash_equals($apiToken, $requestToken)) || 
-                            ($apiToken && $sessionToken && hash_equals($apiToken, $sessionToken));
+
+            $isValidToken = ($apiToken && $requestToken && hash_equals($apiToken, $requestToken)) ||
+                ($apiToken && $sessionToken && hash_equals($apiToken, $sessionToken));
 
             $authorized = false;
 
-            if ($isYComUser) {
-                $authorized = true;
+            $isYComUser = false;
+            if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
+                if (rex_ycom_auth::getUser()) {
+                    $authorized = true;
+                    $isYComUser = true;
+                }
             }
+
             if ($isBackendUser) {
                 $authorized = true;
             }
@@ -43,8 +40,18 @@ class rex_api_filepond_uploader extends rex_api_function
                 $authorized = true;
             }
 
-            if (false == $authorized) {
-                throw new rex_api_exception('Unauthorized access - requires valid API token, Backend login or YCom login');
+            if (!$authorized) {
+                $errors = [];
+                if (!$isYComUser) {
+                    $errors[] = 'no YCom login';
+                }
+                if (!$isBackendUser) {
+                    $errors[] = 'no Backend login';
+                }
+                if (!$isValidToken) {
+                    $errors[] = 'invalid API token';
+                }
+                throw new rex_api_exception('Unauthorized access - ' . implode(', ', $errors));
             }
 
 
@@ -84,7 +91,7 @@ class rex_api_filepond_uploader extends rex_api_function
             exit;
         }
     }
-    
+
     protected function handleUpload($categoryId)
     {
         if (!isset($_FILES['filepond'])) {
