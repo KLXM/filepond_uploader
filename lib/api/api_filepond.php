@@ -43,7 +43,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 $authorized = true;
             }
 
-            if (!$authorized) {
+            if (false == $authorized) {
                 throw new rex_api_exception('Unauthorized access - requires valid API token, Backend login or YCom login');
             }
 
