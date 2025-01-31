@@ -18,10 +18,11 @@ class rex_api_filepond_uploader extends rex_api_function
             // YCom Check
             $isYComUser = false;
             if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
-                $ycomUser = rex_ycom_auth::getUser();
-                $isYComUser = $ycomUser && $ycomUser->getValue('status') == 1;
+                if(rex_ycom_auth::getUser())
+                {
+                $isYComUser = true;
+                }
             }
-
            // Token Check
             $apiToken = rex_config::get('filepond_uploader', 'api_token');
             $requestToken = rex_request('api_token', 'string', null);
