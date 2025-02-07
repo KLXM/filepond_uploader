@@ -28,27 +28,26 @@
                 cancelBtn: 'Cancel'
             }
         };
-
-        // Register FilePond plugins
+   // Register FilePond plugins
         FilePond.registerPlugin(
             FilePondPluginFileValidateType,
             FilePondPluginFileValidateSize,
             FilePondPluginImagePreview
         );
 
-        // Funktion zum Ermitteln des Basepaths
+        // Function to get base path
         const getBasePath = () => {
             const baseElement = document.querySelector('base');
             if (baseElement && baseElement.href) {
-                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+                return baseElement.href.replace(/\/$/, '');
             }
-           // Fallback, wenn kein <base>-Tag vorhanden ist
-           return  window.location.origin;
+            return window.location.origin;
         };
+
         const basePath = getBasePath();
-         console.log('Basepath ermittelt:', basePath);
+        console.log('Basepath ermittelt:', basePath);
         
-         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
@@ -64,7 +63,7 @@
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
             // Create metadata dialog with SimpleModal
-           const createMetadataDialog = (file, existingMetadata = null) => {
+            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -188,17 +187,14 @@
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                     return {
+                    return {
                         source: file,
                         options: {
                             type: 'local',
-                           // poster nur bei videos setzen
-                             ...(file.type?.startsWith('video/') ? {
-                                    metadata: {
-                                        poster: '/media/' + file
-                                    }
-                                } : {} )
-                           }
+                            metadata: {
+                                poster: file.type?.startsWith('video/') ? '/media/' + file : undefined
+                            }
+                        }
                     };
                 }) : [];
 
@@ -209,41 +205,104 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 server: {
-                     url: basePath, // Verwende den Basepath
+                    url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                         try {
+                        try {
                             let fileMetadata = {};
                             
-                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
+                            // Show metadata dialog unless skipped
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
                             } else {
-                                // Standard-Metadaten wenn übersprungen
+                                // Default metadata if skipped
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
                                     copyright: ''
                                 };
                             }
-                            
-                            const formData = new FormData();
-                            formData.append(fieldName, file);
-                            formData.append('rex-api-call', 'filepond_uploader');
-                            formData.append('func', 'upload');
-                            formData.append('category_id', input.dataset.filepondCat || '0');
-                            formData.append('metadata', JSON.stringify(fileMetadata));
 
-                            const response = await fetch(basePath, {  // Verwende den Basepath
+                            // Chunk configuration
+                            const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB chunks
+                            const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+                            const fileId = Math.random().toString(36).substring(2, 15);
+
+                            // Normal upload for small files
+                            if (file.size <= CHUNK_SIZE) {
+                                const formData = new FormData();
+                                formData.append(fieldName, file);
+                                formData.append('rex-api-call', 'filepond_uploader');
+                                formData.append('func', 'upload');
+                                formData.append('category_id', input.dataset.filepondCat || '0');
+                                formData.append('metadata', JSON.stringify(fileMetadata));
+
+                                const response = await fetch(basePath, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData
+                                });
+
+                                const result = await response.json();
+                                if (!response.ok) {
+                                    error(result.error || 'Upload failed');
+                                    return;
+                                }
+                                load(result);
+                                return;
+                            }
+
+                            // Chunked upload for large files
+                            for (let chunkNumber = 0; chunkNumber < totalChunks; chunkNumber++) {
+                                const start = chunkNumber * CHUNK_SIZE;
+                                const end = Math.min(start + CHUNK_SIZE, file.size);
+                                const chunk = file.slice(start, end);
+
+                                const formData = new FormData();
+                                formData.append('chunk', chunk, file.name);
+                                formData.append('rex-api-call', 'filepond_uploader');
+                                formData.append('func', 'chunk');
+                                formData.append('fileId', fileId);
+                                formData.append('chunkNumber', chunkNumber);
+                                formData.append('totalChunks', totalChunks);
+                                formData.append('originalName', file.name);
+
+                                const response = await fetch(basePath, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData
+                                });
+
+                                if (!response.ok) {
+                                    throw new Error('Chunk upload failed');
+                                }
+
+                                // Update progress
+                                progress(true, end, file.size);
+                            }
+
+                            // Complete upload and send metadata
+                            const completeFormData = new FormData();
+                            completeFormData.append('rex-api-call', 'filepond_uploader');
+                            completeFormData.append('func', 'complete');
+                            completeFormData.append('fileId', fileId);
+                            completeFormData.append('category_id', input.dataset.filepondCat || '0');
+                            completeFormData.append('metadata', JSON.stringify(fileMetadata));
+                            completeFormData.append('originalName', file.name);
+
+                            const completeResponse = await fetch(basePath, {
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
-                                body: formData
+                                body: completeFormData
                             });
 
-                            const result = await response.json();
-
-                            if (!response.ok) {
+                            const result = await completeResponse.json();
+                            if (!completeResponse.ok) {
                                 error(result.error || 'Upload failed');
                                 return;
                             }
@@ -270,29 +329,39 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                         const url = '/media/' + source.replace(/^"|"$/g, '');
-                         console.log('FilePond load url:', url);
+                        const url = '/media/' + source.replace(/^"|"$/g, '');
+                        console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
-                                 console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
-                             .then(blob => {
-                                 console.log('FilePond load blob:', blob);
+                            .then(blob => {
                                 load(blob);
                             })
                             .catch(e => {
-                                 console.error('FilePond load error:', e);
+                                console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
                         return {
                             abort
                         };
+                    },
+                    restore: {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        ondata: (formData) => {
+                            formData.append('rex-api-call', 'filepond_uploader');
+                            formData.append('func', 'restore');
+                            formData.append('filename', formData.get('serverId'));
+                            return formData;
+                        }
                     }
                 },
                 labelIdle: t.labelIdle,
@@ -337,14 +406,4 @@
                     .join(',');
                 input.value = newValue;
             });
-        });
-    };
-
-    // Initialize based on environment
-    if (typeof jQuery !== 'undefined') {
-       jQuery(document).on('rex:ready', initFilePond);
-    } 
-   
-    // Expose initFilePond globally if needed
-    window.initFilePond = initFilePond;
-})();
+ });
