@@ -2,6 +2,17 @@
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
+    private $chunkDir;
+
+    public function __construct()
+    {
+        parent::__construct();
+        // Initialize chunk directory
+        $this->chunkDir = rex_path::addonCache('filepond_uploader', 'chunks');
+        if (!file_exists($this->chunkDir)) {
+            rex_dir::create($this->chunkDir);
+        }
+    }
 
     public function execute()
     {
@@ -54,13 +65,24 @@ class rex_api_filepond_uploader extends rex_api_function
                 throw new rex_api_exception('Unauthorized access - ' . implode(', ', $errors));
             }
 
-
             $func = rex_request('func', 'string', '');
             $categoryId = rex_request('category_id', 'int', 0);
 
             switch ($func) {
                 case 'upload':
                     $result = $this->handleUpload($categoryId);
+                    rex_response::cleanOutputBuffers();
+                    rex_response::sendJson($result);
+                    exit;
+
+                case 'chunk':
+                    $result = $this->handleChunk();
+                    rex_response::cleanOutputBuffers();
+                    rex_response::sendJson($result);
+                    exit;
+
+                case 'complete':
+                    $result = $this->handleCompleteUpload($categoryId);
                     rex_response::cleanOutputBuffers();
                     rex_response::sendJson($result);
                     exit;
@@ -100,7 +122,6 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES['filepond'];
-        // error_log('FILEPOND: Uploaded file type: ' . $file['type'] . ', name: ' . $file['name']);
 
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
@@ -143,7 +164,7 @@ class rex_api_filepond_uploader extends rex_api_function
         $originalName = $file['name'];
         $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
 
-        // Prüfe ob Metadaten übersprungen werden sollen
+        // Skip meta check
         $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
         $metadata = [];
 
@@ -188,83 +209,121 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
-    protected function processImage($tmpFile)
+    protected function handleChunk()
     {
-        $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
-
-        $imageInfo = getimagesize($tmpFile);
-        if (!$imageInfo) {
-            return;
+        if (!isset($_FILES['chunk'])) {
+            throw new rex_api_exception('No chunk uploaded');
         }
 
-        list($width, $height, $type) = $imageInfo;
-
-        // Return if image is smaller than max dimensions
-        if ($width <= $maxPixel && $height <= $maxPixel) {
-            return;
+        $chunkFile = $_FILES['chunk'];
+        $chunkNumber = rex_request('chunkNumber', 'int');
+        $totalChunks = rex_request('totalChunks', 'int');
+        $fileId = rex_request('fileId', 'string');
+        
+        // Validate chunk data
+        if ($chunkNumber >= $totalChunks) {
+            throw new rex_api_exception('Invalid chunk number');
         }
 
-        // Calculate new dimensions
-        $ratio = $width / $height;
-        if ($width > $height) {
-            $newWidth = min($width, $maxPixel);
-            $newHeight = floor($newWidth / $ratio);
-        } else {
-            $newHeight = min($height, $maxPixel);
-            $newWidth = floor($newHeight * $ratio);
+        // Create directory for this file's chunks
+        $fileChunkDir = $this->chunkDir . '/' . $fileId;
+        if (!file_exists($fileChunkDir)) {
+            rex_dir::create($fileChunkDir);
         }
 
-        // Create new image based on type
-        $srcImage = null;
-        switch ($type) {
-            case IMAGETYPE_JPEG:
-                $srcImage = imagecreatefromjpeg($tmpFile);
-                break;
-            case IMAGETYPE_PNG:
-                $srcImage = imagecreatefrompng($tmpFile);
-                break;
-            default:
-                return;
+        // Move chunk to storage
+        $chunkPath = $fileChunkDir . '/' . $chunkNumber;
+        if (!move_uploaded_file($chunkFile['tmp_name'], $chunkPath)) {
+            throw new rex_api_exception('Failed to store chunk');
         }
 
-        if (!$srcImage) {
-            return;
+        return ['success' => true];
+    }
+
+    protected function handleCompleteUpload($categoryId)
+    {
+        $fileId = rex_request('fileId', 'string');
+        $originalName = rex_request('originalName', 'string');
+        
+        $fileChunkDir = $this->chunkDir . '/' . $fileId;
+        if (!file_exists($fileChunkDir)) {
+            throw new rex_api_exception('No chunks found for file');
         }
 
-        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+        // Get all chunks and sort them
+        $chunks = glob($fileChunkDir . '/*');
+        sort($chunks, SORT_NUMERIC);
 
-        // Preserve transparency for PNG images
-        if ($type === IMAGETYPE_PNG) {
-            imagealphablending($dstImage, false);
-            imagesavealpha($dstImage, true);
-            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
-            imagefilledrectangle($dstImage, 0, 0, $newWidth, $newHeight, $transparent);
+        // Create temporary file for combined chunks
+        $tmpFile = rex_path::addonCache('filepond_uploader', 'tmp_' . $fileId);
+        $out = fopen($tmpFile, 'wb');
+
+        foreach ($chunks as $chunk) {
+            $in = fopen($chunk, 'rb');
+            stream_copy_to_stream($in, $out);
+            fclose($in);
+        }
+        fclose($out);
+
+        // Process metadata
+        $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
+        $metadata = [];
+        if (!$skipMeta) {
+            $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
         }
 
-        // Resize image
-        imagecopyresampled(
-            $dstImage,
-            $srcImage,
-            0,
-            0,
-            0,
-            0,
-            $newWidth,
-            $newHeight,
-            $width,
-            $height
-        );
-
-        // Save image
-        if ($type === IMAGETYPE_JPEG) {
-            imagejpeg($dstImage, $tmpFile, 90);
-        } elseif ($type === IMAGETYPE_PNG) {
-            imagepng($dstImage, $tmpFile, 9);
+        // Process image if it's a large image
+        $mimeType = mime_content_type($tmpFile);
+        if (strpos($mimeType, 'image/') === 0 && $mimeType !== 'image/gif') {
+            $this->processImage($tmpFile);
         }
 
-        // Free memory
-        imagedestroy($srcImage);
-        imagedestroy($dstImage);
+        if (!isset($categoryId) || $categoryId < 0) {
+            $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
+        }
+
+        // Add to media pool
+        $data = [
+            'title' => $metadata['title'] ?? pathinfo($originalName, PATHINFO_FILENAME),
+            'category_id' => $categoryId,
+            'file' => [
+                'name' => $originalName,
+                'tmp_name' => $tmpFile,
+                'type' => $mimeType,
+                'size' => filesize($tmpFile)
+            ]
+        ];
+
+        try {
+            $result = rex_media_service::addMedia($data, true);
+            
+            if ($result['ok']) {
+                if (!$skipMeta) {
+                    $sql = rex_sql::factory();
+                    $sql->setTable(rex::getTable('media'));
+                    $sql->setWhere(['filename' => $result['filename']]);
+                    $sql->setValue('title', $metadata['title'] ?? '');
+                    $sql->setValue('med_alt', $metadata['alt'] ?? '');
+                    $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    $sql->update();
+                }
+
+                // Cleanup
+                rex_dir::delete($fileChunkDir);
+                unlink($tmpFile);
+
+                return $result['filename'];
+            }
+
+            throw new rex_api_exception(implode(', ', $result['messages']));
+        } catch (Exception $e) {
+            // Cleanup on error
+            rex_dir::delete($fileChunkDir);
+            if (file_exists($tmpFile)) {
+                unlink($tmpFile);
+            }
+            throw new rex_api_exception('Upload failed: ' . $e->getMessage());
+        }
     }
 
     protected function handleDelete()
@@ -361,5 +420,84 @@ class rex_api_filepond_uploader extends rex_api_function
         } else {
             throw new rex_api_exception('File not found in media pool');
         }
+    }
+
+    protected function processImage($tmpFile)
+    {
+        $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
+
+        $imageInfo = getimagesize($tmpFile);
+        if (!$imageInfo) {
+            return;
+        }
+
+        list($width, $height, $type) = $imageInfo;
+
+        // Return if image is smaller than max dimensions
+        if ($width <= $maxPixel && $height <= $maxPixel) {
+            return;
+        }
+
+        // Calculate new dimensions
+        $ratio = $width / $height;
+        if ($width > $height) {
+            $newWidth = min($width, $maxPixel);
+            $newHeight = floor($newWidth / $ratio);
+        } else {
+            $newHeight = min($height, $maxPixel);
+            $newWidth = floor($newHeight * $ratio);
+        }
+
+        // Create new image based on type
+        $srcImage = null;
+        switch ($type) {
+            case IMAGETYPE_JPEG:
+                $srcImage = imagecreatefromjpeg($tmpFile);
+                break;
+            case IMAGETYPE_PNG:
+                $srcImage = imagecreatefrompng($tmpFile);
+                break;
+            default:
+                return;
+        }
+
+        if (!$srcImage) {
+            return;
+        }
+
+        $dstImage = imagecreatetruecolor($newWidth, $newHeight);
+
+        // Preserve transparency for PNG images
+        if ($type === IMAGETYPE_PNG) {
+            imagealphablending($dstImage, false);
+            imagesavealpha($dstImage, true);
+            $transparent = imagecolorallocatealpha($dstImage, 255, 255, 255, 127);
+            imagefilledrectangle($dstImage, 0, 0, $newWidth, $newHeight, $transparent);
+        }
+
+        // Resize image
+        imagecopyresampled(
+            $dstImage,
+            $srcImage,
+            0,
+            0,
+            0,
+            0,
+            $newWidth,
+            $newHeight,
+            $width,
+            $height
+        );
+
+        // Save image
+        if ($type === IMAGETYPE_JPEG) {
+            imagejpeg($dstImage, $tmpFile, 90);
+        } elseif ($type === IMAGETYPE_PNG) {
+            imagepng($dstImage, $tmpFile, 9);
+        }
+
+        // Free memory
+        imagedestroy($srcImage);
+        imagedestroy($dstImage);
     }
 }
