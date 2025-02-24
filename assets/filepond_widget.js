@@ -51,7 +51,7 @@
         console.log('Base path determined:', basePath);
 
         // Create metadata dialog with SimpleModal
-        const createMetadataDialog = (file, existingMetadata = null) => {
+        const createMetadataDialog = (file, translations, existingMetadata = null) => {
             return new Promise((resolve, reject) => {
                 const form = document.createElement('div');
                 form.className = 'simple-modal-grid';
@@ -68,16 +68,16 @@
                 formCol.className = 'simple-modal-col-8';
                 formCol.innerHTML = `
                     <div class="simple-modal-form-group">
-                        <label for="title">${t.titleLabel}</label>
+                        <label for="title">${translations.titleLabel}</label>
                         <input type="text" id="title" name="title" class="simple-modal-input" required value="${existingMetadata?.title || ''}">
                     </div>
                     <div class="simple-modal-form-group">
-                        <label for="alt">${t.altLabel}</label>
+                        <label for="alt">${translations.altLabel}</label>
                         <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
-                        <div class="help-text">${t.altNotice}</div>
+                        <div class="help-text">${translations.altNotice}</div>
                     </div>
                     <div class="simple-modal-form-group">
-                        <label for="copyright">${t.copyrightLabel}</label>
+                        <label for="copyright">${translations.copyrightLabel}</label>
                         <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
                     </div>
                 `;
@@ -131,16 +131,16 @@
                 previewMedia();
 
                 modal.show({
-                    title: `${t.metaTitle} ${file.filename || file.name}`,
+                    title: `${translations.metaTitle} ${file.filename || file.name}`,
                     content: form,
                     buttons: [
                         {
-                            text: t.cancelBtn,
+                            text: translations.cancelBtn,
                             closeModal: true,
                             handler: () => reject(new Error('Metadata input cancelled'))
                         },
                         {
-                            text: t.saveBtn,
+                            text: translations.saveBtn,
                             primary: true,
                             handler: () => {
                                 const titleInput = form.querySelector('[name="title"]');
@@ -170,7 +170,7 @@
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
-            const t = translations[lang] || translations['de_de'];
+            const currentTranslations = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
@@ -215,7 +215,7 @@
                             
                             // Only get metadata for first chunk
                             if (!skipMeta && !options.chunkIndex) {
-                                fileMetadata = await createMetadataDialog(file);
+                                fileMetadata = await createMetadataDialog(file, currentTranslations);
                             } else {
                                 fileMetadata = {
                                     title: file.name,
@@ -313,7 +313,7 @@
                         };
                     }
                 },
-                labelIdle: t.labelIdle,
+                labelIdle: currentTranslations.labelIdle,
                 styleButtonRemoveItemPosition: 'right',
                 styleLoadIndicatorPosition: 'right',
                 styleProgressIndicatorPosition: 'right',
