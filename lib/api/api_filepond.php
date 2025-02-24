@@ -1,4 +1,3 @@
-// api_filepond.php
 <?php
 class rex_api_filepond_uploader extends rex_api_function
 {
