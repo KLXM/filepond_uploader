@@ -1,6 +1,9 @@
 (function() {
+    const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+
     const initFilePond = () => {
         console.log('initFilePond function called');
+        
         // Translations
         const translations = {
             de_de: {
@@ -36,22 +39,138 @@
             FilePondPluginImagePreview
         );
 
-        // Funktion zum Ermitteln des Basepaths
+        // Get base path
         const getBasePath = () => {
             const baseElement = document.querySelector('base');
-            if (baseElement && baseElement.href) {
-                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
-            }
-           // Fallback, wenn kein <base>-Tag vorhanden ist
-           return  window.location.origin;
+            return baseElement && baseElement.href 
+                ? baseElement.href.replace(/\/$/, '')
+                : window.location.origin;
         };
-        const basePath = getBasePath();
-         console.log('Basepath ermittelt:', basePath);
         
-         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+        const basePath = getBasePath();
+        console.log('Base path determined:', basePath);
+
+        // Create metadata dialog with SimpleModal
+        const createMetadataDialog = (file, translations, existingMetadata = null) => {
+            return new Promise((resolve, reject) => {
+                const form = document.createElement('div');
+                form.className = 'simple-modal-grid';
+
+                // Preview Container
+                const previewCol = document.createElement('div');
+                previewCol.className = 'simple-modal-col-4';
+                const previewContainer = document.createElement('div');
+                previewContainer.className = 'simple-modal-preview';
+                previewCol.appendChild(previewContainer);
+
+                // Form Fields
+                const formCol = document.createElement('div');
+                formCol.className = 'simple-modal-col-8';
+                formCol.innerHTML = `
+                    <div class="simple-modal-form-group">
+                        <label for="title">${translations.titleLabel}</label>
+                        <input type="text" id="title" name="title" class="simple-modal-input" required value="${existingMetadata?.title || ''}">
+                    </div>
+                    <div class="simple-modal-form-group">
+                        <label for="alt">${translations.altLabel}</label>
+                        <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
+                        <div class="help-text">${translations.altNotice}</div>
+                    </div>
+                    <div class="simple-modal-form-group">
+                        <label for="copyright">${translations.copyrightLabel}</label>
+                        <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
+                    </div>
+                `;
+
+                form.appendChild(previewCol);
+                form.appendChild(formCol);
+
+                const modal = new SimpleModal();
+
+                // Preview media
+                const previewMedia = async () => {
+                    try {
+                        if (file instanceof File) {
+                            if (file.type.startsWith('image/')) {
+                                const img = document.createElement('img');
+                                img.src = URL.createObjectURL(file);
+                                img.alt = file.name;
+                                previewContainer.appendChild(img);
+                            } else if (file.type.startsWith('video/')) {
+                                const video = document.createElement('video');
+                                video.src = URL.createObjectURL(file);
+                                video.controls = true;
+                                video.muted = true;
+                                previewContainer.appendChild(video);
+                            } else {
+                                previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
+                            }
+                        } else {
+                            const mediaUrl = '/media/' + file.source;
+                            if (file.type?.startsWith('image/')) {
+                                const img = document.createElement('img');
+                                img.src = mediaUrl;
+                                img.alt = file.source;
+                                previewContainer.appendChild(img);
+                            } else if (file.type?.startsWith('video/')) {
+                                const video = document.createElement('video');
+                                video.src = mediaUrl;
+                                video.controls = true;
+                                video.muted = true;
+                                previewContainer.appendChild(video);
+                            } else {
+                                previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading preview:', error);
+                        previewContainer.innerHTML = '';
+                    }
+                };
+
+                previewMedia();
+
+                modal.show({
+                    title: `${translations.metaTitle} ${file.filename || file.name}`,
+                    content: form,
+                    buttons: [
+                        {
+                            text: translations.cancelBtn,
+                            closeModal: true,
+                            handler: () => reject(new Error('Metadata input cancelled'))
+                        },
+                        {
+                            text: translations.saveBtn,
+                            primary: true,
+                            handler: () => {
+                                const titleInput = form.querySelector('[name="title"]');
+                                const altInput = form.querySelector('[name="alt"]');
+                                const copyrightInput = form.querySelector('[name="copyright"]');
+
+                                if (titleInput.value && altInput.value) {
+                                    const metadata = {
+                                        title: titleInput.value,
+                                        alt: altInput.value,
+                                        copyright: copyrightInput.value
+                                    };
+                                    modal.close();
+                                    resolve(metadata);
+                                } else {
+                                    if (!titleInput.value) titleInput.reportValidity();
+                                    if (!altInput.value) altInput.reportValidity();
+                                }
+                            }
+                        }
+                    ]
+                });
+            });
+        };
+
+        // Process each FilePond input
+        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
-            const t = translations[lang] || translations['de_de'];
+            const currentTranslations = translations[lang] || translations['de_de'];
             
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
@@ -63,142 +182,21 @@
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
-            // Create metadata dialog with SimpleModal
-           const createMetadataDialog = (file, existingMetadata = null) => {
-                return new Promise((resolve, reject) => {
-                    const form = document.createElement('div');
-                    form.className = 'simple-modal-grid';
-
-                    // Preview Container
-                    const previewCol = document.createElement('div');
-                    previewCol.className = 'simple-modal-col-4';
-                    const previewContainer = document.createElement('div');
-                    previewContainer.className = 'simple-modal-preview';
-                    previewCol.appendChild(previewContainer);
-
-                    // Form Fields
-                    const formCol = document.createElement('div');
-                    formCol.className = 'simple-modal-col-8';
-                    formCol.innerHTML = `
-                        <div class="simple-modal-form-group">
-                            <label for="title">${t.titleLabel}</label>
-                            <input type="text" id="title" name="title" class="simple-modal-input" required value="${existingMetadata?.title || ''}">
-                        </div>
-                        <div class="simple-modal-form-group">
-                            <label for="alt">${t.altLabel}</label>
-                            <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
-                            <div class="help-text">${t.altNotice}</div>
-                        </div>
-                        <div class="simple-modal-form-group">
-                            <label for="copyright">${t.copyrightLabel}</label>
-                            <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
-                        </div>
-                    `;
-
-                    form.appendChild(previewCol);
-                    form.appendChild(formCol);
-
-                    const modal = new SimpleModal();
-
-                    // Preview media
-                    const previewMedia = async () => {
-                        try {
-                            if (file instanceof File) {
-                                if (file.type.startsWith('image/')) {
-                                    const img = document.createElement('img');
-                                    img.src = URL.createObjectURL(file);
-                                    img.alt = file.name;
-                                    previewContainer.appendChild(img);
-                                } else if (file.type.startsWith('video/')) {
-                                    const video = document.createElement('video');
-                                    video.src = URL.createObjectURL(file);
-                                    video.controls = true;
-                                    video.muted = true;
-                                    previewContainer.appendChild(video);
-                                } else if (file.type.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
-                                } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
-                                }
-                            } else {
-                                const mediaUrl = '/media/' + file.source;
-                                if (file.type?.startsWith('image/')) {
-                                    const img = document.createElement('img');
-                                    img.src = mediaUrl;
-                                    img.alt = file.source;
-                                    previewContainer.appendChild(img);
-                                } else if (file.type?.startsWith('video/')) {
-                                    const video = document.createElement('video');
-                                    video.src = mediaUrl;
-                                    video.controls = true;
-                                    video.muted = true;
-                                    previewContainer.appendChild(video);
-                                } else if (file.type?.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
-                                } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
-                                }
-                            }
-                        } catch (error) {
-                            console.error('Error loading preview:', error);
-                            previewContainer.innerHTML = '';
-                        }
-                    };
-
-                    previewMedia();
-
-                    modal.show({
-                        title: `${t.metaTitle} ${file.filename || file.name}`,
-                        content: form,
-                        buttons: [
-                            {
-                                text: t.cancelBtn,
-                                closeModal: true,
-                                handler: () => reject(new Error('Metadata input cancelled'))
-                            },
-                            {
-                                text: t.saveBtn,
-                                primary: true,
-                                handler: () => {
-                                    const titleInput = form.querySelector('[name="title"]');
-                                    const altInput = form.querySelector('[name="alt"]');
-                                    const copyrightInput = form.querySelector('[name="copyright"]');
-
-                                    if (titleInput.value && altInput.value) {
-                                        const metadata = {
-                                            title: titleInput.value,
-                                            alt: altInput.value,
-                                            copyright: copyrightInput.value
-                                        };
-                                        modal.close();
-                                        resolve(metadata);
-                                    } else {
-                                        if (!titleInput.value) titleInput.reportValidity();
-                                        if (!altInput.value) altInput.reportValidity();
-                                    }
-                                }
-                            }
-                        ]
-                    });
-                });
-            };
-
-            // Prepare existing files
+            // Get existing files
             const existingFiles = initialValue ? initialValue.split(',')
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                     return {
+                    return {
                         source: file,
                         options: {
                             type: 'local',
-                           // poster nur bei videos setzen
-                             ...(file.type?.startsWith('video/') ? {
-                                    metadata: {
-                                        poster: '/media/' + file
-                                    }
-                                } : {} )
-                           }
+                            ...(file.type?.startsWith('video/') ? {
+                                metadata: {
+                                    poster: '/media/' + file
+                                }
+                            } : {})
+                        }
                     };
                 }) : [];
 
@@ -208,32 +206,46 @@
                 allowMultiple: true,
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
+                chunkSize: CHUNK_SIZE,
                 server: {
-                     url: basePath, // Verwende den Basepath
+                    url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                         try {
+                        try {
                             let fileMetadata = {};
                             
-                            // Meta-Dialog nur anzeigen wenn nicht übersprungen
-                            if (!skipMeta) {
-                                fileMetadata = await createMetadataDialog(file);
+                            // Only get metadata for first chunk
+                            if (!skipMeta && !options.chunkIndex) {
+                                fileMetadata = await createMetadataDialog(file, currentTranslations);
                             } else {
-                                // Standard-Metadaten wenn übersprungen
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
                                     copyright: ''
                                 };
                             }
-                            
+
                             const formData = new FormData();
-                            formData.append(fieldName, file);
+                            
+                            // Add chunk information
+                            if (options.chunkIndex !== undefined) {
+                                formData.append('chunk_index', options.chunkIndex);
+                                formData.append('chunk_count', options.chunkCount);
+                                formData.append('chunk_size', CHUNK_SIZE);
+                                formData.append('total_size', file.size);
+                            }
+
+                            // First chunk includes metadata
+                            if (options.chunkIndex === 0) {
+                                formData.append('metadata', JSON.stringify(fileMetadata));
+                            }
+
+                            formData.append(fieldName, options.chunk || file);
                             formData.append('rex-api-call', 'filepond_uploader');
                             formData.append('func', 'upload');
                             formData.append('category_id', input.dataset.filepondCat || '0');
-                            formData.append('metadata', JSON.stringify(fileMetadata));
+                            formData.append('filename', file.name);
 
-                            const response = await fetch(basePath, {  // Verwende den Basepath
+                            const response = await fetch(basePath, {
                                 method: 'POST',
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
@@ -248,7 +260,14 @@
                                 return;
                             }
 
-                            load(result);
+                            // Only return final result after last chunk
+                            if (!options.chunkIndex || options.chunkIndex === options.chunkCount - 1) {
+                                load(result);
+                            } else {
+                                // Signal chunk was processed
+                                load();
+                            }
+
                         } catch (err) {
                             if (err.message !== 'Metadata input cancelled') {
                                 console.error('Upload error:', err);
@@ -258,6 +277,7 @@
                         }
                     },
                     revert: {
+                        url: basePath,
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
@@ -270,23 +290,21 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                         const url = '/media/' + source.replace(/^"|"$/g, '');
-                         console.log('FilePond load url:', url);
+                        const url = '/media/' + source.replace(/^"|"$/g, '');
+                        console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
-                                 console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
-                             .then(blob => {
-                                 console.log('FilePond load blob:', blob);
+                            .then(blob => {
                                 load(blob);
                             })
                             .catch(e => {
-                                 console.error('FilePond load error:', e);
+                                console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
@@ -295,7 +313,7 @@
                         };
                     }
                 },
-                labelIdle: t.labelIdle,
+                labelIdle: currentTranslations.labelIdle,
                 styleButtonRemoveItemPosition: 'right',
                 styleLoadIndicatorPosition: 'right',
                 styleProgressIndicatorPosition: 'right',
@@ -342,9 +360,9 @@
 
     // Initialize based on environment
     if (typeof jQuery !== 'undefined') {
-       jQuery(document).on('rex:ready', initFilePond);
-    } 
-   
+        jQuery(document).on('rex:ready', initFilePond);
+    }
+    
     // Expose initFilePond globally if needed
     window.initFilePond = initFilePond;
 })();
