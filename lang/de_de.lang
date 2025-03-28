@@ -1,6 +1,6 @@
 # General
 filepond_uploader_title = FilePond Uploader
-filepond_description = Modernes Upload-Feld mit Medienpool-Integration
+filepond_description = Modernes Upload-Feld mit Medienpool-Integration und Chunk-Upload
 filepond_general_settings = Allgemeine Einstellungen
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
@@ -19,9 +19,15 @@ filepond_upload_files = Dateien
 # Settings page
 filepond_settings_title = Einstellungen
 filepond_settings_saved = Einstellungen wurden gespeichert
+filepond_upload_settings = Upload-Einstellungen
 filepond_settings_max_files = Maximale Anzahl Dateien
 filepond_settings_maxsize = Maximale Dateigröße (MB)
 filepond_settings_maxsize_notice = Größe in Megabyte
+filepond_settings_chunk_size = Chunk-Größe (MB)
+filepond_settings_chunk_size_notice = Größe eines Upload-Chunks in Megabyte (Standard: 5)
+filepond_settings_enable_chunks = Chunk-Upload aktivieren
+filepond_settings_enable_chunks_label = Chunk-Upload aktivieren
+filepond_settings_enable_chunks_notice = Ermöglicht das Hochladen großer Dateien in Teilen
 filepond_settings_allowed_types = Erlaubte Dateitypen
 filepond_settings_allowed_types_notice = Beispiel: image/*,video/*,.pdf
 filepond_settings_category_id = Standard Medien-Kategorie
@@ -30,6 +36,14 @@ filepond_settings_lang = Standardsprache
 filepond_settings_lang_notice = Beispiel: en_gb, de_de
 filepond_settings_max_pixel = Maximale Bildgröße
 filepond_settings_max_pixel_notice = Maximale Breite/Höhe in Pixeln, auf die große Bilder verkleinert werden. GIF-Dateien werden nicht verändert.
+filepond_settings_image_quality = Bildqualität
+filepond_settings_image_quality_notice = Qualität für JPEG/WebP/PNG-Kompression (10-100)
+filepond_settings_create_thumbnails = Thumbnails erstellen
+filepond_settings_create_thumbnails_label = Thumbnails automatisch erstellen
+filepond_settings_create_thumbnails_notice = Erstellt automatisch Vorschaubilder für Bilder
+filepond_settings_always_show_meta = Meta-Dialog immer anzeigen
+filepond_settings_always_show_meta_label = Metadaten-Dialog immer anzeigen
+filepond_settings_always_show_meta_notice = Zeigt den Metadaten-Dialog auch an, wenn er über data-Attribute deaktiviert wurde
 
 # YForm field
 filepond_empty_value_label = Fehlermeldung wenn leer
@@ -44,10 +58,13 @@ filepond_error_upload_failed = Upload fehlgeschlagen
 filepond_error_delete_failed = Datei konnte nicht gelöscht werden
 filepond_error_file_not_found = Datei nicht gefunden
 filepond_error_invalid_function = Ungültige Funktion
+filepond_error_chunk_missing = Chunk fehlt
+filepond_error_upload_aborted = Upload wurde abgebrochen
 
 # Messages
 filepond_upload_success = Datei erfolgreich hochgeladen
 filepond_delete_success = Datei erfolgreich gelöscht
+filepond_chunk_uploaded = Chunk {current} von {total} hochgeladen
 
 # Token Settings
 filepond_token_section = API Token Einstellungen
@@ -59,6 +76,21 @@ filepond_regenerate_token_warning = Achtung: Bestehende API-Integrationen müsse
 filepond_regenerate_token_confirm = Sind Sie sicher? Alle bestehenden API-Integrationen müssen aktualisiert werden!
 filepond_token_regenerated = API Token wurde neu generiert.
 
+# Maintenance section
+filepond_maintenance_section = Wartung & Pflege
+filepond_maintenance_cleanup = Temporäre Dateien aufräumen
+filepond_maintenance_cleanup_button = Temporäre Dateien jetzt löschen
+filepond_maintenance_cleanup_notice = Löscht alte temporäre Dateien und Chunks, die nicht mehr benötigt werden
+filepond_maintenance_cleanup_running = Lösche temporäre Dateien...
+filepond_maintenance_cleanup_error = Fehler beim Löschen der temporären Dateien
+filepond_maintenance_cleanup_success = Temporäre Dateien wurden erfolgreich gelöscht
+
 # General Settings
 filepond_general_settings = Allgemeine Einstellungen
 filepond_save = Speichern
+
+# Chunk Upload Messages
+filepond_chunk_upload_progress = Chunk-Upload: {current} von {total}
+filepond_chunk_upload_retry = Erneut versuchen
+filepond_chunk_upload_abort = Upload abbrechen
+filepond_chunk_upload_resume = Upload fortsetzen
