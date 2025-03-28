@@ -1,13 +1,13 @@
 (function() {
     // Tracking für bereits initialisierte Elemente
     const initializedElements = new Set();
-    
+
     const initFilePond = () => {
         console.log('initFilePond function called');
-        
+
         // Standardwerte für die Chunk-Größe (5MB)
         const CHUNK_SIZE = 2 * 1024 * 1024;
-        
+
         // Translations
         const translations = {
             de_de: {
@@ -62,21 +62,21 @@
         };
         const basePath = getBasePath();
         console.log('Basepath ermittelt:', basePath);
-        
+
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             // Prüfen, ob das Element bereits initialisiert wurde
             if (initializedElements.has(input)) {
                 console.log('FilePond element already initialized, skipping:', input);
                 return;
             }
-            
+
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
-            
+
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
-            
+
             input.style.display = 'none';
 
             const fileInput = document.createElement('input');
@@ -286,36 +286,30 @@
                         throw new Error('Failed to prepare upload');
                     }
 
-                    // 2. Datei in Chunks aufteilen und hochladen - SEQUENTIELL
+                    // 2. Datei in Chunks aufteilen und hochladen - SEQUENTIELL mit Promises
                     const fileSize = file.size;
                     const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
-
                     let uploadedBytes = 0;
 
-                    // Sequentiell jeden Chunk hochladen
-                    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                        const start = chunkIndex * CHUNK_SIZE;
-                        const end = Math.min(start + CHUNK_SIZE, fileSize);
-                        const chunk = file.slice(start, end);
+                    const uploadChunk = (chunkIndex) => {
+                        return new Promise(async (resolve, reject) => {
+                            const start = chunkIndex * CHUNK_SIZE;
+                            const end = Math.min(start + CHUNK_SIZE, fileSize);
+                            const chunk = file.slice(start, end);
 
-                        // Mehrere Versuche pro Chunk erlauben
-                        let success = false;
-                        let retryCount = 0;
-                        const maxRetries = 3;
+                            const formData = new FormData();
+                            formData.append(fieldName, chunk);
+                            formData.append('rex-api-call', 'filepond_uploader');
+                            formData.append('func', 'chunk-upload');
+                            formData.append('fileId', fileId);
+                            formData.append('fieldName', fieldName);
+                            formData.append('chunkIndex', chunkIndex);
+                            formData.append('totalChunks', totalChunks);
+                            formData.append('fileName', file.name);
+                            formData.append('category_id', input.dataset.filepondCat || '0');
 
-                        while (!success && retryCount < maxRetries) {
                             try {
-                                const formData = new FormData();
-                                formData.append(fieldName, chunk);
-                                formData.append('rex-api-call', 'filepond_uploader');
-                                formData.append('func', 'chunk-upload');
-                                formData.append('fileId', fileId);
-                                formData.append('fieldName', fieldName);
-                                formData.append('chunkIndex', chunkIndex);
-                                formData.append('totalChunks', totalChunks);
-                                formData.append('fileName', file.name);
-                                formData.append('category_id', input.dataset.filepondCat || '0');
-
+                                console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
                                 const chunkResponse = await fetch(basePath, {
                                     method: 'POST',
                                     headers: {
@@ -326,45 +320,41 @@
                                 });
 
                                 if (!chunkResponse.ok) {
-                                    throw new Error('Chunk upload failed');
+                                    throw new Error(`Chunk upload failed with status: ${chunkResponse.status}`);
                                 }
 
                                 const result = await chunkResponse.json();
 
                                 if (result.status === 'chunk-success') {
-                                    success = true;
                                     uploadedBytes += (end - start);
                                     progress(true, uploadedBytes, fileSize);
-
-                                    // Falls es der letzte Chunk ist
-                                    if (chunkIndex === totalChunks - 1) {
-                                        if (typeof result === 'string') {
-                                            // Hier wird das Ergebnis als Dateiname zurückgegeben
-                                            load(result);
-                                        } else {
-                                            // Warte nach dem letzten Chunk noch kurz
-                                            await new Promise(resolve => setTimeout(resolve, 1000));
-                                            // Die Server-Antwort kann ein Objekt sein, statt nur der Dateiname
-                                            load(result.filename || result);
-                                        }
-                                        return;
-                                    }
+                                    resolve();  // Chunk erfolgreich hochgeladen
                                 } else {
-                                    throw new Error('Unexpected response');
+                                    throw new Error(`Unexpected response: ${JSON.stringify(result)}`);
                                 }
                             } catch (err) {
-                                console.warn(`Chunk ${chunkIndex} upload failed (attempt ${retryCount + 1}): ${err.message}`);
-                                retryCount++;
-
-                                if (retryCount >= maxRetries) {
-                                    throw new Error(`Failed to upload chunk ${chunkIndex} after ${maxRetries} attempts`);
-                                }
-
-                                // Warte vor dem nächsten Versuch
-                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                console.error(`Chunk ${chunkIndex} upload failed: ${err.message}`);
+                                reject(err);  // Fehler beim Hochladen des Chunks
                             }
+                        });
+                    };
+
+                    // Sequentielles Hochladen der Chunks mit Promises
+                    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                        try {
+                            await uploadChunk(chunkIndex);
+                        } catch (err) {
+                            console.error(`Upload failed at chunk ${chunkIndex}: ${err.message}`);
+                            error(`Upload failed: ${err.message}`);
+                            abort();
+                            return;
                         }
                     }
+
+                    // Wenn alle Chunks erfolgreich hochgeladen wurden
+                    console.log('All chunks uploaded successfully, finalizing upload');
+                    load(file.name);
+
                 } catch (err) {
                     if (err.name === 'AbortError') {
                         abort();
@@ -395,7 +385,7 @@
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                         try {
                             let fileMetadata = {};
-                            
+
                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
                                 fileMetadata = await createMetadataDialog(file);
@@ -408,10 +398,10 @@
                                     description: ''
                                 };
                             }
-                            
+
                             // Entscheiden, ob normaler Upload oder Chunk-Upload
                             const useChunks = input.dataset.filepondChunkEnabled !== 'false' && file.size > CHUNK_SIZE;
-                            
+
                             if (useChunks) {
                                 // Großer File - Chunk Upload
                                 return processFileInChunks(fieldName, file, fileMetadata, load, error, progress, abort, transfer, options);
@@ -424,7 +414,7 @@
                                 formData.append('fileName', file.name);
                                 formData.append('fieldName', fieldName);
                                 formData.append('metadata', JSON.stringify(fileMetadata));
-                                
+
                                 // Vorbereitung für den Upload
                                 const prepareResponse = await fetch(basePath, {
                                     method: 'POST',
@@ -433,16 +423,16 @@
                                     },
                                     body: formData
                                 });
-                                
+
                                 if (!prepareResponse.ok) {
                                     const result = await prepareResponse.json();
                                     error(result.error || 'Upload preparation failed');
                                     return;
                                 }
-                                
+
                                 const prepareResult = await prepareResponse.json();
                                 const fileId = prepareResult.fileId;
-                                
+
                                 // Eigentlicher Upload
                                 const uploadFormData = new FormData();
                                 uploadFormData.append(fieldName, file);
@@ -450,8 +440,8 @@
                                 uploadFormData.append('func', 'upload');
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
-                                uploadFormData.append('category_id', input.dataset.filepondCat || '0');
-                                
+                                formData.append('category_id', input.dataset.filepondCat || '0');
+
                                 const response = await fetch(basePath, {
                                     method: 'POST',
                                     headers: {
@@ -459,13 +449,13 @@
                                     },
                                     body: uploadFormData
                                 });
-                                
+
                                 if (!response.ok) {
                                     const result = await response.json();
                                     error(result.error || 'Upload failed');
                                     return;
                                 }
-                                
+
                                 const result = await response.json();
                                 load(result);
                             }
@@ -494,7 +484,7 @@
                     load: (source, load, error, progress, abort, headers) => {
                         const url = '/media/' + source.replace(/^"|"$/g, '');
                         console.log('FilePond load url:', url);
-                        
+
                         fetch(url)
                             .then(response => {
                                 console.log('FilePond load response:', response);
@@ -511,7 +501,7 @@
                                 console.error('FilePond load error:', e);
                                 error(e.message);
                             });
-                        
+
                         return {
                             abort
                         };
@@ -559,7 +549,7 @@
                     .join(',');
                 input.value = newValue;
             });
-            
+
             // Element als initialisiert markieren
             initializedElements.add(input);
         });
@@ -573,7 +563,7 @@
         console.log(`FilePond initialization attempt ${++initCount}`);
         initFilePond();
     };
-    
+
     // jQuery hat höchste Priorität, wenn vorhanden
     if (typeof jQuery !== 'undefined') {
         jQuery(document).one('rex:ready', safeInitFilePond);
@@ -587,10 +577,10 @@
             document.addEventListener('DOMContentLoaded', safeInitFilePond, {once: true});
         }
     }
-    
+
     // Event für manuelle Initialisierung - auch hier sicherstellen, dass es nur einmal ausgelöst wird
     document.addEventListener('filepond:init', safeInitFilePond);
-    
+
     // Expose initFilePond globally if needed - auch hier die sichere Variante exportieren
     window.initFilePond = safeInitFilePond;
 })();
