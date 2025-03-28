@@ -6,7 +6,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected $metadataDir = '';
 
     // *** GLOBALE DEBUG-VARIABLE ***
-    private $debug = false; // Standardmäßig: Debug-Meldungen deaktiviert
+    private $debug = true; // Standardmäßig: Debug-Meldungen deaktiviert
 
     public function __construct()
     {
