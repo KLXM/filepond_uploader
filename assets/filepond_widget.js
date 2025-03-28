@@ -353,6 +353,7 @@
 
                     // Wenn alle Chunks erfolgreich hochgeladen wurden
                     console.log('All chunks uploaded successfully, finalizing upload');
+                    // *** ACHTUNG: Verarbeite result.filename anstelle von file.name ***
                     load(file.name);
 
                 } catch (err) {
@@ -440,7 +441,7 @@
                                 uploadFormData.append('func', 'upload');
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
-                                formData.append('category_id', input.dataset.filepondCat || '0');
+                                uploadFormData.append('category_id', input.dataset.filepondCat || '0');
 
                                 const response = await fetch(basePath, {
                                     method: 'POST',
