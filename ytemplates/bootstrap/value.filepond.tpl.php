@@ -19,7 +19,8 @@ foreach ($fileNames as $fileName) {
                     'metadata' => [
                         'title' => $media->getValue('title'),
                         'alt' => $media->getValue('med_alt'),
-                        'copyright' => $media->getValue('med_copyright')
+                        'copyright' => $media->getValue('med_copyright'),
+                        'description' => $media->getValue('med_description')
                     ]
                 ]
             ];
@@ -29,18 +30,6 @@ foreach ($fileNames as $fileName) {
 
 $currentUser = rex::getUser();
 $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
-
-// Prüfe ob Metadaten übersprungen werden sollen
-$skipMeta = false;
-
-// Hole den Wert aus dem Element, wenn gesetzt und wandele es zu bool
-if ($this->getElement('skip_meta') !== null) {
-    $skipMeta = (bool) $this->getElement('skip_meta');
-}
-
-if (rex_session('filepond_no_meta')) {
-    $skipMeta = true;
-}
 
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
@@ -55,7 +44,9 @@ if (rex_session('filepond_no_meta')) {
        data-filepond-types="<?= $this->getElement('allowed_types') ?: rex_config::get('filepond_uploader', 'allowed_types', 'image/*') ?>"
        data-filepond-maxsize="<?= $this->getElement('allowed_filesize') ?: rex_config::get('filepond_uploader', 'max_filesize', 10) ?>"
        data-filepond-lang="<?= $langCode ?>"
-       data-filepond-skip-meta="<?= $skipMeta ? 'true' : 'false' ?>"
+       data-filepond-skip-meta="<?= $skip_meta ? 'true' : 'false' ?>"
+       data-filepond-chunk-enabled="<?= $chunk_enabled ? 'true' : 'false' ?>"
+       data-filepond-chunk-size="<?= $chunk_size ?>"
     />
 
     <?php if ($notice = $this->getElement('notice')): ?>
