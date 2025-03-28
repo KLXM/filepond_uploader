@@ -229,10 +229,9 @@
                     };
                 }) : [];
 
-            // Funktion zum Verarbeiten des Chunk-Uploads
+            // Funktion zum Verarbeiten des Chunk-Uploads mit verbesserter Fehlerbehandlung
             const processFileInChunks = async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                 let fileId;
-                let totalChunks;
                 const abortController = new AbortController();
                 
                 try {
@@ -262,49 +261,83 @@
                     const prepareResult = await prepareResponse.json();
                     fileId = prepareResult.fileId;
                     
-                    // 2. Datei in Chunks aufteilen und hochladen
+                    // 2. Datei in Chunks aufteilen und hochladen - SEQUENTIELL
                     const fileSize = file.size;
-                    totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+                    const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
                     
+                    let uploadedBytes = 0;
+                    
+                    // Sequentiell jeden Chunk hochladen
                     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
                         const start = chunkIndex * CHUNK_SIZE;
                         const end = Math.min(start + CHUNK_SIZE, fileSize);
                         const chunk = file.slice(start, end);
                         
-                        const formData = new FormData();
-                        formData.append(fieldName, chunk);
-                        formData.append('rex-api-call', 'filepond_uploader');
-                        formData.append('func', 'chunk-upload');
-                        formData.append('fileId', fileId);
-                        formData.append('fieldName', fieldName);
-                        formData.append('chunkIndex', chunkIndex);
-                        formData.append('totalChunks', totalChunks);
-                        formData.append('fileName', file.name);
-                        formData.append('category_id', input.dataset.filepondCat || '0');
+                        // Mehrere Versuche pro Chunk erlauben
+                        let success = false;
+                        let retryCount = 0;
+                        const maxRetries = 3;
                         
-                        const chunkResponse = await fetch(basePath, {
-                            method: 'POST',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: formData,
-                            signal: abortController.signal
-                        });
-                        
-                        if (!chunkResponse.ok) {
-                            const result = await chunkResponse.json();
-                            error(result.error || 'Chunk upload failed');
-                            return;
-                        }
-                        
-                        // Update progress
-                        progress(true, start + (end - start), fileSize);
-                        
-                        // If this is the last chunk, we'll get back the filename
-                        if (chunkIndex === totalChunks - 1) {
-                            const result = await chunkResponse.json();
-                            load(result);
-                            return;
+                        while (!success && retryCount < maxRetries) {
+                            try {
+                                const formData = new FormData();
+                                formData.append(fieldName, chunk);
+                                formData.append('rex-api-call', 'filepond_uploader');
+                                formData.append('func', 'chunk-upload');
+                                formData.append('fileId', fileId);
+                                formData.append('fieldName', fieldName);
+                                formData.append('chunkIndex', chunkIndex);
+                                formData.append('totalChunks', totalChunks);
+                                formData.append('fileName', file.name);
+                                formData.append('category_id', input.dataset.filepondCat || '0');
+                                
+                                const chunkResponse = await fetch(basePath, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData,
+                                    signal: abortController.signal
+                                });
+                                
+                                if (!chunkResponse.ok) {
+                                    throw new Error('Chunk upload failed');
+                                }
+                                
+                                const result = await chunkResponse.json();
+                                
+                                if (result.status === 'chunk-success') {
+                                    success = true;
+                                    uploadedBytes += (end - start);
+                                    progress(true, uploadedBytes, fileSize);
+                                    
+                                    // Falls es der letzte Chunk ist
+                                    if (chunkIndex === totalChunks - 1) {
+                                        if (typeof result === 'string') {
+                                            // Hier wird das Ergebnis als Dateiname zurückgegeben
+                                            load(result);
+                                        } else {
+                                            // Warte nach dem letzten Chunk noch kurz
+                                            await new Promise(resolve => setTimeout(resolve, 1000));
+                                            // Die Server-Antwort kann ein Objekt sein, statt nur der Dateiname
+                                            load(result.filename || result);
+                                        }
+                                        return;
+                                    }
+                                } else {
+                                    throw new Error('Unexpected response');
+                                }
+                            } catch (err) {
+                                console.warn(`Chunk ${chunkIndex} upload failed (attempt ${retryCount + 1}): ${err.message}`);
+                                retryCount++;
+                                
+                                if (retryCount >= maxRetries) {
+                                    throw new Error(`Failed to upload chunk ${chunkIndex} after ${maxRetries} attempts`);
+                                }
+                                
+                                // Warte vor dem nächsten Versuch
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
                         }
                     }
                 } catch (err) {
