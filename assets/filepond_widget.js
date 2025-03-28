@@ -233,7 +233,7 @@
             const processFileInChunks = async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                 let fileId;
                 const abortController = new AbortController();
-                
+
                 try {
                     // 1. Metadaten senden und Upload vorbereiten
                     const prepareFormData = new FormData();
@@ -242,42 +242,67 @@
                     prepareFormData.append('fileName', file.name);
                     prepareFormData.append('fieldName', fieldName);
                     prepareFormData.append('metadata', JSON.stringify(metadata));
-                    
-                    const prepareResponse = await fetch(basePath, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: prepareFormData,
-                        signal: abortController.signal
-                    });
-                    
-                    if (!prepareResponse.ok) {
-                        const result = await prepareResponse.json();
-                        error(result.error || 'Upload preparation failed');
-                        return;
+
+                    // Warten auf erfolgreiche Vorbereitung - mit Wiederholungsversuchen
+                    let prepareSuccess = false;
+                    let prepareAttempts = 0;
+                    fileId = null;
+
+                    while (!prepareSuccess && prepareAttempts < 3) {
+                        try {
+                            const prepareResponse = await fetch(basePath, {
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: prepareFormData,
+                                signal: abortController.signal
+                            });
+
+                            if (!prepareResponse.ok) {
+                                throw new Error('Preparation failed');
+                            }
+
+                            const prepareResult = await prepareResponse.json();
+                            fileId = prepareResult.fileId;
+                            prepareSuccess = true;
+
+                            // Kurze Pause nach erfolgreicher Vorbereitung, damit Metadaten gespeichert werden können
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                        } catch (err) {
+                            prepareAttempts++;
+                            console.warn(`Preparation attempt ${prepareAttempts} failed: ${err.message}`);
+
+                            if (prepareAttempts >= 3) {
+                                throw new Error('Upload preparation failed after multiple attempts');
+                            }
+
+                            // Warten vor dem nächsten Versuch
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                        }
                     }
-                    
-                    const prepareResult = await prepareResponse.json();
-                    fileId = prepareResult.fileId;
-                    
+
+                    if (!fileId) {
+                        throw new Error('Failed to prepare upload');
+                    }
+
                     // 2. Datei in Chunks aufteilen und hochladen - SEQUENTIELL
                     const fileSize = file.size;
                     const totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
-                    
+
                     let uploadedBytes = 0;
-                    
+
                     // Sequentiell jeden Chunk hochladen
                     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
                         const start = chunkIndex * CHUNK_SIZE;
                         const end = Math.min(start + CHUNK_SIZE, fileSize);
                         const chunk = file.slice(start, end);
-                        
+
                         // Mehrere Versuche pro Chunk erlauben
                         let success = false;
                         let retryCount = 0;
                         const maxRetries = 3;
-                        
+
                         while (!success && retryCount < maxRetries) {
                             try {
                                 const formData = new FormData();
@@ -290,7 +315,7 @@
                                 formData.append('totalChunks', totalChunks);
                                 formData.append('fileName', file.name);
                                 formData.append('category_id', input.dataset.filepondCat || '0');
-                                
+
                                 const chunkResponse = await fetch(basePath, {
                                     method: 'POST',
                                     headers: {
@@ -299,18 +324,18 @@
                                     body: formData,
                                     signal: abortController.signal
                                 });
-                                
+
                                 if (!chunkResponse.ok) {
                                     throw new Error('Chunk upload failed');
                                 }
-                                
+
                                 const result = await chunkResponse.json();
-                                
+
                                 if (result.status === 'chunk-success') {
                                     success = true;
                                     uploadedBytes += (end - start);
                                     progress(true, uploadedBytes, fileSize);
-                                    
+
                                     // Falls es der letzte Chunk ist
                                     if (chunkIndex === totalChunks - 1) {
                                         if (typeof result === 'string') {
@@ -330,11 +355,11 @@
                             } catch (err) {
                                 console.warn(`Chunk ${chunkIndex} upload failed (attempt ${retryCount + 1}): ${err.message}`);
                                 retryCount++;
-                                
+
                                 if (retryCount >= maxRetries) {
                                     throw new Error(`Failed to upload chunk ${chunkIndex} after ${maxRetries} attempts`);
                                 }
-                                
+
                                 // Warte vor dem nächsten Versuch
                                 await new Promise(resolve => setTimeout(resolve, 1000));
                             }
@@ -348,7 +373,7 @@
                         error('Upload failed: ' + err.message);
                     }
                 }
-                
+
                 return {
                     abort: () => {
                         abortController.abort();
