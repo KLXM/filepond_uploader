@@ -6,7 +6,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected $metadataDir = '';
 
     // *** GLOBALE DEBUG-VARIABLE ***
-    private $debug = true; // Standardmäßig: Debug-Meldungen deaktiviert
+    private $debug = true; // Standardmäßig: Debug-Meldungen aktiviert
 
     public function __construct()
     {
@@ -183,9 +183,9 @@ class rex_api_filepond_uploader extends rex_api_function
         $totalChunks = rex_request('totalChunks', 'int', 1);
         $fileId = rex_request('fileId', 'string', '');
         $fieldName = rex_request('fieldName', 'string', 'filepond'); // Feldname für die Identifikation
-    
+
         $logger = rex_logger::factory();
-        
+
         if (empty($fileId)) {
             throw new rex_api_exception('Missing fileId');
         }
@@ -194,7 +194,7 @@ class rex_api_filepond_uploader extends rex_api_function
 
         if (!file_exists($metaFile)) {
             $logger->log('warning', "FILEPOND: Metadata file not found for $fileId, creating fallback metadata");
-            
+
             // Fallback-Metadaten erstellen
             $fallbackMetadata = [
                 'metadata' => [
@@ -207,15 +207,15 @@ class rex_api_filepond_uploader extends rex_api_function
                 'fieldName' => $fieldName,
                 'timestamp' => time()
             ];
-            
+
             // Verzeichnis erstellen, wenn es nicht existiert
             if (!file_exists($this->metadataDir)) {
                 mkdir($this->metadataDir, 0775, true);
             }
-            
+
             // Fallback-Metadaten speichern
             file_put_contents($metaFile, json_encode($fallbackMetadata));
-            
+
             // Lokale Variable setzen
             $metaData = $fallbackMetadata;
         } else {
@@ -283,6 +283,12 @@ class rex_api_filepond_uploader extends rex_api_function
                 if (!$out) {
                     throw new rex_api_exception('Could not create output file');
                 }
+
+                // *** PAUSE VOR DEM AUFLISTEN DER CHUNKS ***
+                sleep(1);
+
+                // *** DATEISYSTEM-CACHE LEEREN ***
+                clearstatcache();
 
                 //  *** ALTERNATIVE CHUNK-ZÄHLUNG ***
                 $files = scandir($fileChunkDir);
@@ -508,9 +514,9 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
                     $sql->setValue('title', $metadata['title'] ?? '');
-                    $sql->setValue('med_alt', $metadata['alt'] ?? '');
-                    $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
-                    $sql->setValue('med_description', $metadata['description'] ?? '');
+                    $sql->setValue('med_alt', $metadata['med_alt'] ?? '');
+                    $sql->setValue('med_copyright', $metadata['med_copyright'] ?? '');
+                    $sql->setValue('med_description', $metadata['med_description'] ?? '');
                     $sql->update();
                 }
 
