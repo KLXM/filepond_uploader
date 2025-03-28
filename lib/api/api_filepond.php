@@ -727,7 +727,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
-    protected function handleCleanup()
+    public function handleCleanup()
     {
         // Nur Backend-Benutzer mit Admin-Rechten dürfen aufräumen
         $user = rex_backend_login::createUser();
