@@ -1,6 +1,10 @@
 (function() {
     const initFilePond = () => {
         console.log('initFilePond function called');
+        
+        // Standardwerte für die Chunk-Größe (5MB)
+        const CHUNK_SIZE = 5 * 1024 * 1024;
+        
         // Translations
         const translations = {
             de_de: {
@@ -10,10 +14,14 @@
                 altLabel: 'Alt-Text:',
                 altNotice: 'Alternativtext für Screenreader und SEO',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Beschreibung:',
                 fileInfo: 'Datei',
                 fileSize: 'Größe',
                 saveBtn: 'Speichern',
-                cancelBtn: 'Abbrechen'
+                cancelBtn: 'Abbrechen',
+                chunkStatus: 'Chunk {current} von {total} hochgeladen',
+                retry: 'Erneut versuchen',
+                resumeUpload: 'Upload fortsetzen'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -22,10 +30,14 @@
                 altLabel: 'Alt Text:',
                 altNotice: 'Alternative text for screen readers and SEO',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Description:',
                 fileInfo: 'File',
                 fileSize: 'Size',
                 saveBtn: 'Save',
-                cancelBtn: 'Cancel'
+                cancelBtn: 'Cancel',
+                chunkStatus: 'Chunk {current} of {total} uploaded',
+                retry: 'Retry',
+                resumeUpload: 'Resume upload'
             }
         };
 
@@ -42,13 +54,13 @@
             if (baseElement && baseElement.href) {
                 return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
             }
-           // Fallback, wenn kein <base>-Tag vorhanden ist
-           return  window.location.origin;
+            // Fallback, wenn kein <base>-Tag vorhanden ist
+            return window.location.origin;
         };
         const basePath = getBasePath();
-         console.log('Basepath ermittelt:', basePath);
+        console.log('Basepath ermittelt:', basePath);
         
-         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+        document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
@@ -64,7 +76,7 @@
             input.parentNode.insertBefore(fileInput, input.nextSibling);
 
             // Create metadata dialog with SimpleModal
-           const createMetadataDialog = (file, existingMetadata = null) => {
+            const createMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -92,6 +104,10 @@
                         <div class="simple-modal-form-group">
                             <label for="copyright">${t.copyrightLabel}</label>
                             <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
+                        </div>
+                        <div class="simple-modal-form-group">
+                            <label for="description">${t.descriptionLabel}</label>
+                            <textarea id="description" name="description" class="simple-modal-input" rows="3">${existingMetadata?.description || ''}</textarea>
                         </div>
                     `;
 
@@ -163,12 +179,14 @@
                                     const titleInput = form.querySelector('[name="title"]');
                                     const altInput = form.querySelector('[name="alt"]');
                                     const copyrightInput = form.querySelector('[name="copyright"]');
+                                    const descriptionInput = form.querySelector('[name="description"]');
 
                                     if (titleInput.value && altInput.value) {
                                         const metadata = {
                                             title: titleInput.value,
                                             alt: altInput.value,
-                                            copyright: copyrightInput.value
+                                            copyright: copyrightInput.value,
+                                            description: descriptionInput.value
                                         };
                                         modal.close();
                                         resolve(metadata);
@@ -188,19 +206,112 @@
                 .filter(Boolean)
                 .map(filename => {
                     const file = filename.trim().replace(/^"|"$/g, '');
-                     return {
+                    return {
                         source: file,
                         options: {
                             type: 'local',
-                           // poster nur bei videos setzen
-                             ...(file.type?.startsWith('video/') ? {
-                                    metadata: {
-                                        poster: '/media/' + file
-                                    }
-                                } : {} )
-                           }
+                            // poster nur bei videos setzen
+                            ...(file.type?.startsWith('video/') ? {
+                                metadata: {
+                                    poster: '/media/' + file
+                                }
+                            } : {})
+                        }
                     };
                 }) : [];
+
+            // Funktion zum Verarbeiten des Chunk-Uploads
+            const processFileInChunks = async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+                let fileId;
+                let totalChunks;
+                const abortController = new AbortController();
+                
+                try {
+                    // 1. Metadaten senden und Upload vorbereiten
+                    const prepareFormData = new FormData();
+                    prepareFormData.append('rex-api-call', 'filepond_uploader');
+                    prepareFormData.append('func', 'prepare');
+                    prepareFormData.append('fileName', file.name);
+                    prepareFormData.append('metadata', JSON.stringify(metadata));
+                    
+                    const prepareResponse = await fetch(basePath, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: prepareFormData,
+                        signal: abortController.signal
+                    });
+                    
+                    if (!prepareResponse.ok) {
+                        const result = await prepareResponse.json();
+                        error(result.error || 'Upload preparation failed');
+                        return;
+                    }
+                    
+                    const prepareResult = await prepareResponse.json();
+                    fileId = prepareResult.fileId;
+                    
+                    // 2. Datei in Chunks aufteilen und hochladen
+                    const fileSize = file.size;
+                    totalChunks = Math.ceil(fileSize / CHUNK_SIZE);
+                    
+                    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                        const start = chunkIndex * CHUNK_SIZE;
+                        const end = Math.min(start + CHUNK_SIZE, fileSize);
+                        const chunk = file.slice(start, end);
+                        
+                        const formData = new FormData();
+                        formData.append(fieldName, chunk);
+                        formData.append('rex-api-call', 'filepond_uploader');
+                        formData.append('func', 'chunk-upload');
+                        formData.append('fileId', fileId);
+                        formData.append('chunkIndex', chunkIndex);
+                        formData.append('totalChunks', totalChunks);
+                        formData.append('fileName', file.name);
+                        formData.append('category_id', input.dataset.filepondCat || '0');
+                        
+                        const chunkResponse = await fetch(basePath, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData,
+                            signal: abortController.signal
+                        });
+                        
+                        if (!chunkResponse.ok) {
+                            const result = await chunkResponse.json();
+                            error(result.error || 'Chunk upload failed');
+                            return;
+                        }
+                        
+                        // Update progress
+                        progress(true, start + (end - start), fileSize);
+                        
+                        // If this is the last chunk, we'll get back the filename
+                        if (chunkIndex === totalChunks - 1) {
+                            const result = await chunkResponse.json();
+                            load(result);
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        abort();
+                    } else {
+                        console.error('Chunk upload error:', err);
+                        error('Upload failed: ' + err.message);
+                    }
+                }
+                
+                return {
+                    abort: () => {
+                        abortController.abort();
+                        abort();
+                    }
+                };
+            };
 
             // Initialize FilePond
             const pond = FilePond.create(fileInput, {
@@ -208,10 +319,12 @@
                 allowMultiple: true,
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
+                chunkSize: CHUNK_SIZE,
+                chunkForce: true, // Force chunking for all files
                 server: {
-                     url: basePath, // Verwende den Basepath
+                    url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-                         try {
+                        try {
                             let fileMetadata = {};
                             
                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
@@ -222,39 +335,75 @@
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
-                                    copyright: ''
+                                    copyright: '',
+                                    description: ''
                                 };
                             }
                             
-                            const formData = new FormData();
-                            formData.append(fieldName, file);
-                            formData.append('rex-api-call', 'filepond_uploader');
-                            formData.append('func', 'upload');
-                            formData.append('category_id', input.dataset.filepondCat || '0');
-                            formData.append('metadata', JSON.stringify(fileMetadata));
-
-                            const response = await fetch(basePath, {  // Verwende den Basepath
-                                method: 'POST',
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: formData
-                            });
-
-                            const result = await response.json();
-
-                            if (!response.ok) {
-                                error(result.error || 'Upload failed');
-                                return;
+                            // Entscheiden, ob normaler Upload oder Chunk-Upload
+                            if (file.size > CHUNK_SIZE) {
+                                // Großer File - Chunk Upload
+                                return processFileInChunks(fieldName, file, fileMetadata, load, error, progress, abort, transfer, options);
+                            } else {
+                                // Standard Upload für kleine Dateien
+                                const formData = new FormData();
+                                formData.append(fieldName, file);
+                                formData.append('rex-api-call', 'filepond_uploader');
+                                formData.append('func', 'prepare');
+                                formData.append('fileName', file.name);
+                                formData.append('metadata', JSON.stringify(fileMetadata));
+                                
+                                // Vorbereitung für den Upload
+                                const prepareResponse = await fetch(basePath, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: formData
+                                });
+                                
+                                if (!prepareResponse.ok) {
+                                    const result = await prepareResponse.json();
+                                    error(result.error || 'Upload preparation failed');
+                                    return;
+                                }
+                                
+                                const prepareResult = await prepareResponse.json();
+                                const fileId = prepareResult.fileId;
+                                
+                                // Eigentlicher Upload
+                                const uploadFormData = new FormData();
+                                uploadFormData.append(fieldName, file);
+                                uploadFormData.append('rex-api-call', 'filepond_uploader');
+                                uploadFormData.append('func', 'upload');
+                                uploadFormData.append('fileId', fileId);
+                                uploadFormData.append('category_id', input.dataset.filepondCat || '0');
+                                
+                                const response = await fetch(basePath, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: uploadFormData
+                                });
+                                
+                                if (!response.ok) {
+                                    const result = await response.json();
+                                    error(result.error || 'Upload failed');
+                                    return;
+                                }
+                                
+                                const result = await response.json();
+                                load(result);
                             }
-
-                            load(result);
                         } catch (err) {
                             if (err.message !== 'Metadata input cancelled') {
                                 console.error('Upload error:', err);
+                                error('Upload failed: ' + err.message);
+                            } else {
+                                error('Upload cancelled');
+                                abort();
                             }
-                            error('Upload cancelled');
-                            abort();
                         }
                     },
                     revert: {
@@ -270,23 +419,23 @@
                         }
                     },
                     load: (source, load, error, progress, abort, headers) => {
-                         const url = '/media/' + source.replace(/^"|"$/g, '');
-                         console.log('FilePond load url:', url);
+                        const url = '/media/' + source.replace(/^"|"$/g, '');
+                        console.log('FilePond load url:', url);
                         
                         fetch(url)
                             .then(response => {
-                                 console.log('FilePond load response:', response);
+                                console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
-                             .then(blob => {
-                                 console.log('FilePond load blob:', blob);
+                            .then(blob => {
+                                console.log('FilePond load blob:', blob);
                                 load(blob);
                             })
                             .catch(e => {
-                                 console.error('FilePond load error:', e);
+                                console.error('FilePond load error:', e);
                                 error(e.message);
                             });
                         
@@ -342,9 +491,15 @@
 
     // Initialize based on environment
     if (typeof jQuery !== 'undefined') {
-       jQuery(document).on('rex:ready', initFilePond);
+        jQuery(document).on('rex:ready', initFilePond);
     } 
-   
+    
+    // Event für manuelle Initialisierung
+    document.addEventListener('filepond:init', initFilePond);
+    
+    // Automatische Initialisierung wenn DOM geladen ist
+    document.addEventListener('DOMContentLoaded', initFilePond);
+    
     // Expose initFilePond globally if needed
     window.initFilePond = initFilePond;
 })();
