@@ -6,7 +6,7 @@ class rex_api_filepond_uploader extends rex_api_function
     protected $metadataDir = '';
 
     // *** GLOBALE DEBUG-VARIABLE ***
-    private $debug = true; // Standardmäßig: Debug-Meldungen aktiviert
+    private $debug = false; // Standardmäßig: Debug-Meldungen deaktiviert
 
     public function __construct()
     {
@@ -367,7 +367,13 @@ class rex_api_filepond_uploader extends rex_api_function
                 fclose($lock);
                 @unlink($lockFile);
 
-                return $result;
+                // *** KONSISTENTES ANTWORTFORMAT MIT OUTPUT BUFFER LEEREN UND EXIT ***
+                rex_response::cleanOutputBuffers();
+                rex_response::sendJson([
+                    'status' => 'chunk-success',
+                    'filename' => $result // oder 'filename' => $result['filename'], je nachdem, was processUploadedFile zurückgibt
+                ]);
+                exit;
             }
 
             // Antwort für erfolgreichen Chunk-Upload
@@ -375,11 +381,13 @@ class rex_api_filepond_uploader extends rex_api_function
             fclose($lock);
             @unlink($lockFile);
 
-            return [
+            rex_response::cleanOutputBuffers();
+            rex_response::sendJson([
                 'status' => 'chunk-success',
                 'chunkIndex' => $chunkIndex,
                 'remaining' => $totalChunks - $chunkIndex - 1
-            ];
+            ]);
+            exit;
         } catch (Exception $e) {
             if (isset($lock) && is_resource($lock)) {
                 flock($lock, LOCK_UN); // Lock freigeben
@@ -387,7 +395,9 @@ class rex_api_filepond_uploader extends rex_api_function
                 @unlink($lockFile);
             }
             $this->cleanupChunks($fileChunkDir); //Räume die Chunks weg
-            throw $e; //Reiche die Exception weiter
+            rex_response::cleanOutputBuffers();
+            rex_response::sendJson(['error' => $e->getMessage()]);
+            exit;
         }
     }
 
