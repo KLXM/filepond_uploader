@@ -2,6 +2,16 @@
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
+    protected $chunksDir = '';
+    
+    public function __construct()
+    {
+        // Verzeichnis für Chunks erstellen falls es nicht existiert
+        $this->chunksDir = rex_path::pluginData('yform', 'manager', 'upload/filepond/chunks');
+        if (!file_exists($this->chunksDir)) {
+            mkdir($this->chunksDir, 0775, true);
+        }
+    }
 
     public function execute()
     {
@@ -54,13 +64,18 @@ class rex_api_filepond_uploader extends rex_api_function
                 throw new rex_api_exception('Unauthorized access - ' . implode(', ', $errors));
             }
 
-
             $func = rex_request('func', 'string', '');
             $categoryId = rex_request('category_id', 'int', 0);
 
             switch ($func) {
                 case 'upload':
                     $result = $this->handleUpload($categoryId);
+                    rex_response::cleanOutputBuffers();
+                    rex_response::sendJson($result);
+                    exit;
+                
+                case 'chunk-upload':
+                    $result = $this->handleChunkUpload($categoryId);
                     rex_response::cleanOutputBuffers();
                     rex_response::sendJson($result);
                     exit;
@@ -92,6 +107,116 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
+    protected function handleChunkUpload($categoryId)
+    {
+        // Chunk-Informationen aus dem Request holen
+        $chunkIndex = rex_request('chunkIndex', 'int', 0);
+        $totalChunks = rex_request('totalChunks', 'int', 1);
+        $fileId = rex_request('fileId', 'string', '');
+        $fileName = rex_request('fileName', 'string', '');
+        
+        if (empty($fileId) || empty($fileName)) {
+            throw new rex_api_exception('Missing chunk information');
+        }
+        
+        $logger = rex_logger::factory();
+        $logger->log('info', "FILEPOND: Processing chunk $chunkIndex of $totalChunks for file $fileName (ID: $fileId)");
+        
+        // Chunk-Datei aus dem Upload holen
+        if (!isset($_FILES['filepond'])) {
+            rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
+            throw new rex_api_exception('No file chunk uploaded');
+        }
+        
+        $file = $_FILES['filepond'];
+        
+        // Verzeichnis für die Chunks dieses Files erstellen
+        $fileChunkDir = $this->chunksDir . '/' . $fileId;
+        if (!file_exists($fileChunkDir)) {
+            mkdir($fileChunkDir, 0775, true);
+        }
+        
+        // Chunk speichern
+        $chunkPath = $fileChunkDir . '/' . $chunkIndex;
+        if (!move_uploaded_file($file['tmp_name'], $chunkPath)) {
+            throw new rex_api_exception("Failed to save chunk $chunkIndex");
+        }
+        
+        // Prüfen ob alle Chunks hochgeladen wurden
+        if ($chunkIndex == $totalChunks - 1) { // Letzter Chunk
+            $logger->log('info', "FILEPOND: All chunks received for $fileName, merging...");
+            
+            // Temporäre Datei für das zusammengeführte Ergebnis
+            $tmpFile = rex_path::pluginData('yform', 'manager', 'upload/filepond/') . $fileId;
+            
+            // Chunks zusammenführen
+            $out = fopen($tmpFile, 'wb');
+            if (!$out) {
+                throw new rex_api_exception('Could not create output file');
+            }
+            
+            // Chunks in der richtigen Reihenfolge zusammenfügen
+            for ($i = 0; $i < $totalChunks; $i++) {
+                $chunkPath = $fileChunkDir . '/' . $i;
+                if (!file_exists($chunkPath)) {
+                    fclose($out);
+                    throw new rex_api_exception("Chunk $i missing");
+                }
+                
+                $in = fopen($chunkPath, 'rb');
+                if (!$in) {
+                    fclose($out);
+                    throw new rex_api_exception("Could not open chunk $i");
+                }
+                
+                stream_copy_to_stream($in, $out);
+                fclose($in);
+            }
+            
+            fclose($out);
+            
+            // Dateityp ermitteln
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $type = $finfo->file($tmpFile);
+            
+            // Datei zum Medienpool hinzufügen
+            $uploadedFile = [
+                'name' => $fileName,
+                'type' => $type,
+                'tmp_name' => $tmpFile,
+                'size' => filesize($tmpFile)
+            ];
+            
+            // Verarbeite die vollständige Datei
+            $result = $this->processUploadedFile($uploadedFile, $categoryId);
+            
+            // Aufräumen - Chunks löschen
+            $this->cleanupChunks($fileChunkDir);
+            
+            return $result;
+        }
+        
+        // Antwort für erfolgreichen Chunk-Upload
+        return [
+            'status' => 'chunk-success',
+            'chunkIndex' => $chunkIndex,
+            'remaining' => $totalChunks - $chunkIndex - 1
+        ];
+    }
+
+    protected function cleanupChunks($directory)
+    {
+        if (is_dir($directory)) {
+            $files = glob($directory . '/*');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            rmdir($directory);
+        }
+    }
+
     protected function handleUpload($categoryId)
     {
         if (!isset($_FILES['filepond'])) {
@@ -100,13 +225,22 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES['filepond'];
-        // error_log('FILEPOND: Uploaded file type: ' . $file['type'] . ', name: ' . $file['name']);
-
+        
+        return $this->processUploadedFile($file, $categoryId);
+    }
+    
+    protected function processUploadedFile($file, $categoryId)
+    {
+        $logger = rex_logger::factory();
+        $logger->log('info', 'FILEPOND: Processing file: ' . $file['name']);
+        
+        // Validierung der Dateigröße
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
             throw new rex_api_exception('File too large');
         }
 
+        // Validierung der Dateitypen
         $allowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
         $allowedTypes = array_map('trim', explode(',', $allowedTypes));
         $isAllowed = false;
@@ -135,7 +269,7 @@ class rex_api_filepond_uploader extends rex_api_function
             throw new rex_api_exception('File type not allowed');
         }
 
-        // Process image if it's not a GIF
+        // Bildoptimierung für unterstützte Formate (keine GIFs)
         if (strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
             $this->processImage($file['tmp_name']);
         }
@@ -143,7 +277,7 @@ class rex_api_filepond_uploader extends rex_api_function
         $originalName = $file['name'];
         $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
 
-        // Prüfe ob Metadaten übersprungen werden sollen
+        // Prüfen ob Metadaten übersprungen werden sollen
         $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
         $metadata = [];
 
@@ -176,6 +310,7 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->setValue('title', $metadata['title'] ?? '');
                     $sql->setValue('med_alt', $metadata['alt'] ?? '');
                     $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    $sql->setValue('med_description', $metadata['description'] ?? '');
                     $sql->update();
                 }
 
@@ -185,12 +320,18 @@ class rex_api_filepond_uploader extends rex_api_function
             throw new rex_api_exception(implode(', ', $result['messages']));
         } catch (Exception $e) {
             throw new rex_api_exception('Upload failed: ' . $e->getMessage());
+        } finally {
+            // Aufräumen, wenn die Datei eine temporäre war (Chunk-Upload)
+            if (strpos($file['tmp_name'], 'upload/filepond/') !== false && file_exists($file['tmp_name'])) {
+                unlink($file['tmp_name']);
+            }
         }
     }
 
     protected function processImage($tmpFile)
     {
         $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
+        $quality = rex_config::get('filepond_uploader', 'image_quality', 90);
 
         $imageInfo = getimagesize($tmpFile);
         if (!$imageInfo) {
@@ -222,6 +363,9 @@ class rex_api_filepond_uploader extends rex_api_function
                 break;
             case IMAGETYPE_PNG:
                 $srcImage = imagecreatefrompng($tmpFile);
+                break;
+            case IMAGETYPE_WEBP:
+                $srcImage = imagecreatefromwebp($tmpFile);
                 break;
             default:
                 return;
@@ -257,9 +401,13 @@ class rex_api_filepond_uploader extends rex_api_function
 
         // Save image
         if ($type === IMAGETYPE_JPEG) {
-            imagejpeg($dstImage, $tmpFile, 90);
+            imagejpeg($dstImage, $tmpFile, $quality);
         } elseif ($type === IMAGETYPE_PNG) {
-            imagepng($dstImage, $tmpFile, 9);
+            // PNG-Qualität ist 0-9, umrechnen auf 0-9 Skala
+            $pngQuality = min(9, floor($quality / 10));
+            imagepng($dstImage, $tmpFile, $pngQuality);
+        } elseif ($type === IMAGETYPE_WEBP) {
+            imagewebp($dstImage, $tmpFile, $quality);
         }
 
         // Free memory
@@ -267,6 +415,7 @@ class rex_api_filepond_uploader extends rex_api_function
         imagedestroy($dstImage);
     }
 
+    // Rest der Methoden (handleDelete, handleLoad, handleRestore) bleiben unverändert...
     protected function handleDelete()
     {
         $filename = trim(rex_request('filename', 'string', ''));
