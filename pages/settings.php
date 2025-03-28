@@ -33,8 +33,8 @@ $form->addRawField('
     </div>
 ');
 
-// Allgemeine Einstellungen
-$form->addFieldset($addon->i18n('filepond_general_settings'));
+// Einstellungen für Uploads
+$form->addFieldset($addon->i18n('filepond_upload_settings'));
 
 $form->addRawField('<div class="row">');
 
@@ -58,6 +58,26 @@ $field = $form->addInputField('number', 'max_filesize', null, [
 $field->setLabel($addon->i18n('filepond_settings_maxsize'));
 $field->setNotice($addon->i18n('filepond_settings_maxsize_notice'));
 
+// Chunk-Größe
+$field = $form->addInputField('number', 'chunk_size', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_chunk_size'));
+$field->setNotice($addon->i18n('filepond_settings_chunk_size_notice'));
+
+// Chunk-Upload aktivieren/deaktivieren
+$field = $form->addCheckboxField('enable_chunks');
+$field->setLabel($addon->i18n('filepond_settings_enable_chunks'));
+$field->addOption($addon->i18n('filepond_settings_enable_chunks_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_enable_chunks_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
 // Maximale Pixelgröße
 $field = $form->addInputField('number', 'max_pixel', null, [
     'class' => 'form-control',
@@ -66,6 +86,32 @@ $field = $form->addInputField('number', 'max_pixel', null, [
 ]);
 $field->setLabel($addon->i18n('filepond_settings_max_pixel'));
 $field->setNotice($addon->i18n('filepond_settings_max_pixel_notice'));
+
+// Bildqualität
+$field = $form->addInputField('number', 'image_quality', null, [
+    'class' => 'form-control',
+    'min' => '10',
+    'max' => '100',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_image_quality'));
+$field->setNotice($addon->i18n('filepond_settings_image_quality_notice'));
+
+// Thumbnail erstellen
+$field = $form->addCheckboxField('create_thumbnails');
+$field->setLabel($addon->i18n('filepond_settings_create_thumbnails'));
+$field->addOption($addon->i18n('filepond_settings_create_thumbnails_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_create_thumbnails_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// Allgemeine Einstellungen
+$form->addFieldset($addon->i18n('filepond_general_settings'));
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
 
 // Sprache
 $field = $form->addSelectField('lang', null, [
@@ -77,11 +123,6 @@ $select->addOption('Deutsch', 'de_de');
 $select->addOption('English', 'en_gb');
 $field->setNotice($addon->i18n('filepond_settings_lang_notice'));
 
-$form->addRawField('</div>');
-
-// Rechte Spalte
-$form->addRawField('<div class="col-sm-6">');
-
 // Erlaubte Dateitypen
 $field = $form->addTextAreaField('allowed_types', null, [
     'class' => 'form-control',
@@ -90,6 +131,11 @@ $field = $form->addTextAreaField('allowed_types', null, [
 ]);
 $field->setLabel($addon->i18n('filepond_settings_allowed_types'));
 $field->setNotice($addon->i18n('filepond_settings_allowed_types_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
 
 // Medien-Kategorie vorbereiten
 $mediaSelect = new rex_media_category_select();
@@ -115,8 +161,60 @@ $field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
 $field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
 $field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
 
+// Meta-Dialog immer anzeigen
+$field = $form->addCheckboxField('always_show_meta');
+$field->setLabel($addon->i18n('filepond_settings_always_show_meta'));
+$field->addOption($addon->i18n('filepond_settings_always_show_meta_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_always_show_meta_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
+
+// Wartungsbereich
+$form->addFieldset($addon->i18n('filepond_maintenance_section'));
+
+// Button zum Aufräumen temporärer Dateien
+$form->addRawField('
+    <div class="form-group">
+        <label class="control-label">' . $addon->i18n('filepond_maintenance_cleanup') . '</label>
+        <div>
+            <button type="button" class="btn btn-default" id="cleanup-temp-files">
+                <i class="fa fa-trash"></i> ' . $addon->i18n('filepond_maintenance_cleanup_button') . '
+            </button>
+            <span id="cleanup-status" class="help-block"></span>
+        </div>
+        <p class="help-block">' . $addon->i18n('filepond_maintenance_cleanup_notice') . '</p>
+    </div>
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        document.getElementById("cleanup-temp-files").addEventListener("click", function() {
+            const statusEl = document.getElementById("cleanup-status");
+            statusEl.textContent = "' . $addon->i18n('filepond_maintenance_cleanup_running') . '";
+            
+            fetch("' . rex_url::currentBackendPage() . '", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: "cleanup_temp=1"
+            })
+            .then(response => response.json())
+            .then(data => {
+                statusEl.textContent = data.message;
+                setTimeout(() => {
+                    statusEl.textContent = "";
+                }, 5000);
+            })
+            .catch(error => {
+                statusEl.textContent = "' . $addon->i18n('filepond_maintenance_cleanup_error') . '";
+                console.error("Error:", error);
+            });
+        });
+    });
+    </script>
+');
 
 // Token Regenerierung behandeln
 if (rex_post('regenerate_token', 'boolean')) {
@@ -133,6 +231,22 @@ if (rex_post('regenerate_token', 'boolean')) {
             '</div>');
     } catch (Exception $e) {
         echo rex_view::error($addon->i18n('filepond_token_regenerate_failed'));
+    }
+}
+
+// AJAX-Aktion für Aufräumen temporärer Dateien
+if (rex_request('cleanup_temp', 'boolean') && rex::isBackend() && rex::getUser()->isAdmin()) {
+    $api = new rex_api_filepond_uploader();
+    try {
+        $result = $api->handleCleanup();
+        rex_response::cleanOutputBuffers();
+        rex_response::sendJson($result);
+        exit;
+    } catch (Exception $e) {
+        rex_response::cleanOutputBuffers();
+        rex_response::setStatus(rex_response::HTTP_INTERNAL_ERROR);
+        rex_response::sendJson(['error' => $e->getMessage()]);
+        exit;
     }
 }
 
