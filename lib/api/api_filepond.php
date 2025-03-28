@@ -5,6 +5,9 @@ class rex_api_filepond_uploader extends rex_api_function
     protected $chunksDir = '';
     protected $metadataDir = '';
 
+    // *** GLOBALE DEBUG-VARIABLE ***
+    private $debug = false; // Standardmäßig: Debug-Meldungen deaktiviert
+
     public function __construct()
     {
         // Verzeichnisse erstellen, falls sie nicht existieren
@@ -21,11 +24,17 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
+    private function log($level, $message) {
+        if ($this->debug) {
+            $logger = rex_logger::factory();
+            $logger->log($level, 'FILEPOND: ' . $message);
+        }
+    }
+
     public function execute()
     {
         try {
-            $logger = rex_logger::factory();
-            $logger->log('info', 'FILEPOND: Starting execute()');
+            $this->log('info', 'Starting execute()');
 
             // Authentifizierung prüfen
             if (!$this->isAuthorized()) {
@@ -93,12 +102,12 @@ class rex_api_filepond_uploader extends rex_api_function
 
     protected function isAuthorized()
     {
-        $logger = rex_logger::factory();
+        $this->log('info', 'Checking authorization');
 
         // Backend User Check
         $user = rex_backend_login::createUser();
         $isBackendUser = $user ? true : false;
-        $logger->log('info', 'FILEPOND: isBackendUser = ' . ($isBackendUser ? 'true' : 'false'));
+        $this->log('info', 'isBackendUser = ' . ($isBackendUser ? 'true' : 'false'));
 
         // Token Check
         $apiToken = rex_config::get('filepond_uploader', 'api_token');
@@ -129,7 +138,7 @@ class rex_api_filepond_uploader extends rex_api_function
             if (!$isValidToken) {
                 $errors[] = 'invalid API token';
             }
-            $logger->log('error', 'FILEPOND: Unauthorized - ' . implode(', ', $errors));
+            $this->log('error', 'Unauthorized - ' . implode(', ', $errors));
         }
 
         return $authorized;
@@ -149,8 +158,7 @@ class rex_api_filepond_uploader extends rex_api_function
             throw new rex_api_exception('Missing filename');
         }
 
-        $logger = rex_logger::factory();
-        $logger->log('info', "FILEPOND: Preparing upload for $fileName with ID $fileId");
+        $this->log('info', "Preparing upload for $fileName with ID $fileId");
 
         // Metadaten speichern
         $metaFile = $this->metadataDir . '/' . $fileId . '.json';
@@ -175,9 +183,9 @@ class rex_api_filepond_uploader extends rex_api_function
         $totalChunks = rex_request('totalChunks', 'int', 1);
         $fileId = rex_request('fileId', 'string', '');
         $fieldName = rex_request('fieldName', 'string', 'filepond'); // Feldname für die Identifikation
-
+    
         $logger = rex_logger::factory();
-
+        
         if (empty($fileId)) {
             throw new rex_api_exception('Missing fileId');
         }
@@ -186,7 +194,7 @@ class rex_api_filepond_uploader extends rex_api_function
 
         if (!file_exists($metaFile)) {
             $logger->log('warning', "FILEPOND: Metadata file not found for $fileId, creating fallback metadata");
-
+            
             // Fallback-Metadaten erstellen
             $fallbackMetadata = [
                 'metadata' => [
@@ -199,15 +207,15 @@ class rex_api_filepond_uploader extends rex_api_function
                 'fieldName' => $fieldName,
                 'timestamp' => time()
             ];
-
+            
             // Verzeichnis erstellen, wenn es nicht existiert
             if (!file_exists($this->metadataDir)) {
                 mkdir($this->metadataDir, 0775, true);
             }
-
+            
             // Fallback-Metadaten speichern
             file_put_contents($metaFile, json_encode($fallbackMetadata));
-
+            
             // Lokale Variable setzen
             $metaData = $fallbackMetadata;
         } else {
@@ -222,8 +230,8 @@ class rex_api_filepond_uploader extends rex_api_function
             $logger->log('warning', "FILEPOND: Field name mismatch for $fileId. Expected $storedFieldName, got $fieldName");
         }
 
-        $logger = rex_logger::factory();
-        $logger->log('info', "FILEPOND: Processing chunk $chunkIndex of $totalChunks for $fileName (ID: $fileId)");
+        $this->log('info', "Processing chunk $chunkIndex of $totalChunks for $fileName (ID: $fileId)");
+        $this->log('debug', "chunkIndex = $chunkIndex, totalChunks = $totalChunks, fileId = $fileId, fieldName = $fieldName");
 
         // Chunk-Datei aus dem Upload holen
         if (!isset($_FILES[$fieldName])) {
@@ -232,6 +240,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $file = $_FILES[$fieldName];
+        $this->log('debug', "\$_FILES[$fieldName] = " . print_r($file, true));
 
         // Verzeichnis für die Chunks dieses Files erstellen
         $fileChunkDir = $this->chunksDir . '/' . $fileId;
@@ -239,6 +248,7 @@ class rex_api_filepond_uploader extends rex_api_function
             if (!mkdir($fileChunkDir, 0775, true)) {
                 throw new rex_api_exception("Failed to create chunk directory: $fileChunkDir");
             }
+            $this->log('info', "Created chunk directory: $fileChunkDir");
         }
 
         // *** LOCK-MECHANISMUS ***
@@ -253,13 +263,17 @@ class rex_api_filepond_uploader extends rex_api_function
         try {
             // Chunk speichern
             $chunkPath = $fileChunkDir . '/' . $chunkIndex;
+            $this->log('debug', "Saving chunk to: $chunkPath, size = " . $file['size']);
             if (!move_uploaded_file($file['tmp_name'], $chunkPath)) {
+                $error = error_get_last();
+                $this->log('error', "move_uploaded_file failed: " . print_r($error, true));
                 throw new rex_api_exception("Failed to save chunk $chunkIndex");
             }
+            $this->log('info', "Saved chunk $chunkIndex successfully");
 
             // Prüfen ob alle Chunks hochgeladen wurden
             if ($chunkIndex == $totalChunks - 1) { // Letzter Chunk
-                $logger->log('info', "FILEPOND: All chunks received for $fileName, merging...");
+                $this->log('info', "All chunks received for $fileName, merging...");
 
                 // Temporäre Datei für das zusammengeführte Ergebnis
                 $tmpFile = rex_path::pluginData('yform', 'manager', 'upload/filepond/') . $fileId;
@@ -273,16 +287,19 @@ class rex_api_filepond_uploader extends rex_api_function
                 //  *** ALTERNATIVE CHUNK-ZÄHLUNG ***
                 $files = scandir($fileChunkDir);
                 $actualChunks = 0;
+                $chunkFiles = [];
                 foreach ($files as $f) {
                     if ($f !== '.' && $f !== '..' && $f !== '.lock' && is_file($fileChunkDir . '/' . $f)) {
                         $actualChunks++;
+                        $chunkFiles[] = $f;
                     }
                 }
 
-                $logger->log('info', "FILEPOND: Expected $totalChunks chunks, found $actualChunks for $fileName");
+                $this->log('info', "Expected $totalChunks chunks, found $actualChunks for $fileName");
+                $this->log('debug', "Chunk files: " . print_r($chunkFiles, true));
 
                 if ($actualChunks < $totalChunks) {
-                    $logger->log('warning', "FILEPOND: Expected $totalChunks chunks, but found only $actualChunks for $fileName");
+                    $this->log('warning', "Expected $totalChunks chunks, but found only $actualChunks for $fileName");
 
                     fclose($out);
                     flock($lock, LOCK_UN);
@@ -412,8 +429,7 @@ class rex_api_filepond_uploader extends rex_api_function
 
     protected function processUploadedFile($file, $categoryId)
     {
-        $logger = rex_logger::factory();
-        $logger->log('info', 'FILEPOND: Processing file: ' . $file['name']);
+        $this->log('info', 'Processing file: ' . $file['name']);
 
         // Validierung der Dateigröße
         $maxSize = rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
@@ -456,9 +472,16 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $originalName = $file['name'];
-        $filename = rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME));
 
-        // Metadaten aus den vorbereiteten Daten oder aus der Session
+        // *** DUPLIKATPRÜFUNG ***
+        $media = rex_media::get($originalName);
+        if ($media && $media->getSize() == $file['size']) {
+            $this->log('info', "Duplicate file found, skipping upload");
+            return $originalName; // Gib den vorhandenen Dateinamen zurück
+        }
+
+        // ... (Speichern der Datei im Medienpool) ...
+
         $metadata = $file['metadata'] ?? [];
         $skipMeta = empty($metadata) && rex_session('filepond_no_meta', 'boolean', false);
 
@@ -467,7 +490,7 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         $data = [
-            'title' => $metadata['title'] ?? $filename,
+            'title' => $metadata['title'] ?? rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME)),
             'category_id' => $categoryId,
             'file' => [
                 'name' => $originalName,
@@ -696,8 +719,7 @@ class rex_api_filepond_uploader extends rex_api_function
             throw new rex_api_exception('Unauthorized: Admin privileges required');
         }
 
-        $logger = rex_logger::factory();
-        $logger->log('info', 'FILEPOND: Admin-triggered cleanup of temporary files');
+        $this->log('info', 'Admin-triggered cleanup of temporary files');
 
         $cleanedChunks = 0;
         $cleanedMetadata = 0;
