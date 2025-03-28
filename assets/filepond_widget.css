@@ -1,3 +1,4 @@
+/* filepond_widget.css */
 /* Light Mode */
 :root {
     --fp-primary: #3bb594;
@@ -13,6 +14,9 @@
     --fp-modal-bg: #fff;
     --fp-preview-bg: #fff;
     --fp-preview-border: #eee;
+    --fp-progress-bg: #e9ecef;
+    --fp-progress-fill: #3bb594;
+    --fp-chunk-indicator: #3bb594;
 }
 
 /* Dark Mode */
@@ -30,6 +34,9 @@
     --fp-modal-bg: #35393d;
     --fp-preview-bg: #2c3136;
     --fp-preview-border: #404448;
+    --fp-progress-bg: #404448;
+    --fp-progress-fill: #3bb594;
+    --fp-chunk-indicator: #3bb594;
 }
 
 /* FilePond Container */
@@ -78,6 +85,31 @@
     margin: 0;
     border-radius: 4px;
     overflow: hidden;
+}
+
+/* Chunk Upload Status */
+.filepond--chunk-status {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-size: 12px;
+    padding: 2px 5px;
+    z-index: 1;
+}
+
+/* Chunk Indicator */
+.filepond--chunk-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--fp-chunk-indicator);
+    z-index: 2;
+    transition: width 0.3s ease;
 }
 
 /* Modal Styles */
@@ -186,25 +218,6 @@
     border-radius: 4px;
     margin-top: 0.5rem;
     word-break: break-word;
-}
-
-/* Drag & Drop Effects */
-.filepond--item {
-    cursor: grab;
-    transition: transform 0.2s ease;
-}
-
-.filepond--item:active {
-    cursor: grabbing;
-}
-
-.filepond--item.is-drag-over {
-    border: 2px solid var(--fp-primary);
-    box-shadow: 0 0 10px rgba(59, 181, 148, 0.3);
-}
-
-.filepond--item.is-dragging {
-    opacity: 0.8;
 }
 
 /* Progress Bar */
