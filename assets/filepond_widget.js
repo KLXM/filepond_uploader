@@ -1,4 +1,7 @@
 (function() {
+    // Tracking für bereits initialisierte Elemente
+    const initializedElements = new Set();
+    
     const initFilePond = () => {
         console.log('initFilePond function called');
         
@@ -61,6 +64,12 @@
         console.log('Basepath ermittelt:', basePath);
         
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
+            // Prüfen, ob das Element bereits initialisiert wurde
+            if (initializedElements.has(input)) {
+                console.log('FilePond element already initialized, skipping:', input);
+                return;
+            }
+            
             console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
@@ -232,6 +241,7 @@
                     prepareFormData.append('rex-api-call', 'filepond_uploader');
                     prepareFormData.append('func', 'prepare');
                     prepareFormData.append('fileName', file.name);
+                    prepareFormData.append('fieldName', fieldName);
                     prepareFormData.append('metadata', JSON.stringify(metadata));
                     
                     const prepareResponse = await fetch(basePath, {
@@ -266,6 +276,7 @@
                         formData.append('rex-api-call', 'filepond_uploader');
                         formData.append('func', 'chunk-upload');
                         formData.append('fileId', fileId);
+                        formData.append('fieldName', fieldName);
                         formData.append('chunkIndex', chunkIndex);
                         formData.append('totalChunks', totalChunks);
                         formData.append('fileName', file.name);
@@ -320,7 +331,7 @@
                 allowReorder: true,
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 chunkSize: CHUNK_SIZE,
-                chunkForce: true, // Force chunking for all files
+                chunkForce: input.dataset.filepondChunkEnabled !== 'false', // Standardmäßig aktiviert, außer explizit deaktiviert
                 server: {
                     url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
@@ -341,7 +352,9 @@
                             }
                             
                             // Entscheiden, ob normaler Upload oder Chunk-Upload
-                            if (file.size > CHUNK_SIZE) {
+                            const useChunks = input.dataset.filepondChunkEnabled !== 'false' && file.size > CHUNK_SIZE;
+                            
+                            if (useChunks) {
                                 // Großer File - Chunk Upload
                                 return processFileInChunks(fieldName, file, fileMetadata, load, error, progress, abort, transfer, options);
                             } else {
@@ -351,6 +364,7 @@
                                 formData.append('rex-api-call', 'filepond_uploader');
                                 formData.append('func', 'prepare');
                                 formData.append('fileName', file.name);
+                                formData.append('fieldName', fieldName);
                                 formData.append('metadata', JSON.stringify(fileMetadata));
                                 
                                 // Vorbereitung für den Upload
@@ -377,6 +391,7 @@
                                 uploadFormData.append('rex-api-call', 'filepond_uploader');
                                 uploadFormData.append('func', 'upload');
                                 uploadFormData.append('fileId', fileId);
+                                uploadFormData.append('fieldName', fieldName);
                                 uploadFormData.append('category_id', input.dataset.filepondCat || '0');
                                 
                                 const response = await fetch(basePath, {
@@ -486,20 +501,38 @@
                     .join(',');
                 input.value = newValue;
             });
+            
+            // Element als initialisiert markieren
+            initializedElements.add(input);
         });
     };
 
-    // Initialize based on environment
+    // Initialize based on environment - Hier muss sichergestellt werden, dass nur einmal gestartet wird
+    // Wir zählen die Initialisierungen
+    let initCount = 0;
+    const safeInitFilePond = () => {
+        // Logging hinzufügen
+        console.log(`FilePond initialization attempt ${++initCount}`);
+        initFilePond();
+    };
+    
+    // jQuery hat höchste Priorität, wenn vorhanden
     if (typeof jQuery !== 'undefined') {
-        jQuery(document).on('rex:ready', initFilePond);
-    } 
+        jQuery(document).one('rex:ready', safeInitFilePond);
+    } else {
+        // Ansonsten einen normalen DOMContentLoaded-Listener verwenden
+        if (document.readyState !== 'loading') {
+            // DOM ist bereits geladen
+            safeInitFilePond();
+        } else {
+            // Nur einmal initialisieren beim DOMContentLoaded
+            document.addEventListener('DOMContentLoaded', safeInitFilePond, {once: true});
+        }
+    }
     
-    // Event für manuelle Initialisierung
-    document.addEventListener('filepond:init', initFilePond);
+    // Event für manuelle Initialisierung - auch hier sicherstellen, dass es nur einmal ausgelöst wird
+    document.addEventListener('filepond:init', safeInitFilePond);
     
-    // Automatische Initialisierung wenn DOM geladen ist
-    document.addEventListener('DOMContentLoaded', initFilePond);
-    
-    // Expose initFilePond globally if needed
-    window.initFilePond = initFilePond;
+    // Expose initFilePond globally if needed - auch hier die sichere Variante exportieren
+    window.initFilePond = safeInitFilePond;
 })();
