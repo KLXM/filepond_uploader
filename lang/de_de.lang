@@ -82,7 +82,7 @@ filepond_regenerate_token_confirm = Sind Sie sicher? Alle bestehenden API-Integr
 filepond_token_regenerated = API Token wurde neu generiert.
 
 # Maintenance section
-filepond_maintenance_section = Wartung & Pflege
+filepond_maintenance_section = Wartung und Pflege
 filepond_maintenance_cleanup = Temporäre Dateien aufräumen
 filepond_maintenance_cleanup_button = Temporäre Dateien jetzt löschen
 filepond_maintenance_cleanup_notice = Löscht alte temporäre Dateien und Chunks, die nicht mehr benötigt werden
