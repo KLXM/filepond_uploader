@@ -60,16 +60,16 @@
             return window.location.origin;
         };
         const basePath = getBasePath();
-        console.log('Basepath ermittelt:', basePath);
+        // console.log('Basepath ermittelt:', basePath);
 
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             // Prüfen, ob das Element bereits initialisiert wurde
             if (initializedElements.has(input)) {
-                console.log('FilePond element already initialized, skipping:', input);
+               // console.log('FilePond element already initialized, skipping:', input);
                 return;
             }
 
-            console.log('FilePond input element found:', input);
+           // console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
 
@@ -308,7 +308,7 @@
                             formData.append('category_id', input.dataset.filepondCat || '0');
 
                             try {
-                                console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
+                               // console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
                                 const chunkResponse = await fetch(basePath, {
                                     method: 'POST',
                                     headers: {
@@ -351,7 +351,7 @@
                     }
 
                     // Wenn alle Chunks erfolgreich hochgeladen wurden
-                    console.log('All chunks uploaded successfully, finalizing upload');
+                    // console.log('All chunks uploaded successfully, finalizing upload');
                     // *** ACHTUNG: Verarbeite result.filename anstelle von file.name ***
                     load(file.name);
 
@@ -483,22 +483,22 @@
                     },
                     load: (source, load, error, progress, abort, headers) => {
                         const url = '/media/' + source.replace(/^"|"$/g, '');
-                        console.log('FilePond load url:', url);
+                        // console.log('FilePond load url:', url);
 
                         fetch(url)
                             .then(response => {
-                                console.log('FilePond load response:', response);
+                                // console.log('FilePond load response:', response);
                                 if (!response.ok) {
                                     throw new Error('HTTP error! status: ' + response.status);
                                 }
                                 return response.blob();
                             })
                             .then(blob => {
-                                console.log('FilePond load blob:', blob);
+                                // console.log('FilePond load blob:', blob);
                                 load(blob);
                             })
                             .catch(e => {
-                                console.error('FilePond load error:', e);
+                                // console.error('FilePond load error:', e);
                                 error(e.message);
                             });
 
@@ -560,7 +560,7 @@
     let initCount = 0;
     const safeInitFilePond = () => {
         // Logging hinzufügen
-        console.log(`FilePond initialization attempt ${++initCount}`);
+        // console.log(`FilePond initialization attempt ${++initCount}`);
         initFilePond();
     };
 
