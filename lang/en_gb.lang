@@ -27,6 +27,9 @@ filepond_settings_lang = Default language
 filepond_settings_lang_notice = Example: en_gb, de_de
 filepond_settings_max_pixel = Maximum image size
 filepond_settings_max_pixel_notice = Maximum width/height in pixels to which large images will be resized. GIF files will remain unchanged.
+filepond_settings_upload_skip_meta = Disable meta dialog on upload page
+filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
+filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
 
 # YForm field
 filepond_empty_value_label = Error message if empty
