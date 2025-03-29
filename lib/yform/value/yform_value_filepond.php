@@ -136,10 +136,31 @@
             }
         }
 
+        // Globale Einstellung für Meta-Dialog prüfen
+        $alwaysShowMeta = rex_config::get('filepond_uploader', 'always_show_meta', false);
+        $skipMeta = false;
+        
+        // Element-Einstellung hat höhere Priorität als globale Einstellung
+        if ($this->getElement('skip_meta') !== null && !$alwaysShowMeta) {
+            $skipMeta = (bool)$this->getElement('skip_meta');
+        }
+        
+        // Session-Wert prüfen (hat höchste Priorität, außer bei always_show_meta)
+        if (rex_session('filepond_no_meta') && !$alwaysShowMeta) {
+            $skipMeta = true;
+        }
+        
+        // Chunk-Upload-Einstellungen
+        $enableChunks = rex_config::get('filepond_uploader', 'enable_chunks', true);
+        $chunkSize = rex_config::get('filepond_uploader', 'chunk_size', 5) * 1024 * 1024;
+
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
             'category_id' => $this->getElement('category') ?: rex_config::get('filepond_uploader', 'category_id', 0),
             'value' => $this->getValue(),
-            'files' => $files
+            'files' => $files,
+            'chunk_enabled' => $enableChunks,
+            'chunk_size' => $chunkSize,
+            'skip_meta' => $skipMeta
         ]);
     }
 
@@ -188,7 +209,7 @@
                 ],
                 'skip_meta' => ['type' => 'checkbox',  'label' => 'Metaabfrage deaktivieren', 'default' => '0', 'options' => '0,1']
             ],
-            'description' => 'Filepond Dateiupload mit Medienpool-Integration',
+            'description' => 'Filepond Dateiupload mit Medienpool-Integration und Chunk-Upload',
             'db_type' => ['text'],
             'multi_edit' => false
         ];

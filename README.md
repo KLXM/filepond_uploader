@@ -1,6 +1,6 @@
-# filepond Uploader für REDAXO
+# FilePond Uploader für REDAXO
 
-**Ein moderner Datei-Uploader für REDAXO, der auf dem FilePond Framework basiert.**
+**Ein moderner Datei-Uploader für REDAXO mit Chunk-Upload und nahtloser Medienpool-Integration.**
 
 ![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
@@ -8,38 +8,53 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
 
 ## Hauptmerkmale
 
+*   **Chunk-Upload als Kernfeature:**
+    *   Zuverlässiges Hochladen großer Dateien in kleinen Teilen (Chunks)
+    *   Einstellbare Chunk-Größe (Standard: 5MB)
+    *   Fortschrittsanzeige für einzelne Chunks und die Gesamtdatei
+    *   Automatisches Zusammenführen der Chunks nach dem Upload
+
 *   **Moderne Oberfläche:**
-    *   Drag & Drop für einfaches Hochladen von Dateien.
-    *   Live-Vorschau der Bilder während des Uploads.
-    *   Responsives Design für alle Bildschirmgrößen.
-
-*   **Barrierefreiheit:**
-    *   Erzwingt das Setzen von Alt-Texten für Bilder.
-    *   Legt automatisch ein Metafeld an, falls es noch nicht existiert.
-
-*   **Rechtliche Sicherheit:**
-    *   Optionale Abfrage des Copyrights für Bilder.
-
-*   **Mehrsprachigkeit:**
-    *   Verfügbar in Deutsch (DE) und Englisch (EN).
-
-*   **Nahtlose Integration:**
-    *   Direkte Speicherung von Dateien im REDAXO-Medienpool.
-    *   YForm-Value-Feld mit automatischer Löschung nicht verwendeter Medien.
-    *   Asynchrone Uploads für eine flüssige Benutzererfahrung.
-
-*   **Validierung und Sicherheit:**
-    *   Überprüfung von Dateitypen und -größen.
-    *   Sichere API-Token-basierte Authentifizierung (auch mit YCOM).
+    *   Drag & Drop für einfaches Hochladen von Dateien
+    *   Live-Vorschau der Bilder während des Uploads
+    *   Responsives Design für alle Bildschirmgrößen
 
 *   **Automatische Bildoptimierung:**
-    *   Verkleinerung großer Bilder (außer GIFs) zur Optimierung der Webseitenperformance.
+    *   Verkleinerung großer Bilder auf konfigurierbare Maximalgröße
+    *   Einstellbare Kompressionsqualität für JPEG/PNG/WebP
+    *   Beibehaltung der Originaldimensionen für GIF-Dateien
+    *   Optionale Erstellung von Thumbnails
+
+*   **Barrierefreiheit & rechtliche Sicherheit:**
+    *   Erzwingt das Setzen von Alt-Texten für Bilder
+    *   Legt automatisch Metafelder an, falls sie noch nicht existieren
+    *   Optionale Abfrage des Copyrights und der Beschreibung für Mediendateien
+
+*   **YForm-Integration:**
+    *   Spezielles YForm-Value-Feld mit automatischer Löschung nicht verwendeter Medien
+    *   Multi-Upload-Unterstützung mit dynamischer Vorschau
+    *   Einfache Konfiguration über bekannte YForm-Schnittstellen
+
+*   **Mehrsprachigkeit:**
+    *   Verfügbar in Deutsch (DE) und Englisch (EN)
+    *   Einfach erweiterbar für weitere Sprachen
+
+*   **Sichere API:**
+    *   Token-basierte Authentifizierung für externe Zugriffe
+    *   Unterstützung für YCOM-Benutzerauthentifizierung
+    *   Validierung von Dateitypen und -größen
+
+*   **Wartungswerkzeuge:**
+    *   Einfache Bereinigung temporärer Dateien und Chunks
+    *   Protokollierung aller Upload-Vorgänge
+    *   Admin-Interface zur Systemwartung
 
 ## Installation
 
-1.  **AddOn installieren:** Gehe im REDAXO-Installer zum AddOn-Bereich und installiere das AddOn "filepond\_uploader".
+1.  **AddOn installieren:** Installiere das AddOn "filepond_uploader" über den REDAXO-Installer.
 2.  **AddOn aktivieren:** Aktiviere das AddOn im Backend unter "AddOns".
-3.  **Fertig:** Der Uploader ist nun einsatzbereit!
+3.  **Konfigurieren:** Passe die Einstellungen unter "FilePond Uploader > Einstellungen" an deine Bedürfnisse an.
+4.  **Fertig:** Der Uploader ist nun einsatzbereit!
 
 ## Schnellstart
 
@@ -49,19 +64,17 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
 $yform->setValueField('filepond', [
     'name' => 'bilder',
     'label' => 'Bildergalerie',
-    'max_files' => 5,
+    'allowed_max_files' => 5,
     'allowed_types' => 'image/*',
-    'max_size' => 10,
+    'allowed_filesize' => 10,
     'category' => 1
 ]);
 ```
 
-PIPE-Variante
-Ja, es geht sogar Pipe! Und zwar so:
+PIPE-Variante für YForm:
 ```
-filepond|pic|Profilbild|1|image/*|3|1|de_de
+filepond|pic|Profilbild|image/*|3|1|1|Bitte ein Bild hochladen|Hier können Sie Ihr Profilbild hochladen
 ```
-Kopiert Bilder in den Medienpool in die Kategorie 1, erlaubt nur Bilder mit max. 3 MB Größe und erlaubt max. ein Bild. Sprache ist de_de.
 
 > **Hinweis:** Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden. Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden. In diesem Fall entfällt die automatische Löschung nicht verwendeter Medien.
 
@@ -80,6 +93,8 @@ Kopiert Bilder in den Medienpool in die Kategorie 1, erlaubt nur Bilder mit max.
     data-filepond-types="image/*"
     data-filepond-maxsize="10"
     data-filepond-lang="de_de"
+    data-filepond-chunk-enabled="true"
+    data-filepond-chunk-size="5242880"
 >
 ```
 
@@ -100,23 +115,35 @@ foreach($files as $file) {
 ?>
 ```
 
-### Integration mit Medialisten
+## Chunk-Upload für große Dateien
 
-```html
-<input
-    type="hidden"
-    name="REX_INPUT_MEDIALIST[1]"
-    value="REX_MEDIALIST[1]"
-    data-widget="filepond"
-    ...
->
-```
+Der Chunk-Upload ist das Herzstück des FilePond-Uploaders und ermöglicht das zuverlässige Hochladen großer Dateien auch bei langsameren Internetverbindungen.
+
+### Funktionsweise
+
+1. **Datei-Aufteilung:** Große Dateien werden clientseitig in kleine Teile (Chunks) aufgeteilt.
+2. **Chunk-weiser Upload:** Jeder Chunk wird einzeln hochgeladen, mit individueller Fortschrittsanzeige.
+3. **Serverseitige Zusammenführung:** Nach Abschluss des Uploads werden alle Chunks zu einer vollständigen Datei zusammengefügt.
+4. **Automatische Bereinigung:** Temporäre Dateien werden nach erfolgreichem Upload automatisch entfernt.
+
+### Vorteile
+
+- **Verbesserte Zuverlässigkeit:** Bei Netzwerkproblemen müssen nur fehlgeschlagene Chunks erneut hochgeladen werden.
+- **Große Dateien:** Überwindung von Server-Limits für maximale Upload-Größen.
+- **Bessere Performance:** Serverseitige Ressourcen werden effizienter genutzt.
+- **Benutzerfreundlichkeit:** Klare Fortschrittsanzeige für jeden Chunk und die Gesamtdatei.
+
+### Konfiguration
+
+Im Backend können Sie folgende Chunk-Upload-Einstellungen anpassen:
+
+- **Chunk-Upload aktivieren/deaktivieren:** Globale Einstellung für alle Upload-Felder.
+- **Chunk-Größe:** Die Größe jedes Chunks in MB (Standard: 5MB).
+- **Temporäre Dateien aufräumen:** Manuelle Bereinigung alter temporärer Dateien.
 
 ## Helper-Klasse
 
 Das AddOn enthält eine Helper-Klasse, die das Einbinden von CSS- und JavaScript-Dateien vereinfacht.
-
-### Basisverwendung
 
 ```php
 // Im Template oder Modul
@@ -126,75 +153,22 @@ echo filepond_helper::getStyles();
 ?>
 ```
 
-### Methoden
-
-#### `getScripts()`
-
-Gibt alle benötigten JavaScript-Dateien zurück:
-
-```php
-/**
- * Gibt die JavaScript-Dateien zurück
- * @return string HTML-String im Frontend, leerer String im Backend (nach dem Hinzufügen der Scripte via rex_view)
- */
-public static function getScripts(): string
-```
-
-**Enthaltene Dateien:**
-
-*   Validierungs-Plugins (Dateityp und -größe)
-*   Image Preview Plugin
-*   FilePond Core
-*   Modal- und Widget-Skripte
-
-#### `getStyles()`
-
-Gibt alle benötigten CSS-Dateien zurück:
-
-```php
-/**
- * Gibt die CSS-Dateien zurück
- * @return string HTML-String im Frontend, leerer String im Backend (nach dem Hinzufügen der Stile via rex_view)
- */
-public static function getStyles(): string
-```
-
-**Enthaltene Dateien:**
-
-*   FilePond Core CSS
-*   Image Preview Plugin CSS
-*   Widget-Stile
-
-### Verwendung im Frontend
-
-```php
-// In einem Template
-<!DOCTYPE html>
-<html>
-<head>
-    <?= filepond_helper::getStyles() ?>
-</head>
-<body>
-    <!-- Content -->
-    <?= filepond_helper::getScripts() ?>
-</body>
-</html>
-```
-
 ## Konfiguration
 
 ### Data-Attribute
 
 Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 
-| Attribut                | Beschreibung                            | Standardwert |
-| ----------------------- | --------------------------------------- | ------------ |
-| `data-filepond-cat`     | Medienpool Kategorie ID                | `0`          |
-| `data-filepond-types`   | Erlaubte Dateitypen                    | `image/*`    |
-| `data-filepond-maxfiles` | Maximale Anzahl an Dateien             | `30`         |
-| `data-filepond-maxsize` | Maximale Dateigröße in MB              | `10`         |
-| `data-filepond-lang`    | Sprache (`de_de` / `en_gb`)            | `de_de`      |
-| `data-filepond-skip-meta` | Meta-Eingabe deaktivieren | `false` |
+| Attribut                     | Beschreibung                            | Standardwert |
+| ---------------------------- | --------------------------------------- | ------------ |
+| `data-filepond-cat`          | Medienpool Kategorie ID                 | `0`          |
+| `data-filepond-types`        | Erlaubte Dateitypen                     | `image/*`    |
+| `data-filepond-maxfiles`     | Maximale Anzahl an Dateien              | `30`         |
+| `data-filepond-maxsize`      | Maximale Dateigröße in MB               | `10`         |
+| `data-filepond-lang`         | Sprache (`de_de` / `en_gb`)             | `de_de`      |
+| `data-filepond-skip-meta`    | Meta-Eingabe deaktivieren               | `false`      |
+| `data-filepond-chunk-enabled`| Chunk-Upload aktivieren                 | `true`       |
+| `data-filepond-chunk-size`   | Chunk-Größe in Bytes                    | `5242880`    |
 
 ### Erlaubte Dateitypen (MIME-Types)
 
@@ -218,12 +192,6 @@ data-filepond-types="image/*, application/pdf"
 
 <!-- Microsoft Office -->
 data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation"
-
-<!-- OpenOffice/LibreOffice -->
-data-filepond-types="application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation"
-
-<!-- Office und PDF kombiniert -->
-data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation, application/vnd.oasis.opendocument.text, application/vnd.oasis.opendocument.spreadsheet, application/vnd.oasis.opendocument.presentation, application/pdf"
 ```
 
 ## Session-Konfiguration für individuelle Anpassungen
@@ -284,6 +252,8 @@ if (rex::isFrontend()) {
         data-filepond-maxsize="10"
         data-filepond-lang="de_de"
         data-filepond-skip-meta="<?= rex_session('filepond_no_meta', 'boolean', false) ? 'true' : 'false' ?>"
+        data-filepond-chunk-enabled="true"
+        data-filepond-chunk-size="5242880"
     >
 </form>
 ```
@@ -323,21 +293,22 @@ Falls das Panel nicht richtig dargestellt wird, kann es helfen, den Stil anzupas
 Bilder werden automatisch optimiert, wenn sie eine konfigurierte maximale Pixelgröße überschreiten:
 
 *   Große Bilder werden proportional verkleinert.
-*   Die Qualität bleibt erhalten.
+*   Die Qualität ist konfigurierbar (10-100).
 *   GIF-Dateien werden nicht verändert.
 *   Die Originaldatei wird durch die optimierte Version ersetzt.
 
-Standardmäßig ist die maximale Größe 1200 Pixel (Breite oder Höhe). Dieser Wert kann in den Einstellungen oder via dem `data-filepond-maxpixels` Attribut angepasst werden.
+Standardmäßig ist die maximale Größe 1200 Pixel (Breite oder Höhe). Dieser Wert und die Kompressionsqualität können in den Einstellungen angepasst werden.
 
 ## Metadaten
 
-Folgende Metadaten müssen für jede hochgeladene Datei erfasst werden:
+Folgende Metadaten können für jede hochgeladene Datei erfasst werden:
 
 1.  **Titel:** Wird im Medienpool zur Verwaltung der Datei verwendet.
 2.  **Alt-Text:** Beschreibt den Bildinhalt für Screenreader (wichtig für Barrierefreiheit und SEO), gespeichert in `med_alt`.
-3.  **Copyright:** Information zu Bildrechten und Urhebern, gespeichert in `med_copyright` (optional).
+3.  **Copyright:** Information zu Bildrechten und Urhebern, gespeichert in `med_copyright`.
+4.  **Beschreibung:** Ausführlichere Beschreibung des Medieninhalts, gespeichert in `med_description`.
 
-## Events
+## Events und JavaScript-API
 
 Wichtige JavaScript-Events für eigene Entwicklungen:
 
@@ -353,24 +324,35 @@ pond.on('processfile', (error, file) => {
 pond.on('removefile', (error, file) => {
     console.log('Datei entfernt:', file.serverId);
 });
+
+// Chunk-Upload-Fortschritt (nur wenn Chunk-Upload aktiviert ist)
+pond.on('processfileProgress', (file, progress) => {
+    console.log(`Chunk-Fortschritt für ${file.filename}: ${Math.floor(progress * 100)}%`);
+});
 ```
 
-## Assets aktualisieren
+## Wartung
 
-```cli
-npm install
-npm run build
-```
+Als Administrator können Sie temporäre Dateien und Chunks über die Einstellungsseite bereinigen. Dies ist besonders nützlich, wenn:
+
+- Uploads abgebrochen wurden
+- Temporäre Dateien nicht automatisch gelöscht wurden
+- Sie Speicherplatz freigeben möchten
+
+Die Wartungsfunktion löscht:
+- Alte Chunk-Verzeichnisse (älter als 24 Stunden)
+- Temporäre Metadaten-Dateien
+- Nicht mehr benötigte temporäre Dateien
 
 ## Hinweise
 
-*   Die maximale Dateigröße wird auch serverseitig überprüft.
-*   Das Copyright-Feld ist optional, Titel und Alt-Text sind Pflicht.
-*   ALT-Text ist verpflichtend
+*   Die maximale Dateigröße wird serverseitig überprüft.
+*   Das Copyright-Feld und die Beschreibung sind optional, Titel und Alt-Text sind Pflicht.
 *   Uploads landen automatisch im Medienpool.
 *   Metadaten werden im Medienpool gespeichert.
 *   Videos können direkt im Upload-Dialog betrachtet werden.
 *   Bilder werden automatisch auf die maximale Größe optimiert.
+*   Chunk-Upload funktioniert auch bei langsameren Internetverbindungen zuverlässig.
 
 ## Credits
 
