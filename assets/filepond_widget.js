@@ -6,8 +6,7 @@
         console.log('initFilePond function called');
 
         // Standardwerte für die Chunk-Größe (5MB)
-        const CHUNK_SIZE = 2 * 1024 * 1024;
-
+        const CHUNK_SIZE = 5 * 1024 * 1024;
         // Translations
         const translations = {
             de_de: {
