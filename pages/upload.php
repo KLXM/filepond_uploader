@@ -16,6 +16,16 @@ if (rex::getUser()->getComplexPerm('media')->hasAll()) {
 $currentUser = rex::getUser();
 $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
 
+// Prüfen, ob Metadaten übersprungen werden sollen (neue Einstellung)
+$skipMeta = rex_config::get('filepond_uploader', 'upload_skip_meta', false);
+
+// Session-Wert setzen für die API
+if ($skipMeta) {
+    rex_set_session('filepond_no_meta', true);
+} else {
+    rex_set_session('filepond_no_meta', false);
+}
+
 $content = '
 <div class="rex-form">
     <form action="' . rex_url::currentBackendPage() . '" method="post" class="form-horizontal">
@@ -43,6 +53,7 @@ $content = '
                             data-filepond-types="'.rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt').'"
                             data-filepond-maxsize="'.rex_config::get('filepond_uploader', 'max_filesize', 10).'"
                             data-filepond-lang="'.$langCode.'"
+                            data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
                             value=""
                         >
                     </div>

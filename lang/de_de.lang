@@ -32,6 +32,8 @@ filepond_settings_allowed_types = Erlaubte Dateitypen
 filepond_settings_allowed_types_notice = Beispiel: image/*,video/*
 filepond_settings_category_id = Standard Medien-Kategorie
 filepond_settings_category_notice = ID der Medienkategorie in die die Dateien geladen werden sollen
+filepond_settings_fallback_category = Fallback Medien-Kategorie
+filepond_settings_fallback_category_notice = Diese Kategorie wird verwendet, wenn keine spezifische Kategorie angegeben ist
 filepond_settings_lang = Standardsprache
 filepond_settings_lang_notice = Beispiel: en_gb, de_de
 filepond_settings_max_pixel = Maximale Bildgröße
@@ -44,6 +46,9 @@ filepond_settings_create_thumbnails_notice = Erstellt automatisch kleinere Bilde
 filepond_settings_always_show_meta = Meta-Dialog immer anzeigen
 filepond_settings_always_show_meta_label = Metadaten-Dialog immer anzeigen
 filepond_settings_always_show_meta_notice = Zeigt den Metadaten-Dialog auch an, wenn er über data-Attribute deaktiviert wurde
+filepond_settings_upload_skip_meta = Meta-Dialog auf Upload-Seite deaktivieren
+filepond_settings_upload_skip_meta_label = Metadaten-Dialog auf Upload-Seite deaktivieren
+filepond_settings_upload_skip_meta_notice = Deaktiviert die Metadaten-Abfrage auf der Upload-Seite (Titel, Alt-Text, Copyright, Beschreibung)
 
 # YForm field
 filepond_empty_value_label = Fehlermeldung wenn leer

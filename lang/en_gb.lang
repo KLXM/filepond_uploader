@@ -23,10 +23,15 @@ filepond_settings_allowed_types = Allowed file types
 filepond_settings_allowed_types_notice = Example: image/*,video/*,.pdf
 filepond_settings_category_id = Default media category
 filepond_settings_category_notice = ID of the media category where files should be uploaded to
+filepond_settings_fallback_category = Fallback media category
+filepond_settings_fallback_category_notice = This category will be used when no specific category is provided
 filepond_settings_lang = Default language
 filepond_settings_lang_notice = Example: en_gb, de_de
 filepond_settings_max_pixel = Maximum image size
 filepond_settings_max_pixel_notice = Maximum width/height in pixels to which large images will be resized. GIF files will remain unchanged.
+filepond_settings_upload_skip_meta = Disable meta dialog on upload page
+filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
+filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
 
 # YForm field
 filepond_empty_value_label = Error message if empty
