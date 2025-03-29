@@ -137,23 +137,14 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Medien-Kategorie vorbereiten
-$mediaSelect = new rex_media_category_select();
-$mediaSelect->setName('category_id');
-$mediaSelect->setId('category_id');
-$mediaSelect->setSize(1);
-$mediaSelect->setAttribute('class', 'form-control selectpicker');
-$mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
-$mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
+// Entfernen der Default-Kategorie UI (bleibt in der Config)
+// Das select wurde entfernt und durch andere Felder ersetzt
 
-// Medien-Kategorie als formatiertes Feld
-$form->addRawField('
-    <div class="form-group">
-        <label class="control-label" for="category_id">' . $addon->i18n('filepond_settings_category_id') . '</label>
-        ' . $mediaSelect->get() . '
-        <p class="help-block">' . $addon->i18n('filepond_settings_category_notice') . '</p>
-    </div>
-');
+// Meta-Dialog immer anzeigen
+$field = $form->addCheckboxField('always_show_meta');
+$field->setLabel($addon->i18n('filepond_settings_always_show_meta'));
+$field->addOption($addon->i18n('filepond_settings_always_show_meta_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_always_show_meta_notice'));
 
 // Medienpool ersetzen
 $field = $form->addCheckboxField('replace_mediapool');
@@ -161,11 +152,11 @@ $field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
 $field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
 $field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
 
-// Meta-Dialog immer anzeigen
-$field = $form->addCheckboxField('always_show_meta');
-$field->setLabel($addon->i18n('filepond_settings_always_show_meta'));
-$field->addOption($addon->i18n('filepond_settings_always_show_meta_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_always_show_meta_notice'));
+// Neue Einstellung: Meta-Dialoge bei Upload deaktivieren
+$field = $form->addCheckboxField('upload_skip_meta');
+$field->setLabel($addon->i18n('filepond_settings_upload_skip_meta'));
+$field->addOption($addon->i18n('filepond_settings_upload_skip_meta_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_upload_skip_meta_notice'));
 
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
