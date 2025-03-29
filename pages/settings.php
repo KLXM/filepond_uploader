@@ -137,23 +137,36 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Medien-Kategorie vorbereiten
-$mediaSelect = new rex_media_category_select();
-$mediaSelect->setName('category_id');
-$mediaSelect->setId('category_id');
-$mediaSelect->setSize(1);
-$mediaSelect->setAttribute('class', 'form-control selectpicker');
-$mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
-$mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
+// Medienkategorie als echtes Formularfeld hinzufügen
+$field = $form->addSelectField('category_id', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_category_id'));
+$field->setNotice($addon->i18n('filepond_settings_category_notice'));
 
-// Medien-Kategorie als formatiertes Feld
-$form->addRawField('
-    <div class="form-group">
-        <label class="control-label" for="category_id">' . $addon->i18n('filepond_settings_category_id') . '</label>
-        ' . $mediaSelect->get() . '
-        <p class="help-block">' . $addon->i18n('filepond_settings_category_notice') . '</p>
-    </div>
-');
+// Select-Optionen hinzufügen
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_upload_no_category'), 0);
+
+// Kategorien aus dem Medienpool hinzufügen
+$mediaCategories = rex_media_category::getRootCategories();
+if ($mediaCategories) {
+    foreach ($mediaCategories as $category) {
+        $select->addOption($category->getName(), $category->getId());
+        $childs = $category->getChildren();
+        if ($childs) {
+            foreach ($childs as $child) {
+                $select->addOption('⠀⠀' . $child->getName(), $child->getId());
+                $grandChilds = $child->getChildren();
+                if ($grandChilds) {
+                    foreach ($grandChilds as $grandChild) {
+                        $select->addOption('⠀⠀⠀⠀' . $grandChild->getName(), $grandChild->getId());
+                    }
+                }
+            }
+        }
+    }
+}
 
 // Medienpool ersetzen
 $field = $form->addCheckboxField('replace_mediapool');
