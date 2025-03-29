@@ -44,6 +44,9 @@ filepond_settings_create_thumbnails_notice = Erstellt automatisch kleinere Bilde
 filepond_settings_always_show_meta = Meta-Dialog immer anzeigen
 filepond_settings_always_show_meta_label = Metadaten-Dialog immer anzeigen
 filepond_settings_always_show_meta_notice = Zeigt den Metadaten-Dialog auch an, wenn er über data-Attribute deaktiviert wurde
+filepond_settings_upload_skip_meta = Meta-Dialog auf Upload-Seite deaktivieren
+filepond_settings_upload_skip_meta_label = Metadaten-Dialog auf Upload-Seite deaktivieren
+filepond_settings_upload_skip_meta_notice = Deaktiviert die Metadaten-Abfrage auf der Upload-Seite (Titel, Alt-Text, Copyright, Beschreibung)
 
 # YForm field
 filepond_empty_value_label = Fehlermeldung wenn leer
