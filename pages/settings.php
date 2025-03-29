@@ -137,8 +137,23 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Entfernen der Default-Kategorie UI (bleibt in der Config)
-// Das select wurde entfernt und durch andere Felder ersetzt
+// Medien-Kategorie als Fallback definieren
+$mediaSelect = new rex_media_category_select();
+$mediaSelect->setName('category_id');
+$mediaSelect->setId('category_id');
+$mediaSelect->setSize(1);
+$mediaSelect->setAttribute('class', 'form-control selectpicker');
+$mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
+$mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
+
+// Medien-Kategorie als formatiertes Feld
+$form->addRawField('
+    <div class="form-group">
+        <label class="control-label" for="category_id">' . $addon->i18n('filepond_settings_fallback_category') . '</label>
+        ' . $mediaSelect->get() . '
+        <p class="help-block">' . $addon->i18n('filepond_settings_fallback_category_notice') . '</p>
+    </div>
+');
 
 // Meta-Dialog immer anzeigen
 $field = $form->addCheckboxField('always_show_meta');
