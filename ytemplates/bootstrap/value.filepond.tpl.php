@@ -19,8 +19,8 @@ foreach ($fileNames as $fileName) {
                     'metadata' => [
                         'title' => $media->getValue('title'),
                         'alt' => $media->getValue('med_alt'),
-                        'copyright' => $media->getValue('med_copyright'),
-                        'description' => $media->getValue('med_description')
+                        'copyright' => $media->getValue('med_copyright')
+                        // med_description Referenz wurde hier entfernt
                     ]
                 ]
             ];

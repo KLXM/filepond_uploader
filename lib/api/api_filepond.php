@@ -200,8 +200,8 @@ class rex_api_filepond_uploader extends rex_api_function
                 'metadata' => [
                     'title' => pathinfo(rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
                     'alt' => pathinfo(rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
-                    'copyright' => '',
-                    'description' => 'Automatically generated metadata'
+                    'copyright' => ''
+                    // med_description wurde hier entfernt
                 ],
                 'fileName' => rex_request('fileName', 'string', 'unknown'),
                 'fieldName' => $fieldName,
@@ -524,9 +524,10 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
                     $sql->setValue('title', $metadata['title'] ?? '');
-                    $sql->setValue('med_alt', $metadata['med_alt'] ?? '');
-                    $sql->setValue('med_copyright', $metadata['med_copyright'] ?? '');
-                    $sql->setValue('med_description', $metadata['med_description'] ?? '');
+                    $sql->setValue('med_alt', $metadata['alt'] ?? '');
+                    $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    // Die folgende Zeile wurde entfernt:
+                    // $sql->setValue('med_description', $metadata['description'] ?? '');
                     $sql->update();
                 }
 

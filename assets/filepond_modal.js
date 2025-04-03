@@ -23,8 +23,6 @@ class SimpleModal {
                     --modal-color-danger: #c33;
                     --modal-color-danger-hover: #a52b2b;
                     --modal-backdrop: rgba(40, 53, 66, .95);
-                    --modal-progress-bg: #e9ecef;
-                    --modal-progress-fill: #3bb594;
                 }
                 
                 @media (prefers-color-scheme: dark) {
@@ -37,8 +35,6 @@ class SimpleModal {
                         --modal-color-input: #32373c;
                         --modal-color-input-border: #404448;
                         --modal-backdrop: rgba(0, 0, 0, 0.9);
-                        --modal-progress-bg: #404448;
-                        --modal-progress-fill: #3bb594;
                     }
                 }
                 
@@ -52,8 +48,6 @@ class SimpleModal {
                     --modal-color-input: #32373c;
                     --modal-color-input-border: #404448;
                     --modal-backdrop: rgba(0, 0, 0, 0.9);
-                    --modal-progress-bg: #404448;
-                    --modal-progress-fill: #3bb594;
                 }
 
                 .simple-modal {
@@ -220,22 +214,6 @@ class SimpleModal {
                     background: var(--modal-color-danger-hover);
                 }
 
-                .simple-modal-progress {
-                    width: 100%;
-                    height: 8px;
-                    background: var(--modal-progress-bg);
-                    border-radius: 4px;
-                    margin-top: 15px;
-                    overflow: hidden;
-                }
-
-                .simple-modal-progress-bar {
-                    height: 100%;
-                    background: var(--modal-progress-fill);
-                    width: 0;
-                    transition: width 0.2s ease;
-                }
-
                 .simple-modal-file-icon {
                     font-size: 3rem;
                     opacity: 0.7;
@@ -300,23 +278,6 @@ class SimpleModal {
                 body.appendChild(options.content);
             }
             content.appendChild(body);
-            
-            // Fortschrittsbalken hinzufügen, wenn gewünscht
-            if (options.showProgress) {
-                const progress = document.createElement('div');
-                progress.className = 'simple-modal-progress';
-                
-                const progressBar = document.createElement('div');
-                progressBar.className = 'simple-modal-progress-bar';
-                progress.appendChild(progressBar);
-                
-                body.appendChild(progress);
-                
-                // Methode zum Aktualisieren des Fortschritts
-                this.updateProgress = (percent) => {
-                    progressBar.style.width = `${percent}%`;
-                };
-            }
         }
 
         if (options.buttons) {
@@ -442,23 +403,6 @@ class SimpleModal {
         for (const [key, value] of Object.entries(theme)) {
             document.documentElement.style.setProperty(`--modal-${key}`, value);
         }
-    }
-    
-    // Fortschritts-Modal anzeigen
-    static showProgress(title, message) {
-        const modal = new SimpleModal();
-        const content = document.createElement('div');
-        content.innerHTML = `<p>${message}</p>`;
-        
-        modal.show({
-            title: title,
-            content: content,
-            showProgress: true,
-            showCloseButton: false,
-            closeOnBackdrop: false
-        });
-        
-        return modal;
     }
     
     // Benachrichtigungs-Modal anzeigen

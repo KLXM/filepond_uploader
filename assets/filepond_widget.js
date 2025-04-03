@@ -16,7 +16,6 @@
                 altLabel: 'Alt-Text:',
                 altNotice: 'Alternativtext für Screenreader und SEO',
                 copyrightLabel: 'Copyright:',
-                descriptionLabel: 'Beschreibung:',
                 fileInfo: 'Datei',
                 fileSize: 'Größe',
                 saveBtn: 'Speichern',
@@ -32,7 +31,6 @@
                 altLabel: 'Alt Text:',
                 altNotice: 'Alternative text for screen readers and SEO',
                 copyrightLabel: 'Copyright:',
-                descriptionLabel: 'Description:',
                 fileInfo: 'File',
                 fileSize: 'Size',
                 saveBtn: 'Save',
@@ -113,10 +111,6 @@
                             <label for="copyright">${t.copyrightLabel}</label>
                             <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
                         </div>
-                        <div class="simple-modal-form-group">
-                            <label for="description">${t.descriptionLabel}</label>
-                            <textarea id="description" name="description" class="simple-modal-input" rows="3">${existingMetadata?.description || ''}</textarea>
-                        </div>
                     `;
 
                     form.appendChild(previewCol);
@@ -187,14 +181,12 @@
                                     const titleInput = form.querySelector('[name="title"]');
                                     const altInput = form.querySelector('[name="alt"]');
                                     const copyrightInput = form.querySelector('[name="copyright"]');
-                                    const descriptionInput = form.querySelector('[name="description"]');
 
                                     if (titleInput.value && altInput.value) {
                                         const metadata = {
                                             title: titleInput.value,
                                             alt: altInput.value,
-                                            copyright: copyrightInput.value,
-                                            description: descriptionInput.value
+                                            copyright: copyrightInput.value
                                         };
                                         modal.close();
                                         resolve(metadata);
@@ -394,8 +386,7 @@
                                 fileMetadata = {
                                     title: file.name,
                                     alt: file.name,
-                                    copyright: '',
-                                    description: ''
+                                    copyright: ''
                                 };
                             }
 
