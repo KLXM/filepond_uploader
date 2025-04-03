@@ -1,44 +1,19 @@
-package: filepond_uploader
-version: '1.6.0'
-author: 'KLXM Crossmedia GmbH Thomas Skerbis'
-supportpage: https://github.com/KLXM/filepond_uploader
-requires:
-    php: '>=8.1'
-    redaxo: '^5.17.1'
-    packages:
-        yform: '>=4.0.0'
-        metainfo: '>=2.0.0'
-page:
-    title: 'translate:filepond_uploader_title'
-    perm: filepond_uploader[upload] 
-    subpages:
-        upload: { 
-            title: 'translate:filepond_uploader_upload',
-            perm: filepond_uploader[upload]  
-        }
-        settings: { 
-            title: 'translate:filepond_uploader_settings',
-            perm: admin
-        }
-default_config:
-    allowed_types: 'image/*,video/*,application/pdf'
-    max_filesize: 200
-    max_files: 30
-    max_pixel: 2100
-    category_id: 0
-    lang: 'de_de'
-    image_quality: 90
-    enable_chunks: true
-    chunk_size: 5
-    create_thumbnails: true
-    always_show_meta: false
-    replace_mediapool: false
-    upload_skip_meta: false
-installer_ignore:
-    - node_modules
-    - package.json
-    - package-lock.json
-    - yarn.lock
-    - .gitignore
-    - .github
-    - .git
+{
+    "name": "redaxo-filepond",
+    "version": "1.0.0",
+    "description": "FilePond integration for REDAXO",
+    "private": true,
+    "scripts": {
+      "build": "cp node_modules/filepond/dist/* assets/filepond/ && cp node_modules/filepond-plugin-*/dist/* assets/filepond/plugins/",
+      "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "dependencies": {
+      "filepond": "^4.30.4",
+      "filepond-plugin-file-validate-size": "^2.2.8",
+      "filepond-plugin-file-validate-type": "^1.2.8",
+      "filepond-plugin-image-preview": "^4.6.11"
+    },
+    "devDependencies": {},
+    "author": "Your Name",
+    "license": "MIT"
+  }
