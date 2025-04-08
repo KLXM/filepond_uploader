@@ -73,11 +73,6 @@ $yform->setValueField('filepond', [
 ]);
 ```
 
-PIPE-Variante für YForm:
-```
-filepond|pic|Profilbild|image/*|3|1|1|Bitte ein Bild hochladen|Hier können Sie Ihr Profilbild hochladen
-```
-
 > **Hinweis:** Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden. Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden. In diesem Fall entfällt die automatische Löschung nicht verwendeter Medien.
 
 ### Verwendung in Modulen
