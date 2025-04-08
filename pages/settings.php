@@ -137,23 +137,44 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Medien-Kategorie als Fallback definieren
-$mediaSelect = new rex_media_category_select();
-$mediaSelect->setName('category_id');
-$mediaSelect->setId('category_id');
-$mediaSelect->setSize(1);
-$mediaSelect->setAttribute('class', 'form-control selectpicker');
-$mediaSelect->setSelected(rex_config::get('filepond_uploader', 'category_id', 0));
-$mediaSelect->addOption($addon->i18n('filepond_upload_no_category'), 0);
+// Lösung für das Medienkategorie-Problem:
+// 1. Ein normales Select-Feld erstellen, das in der Konfiguration gespeichert wird
+$field = $form->addSelectField('category_id', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_fallback_category'));
+$field->setNotice($addon->i18n('filepond_settings_fallback_category_notice'));
 
-// Medien-Kategorie als formatiertes Feld
-$form->addRawField('
-    <div class="form-group">
-        <label class="control-label" for="category_id">' . $addon->i18n('filepond_settings_fallback_category') . '</label>
-        ' . $mediaSelect->get() . '
-        <p class="help-block">' . $addon->i18n('filepond_settings_fallback_category_notice') . '</p>
-    </div>
-');
+// 2. Select-Optionen manuell hinzufügen
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_upload_no_category'), 0); // Option "Keine Kategorie"
+
+// 3. Alle Medienkategorien laden und zum Select hinzufügen
+$mediaCategories = rex_media_category::getRootCategories();
+if (!empty($mediaCategories)) {
+    // Rekursive Funktion zum Hinzufügen von Kategorien mit Einrückung
+    $addCategories = function($categories, $level = 0) use (&$addCategories, $select) {
+        foreach ($categories as $category) {
+            // Verbesserte Einrückung für die Hierarchieebene mit klarer Darstellung
+            if ($level > 0) {
+                $prefix = str_repeat('· ', $level - 1) . '└─ ';
+            } else {
+                $prefix = '';
+            }
+            
+            // Option zum Select hinzufügen
+            $select->addOption($prefix . $category->getName(), $category->getId());
+            
+            // Rekursiv für Unterkategorien
+            if ($children = $category->getChildren()) {
+                $addCategories($children, $level + 1);
+            }
+        }
+    };
+    
+    // Alle Kategorien hinzufügen, beginnend mit den Root-Kategorien
+    $addCategories($mediaCategories);
+}
 
 // Meta-Dialog immer anzeigen
 $field = $form->addCheckboxField('always_show_meta');
