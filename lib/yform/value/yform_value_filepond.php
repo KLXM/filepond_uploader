@@ -166,7 +166,7 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|allowed_types|allowed_filesize|allowed_max_files|category|required|notice';
+        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice';
     }
 
     public function getDefinitions(): array
