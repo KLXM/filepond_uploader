@@ -101,20 +101,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
                 mkdir($uploadPath, 0775, true);
             }
 
-            // Default-Konfiguration setzen
-            $defaultConfigs = [
-                'max_files' => 30,
-                'max_filesize' => 10,
-                'allowed_types' => 'image/*,video/*,.pdf,.doc,.docx,.txt',
-                'category_id' => 0,
-                'lang' => rex_i18n::getLanguage()
-            ];
-
-            foreach ($defaultConfigs as $key => $value) {
-                if (!rex_config::has('filepond_uploader', $key)) {
-                    rex_config::set('filepond_uploader', $key, $value);
-                }
-            }
+           
 
             if ($message) {
                 $addon->setProperty('successmsg', $message);
