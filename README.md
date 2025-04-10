@@ -113,8 +113,7 @@ foreach($files as $file) {
 ```
 
 ### Uploads zu E-Mails hinzufügen
-Für die Übernahme der Uploads in E-Mails über YForm Forumulare steht eine Action zur Verfügung, die in ein Formular eingebaut werden kann.
-
+Für die Übernahme der Uploads in E-Mails über YForm Formulare steht eine Action zur Verfügung, die in ein Formular eingebaut werden kann.
 In der Pipe Notatation schreibt man:
 
 ```php
