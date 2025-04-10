@@ -112,6 +112,22 @@ foreach($files as $file) {
 ?>
 ```
 
+### Uploads zu E-Mails hinzufügen
+Für die Übernahme der Uploads in E-Mails über YForm Formulare steht eine Action zur Verfügung, die in ein Formular eingebaut werden kann.
+In der Pipe Notation schreibt man:
+
+```php
+action|filepond2email|label_filepond
+```
+
+In der PHP Notation schreibt man:
+
+```php
+$yform->setActionField('filepond2email',['label_filepond']);
+```
+
+`label_filepond` ist zu ersetzen durch den Feldnamen, den das filepond Feld hat, also z.B. `uploads`
+
 ## Chunk-Upload für große Dateien
 
 Der Chunk-Upload ist das Herzstück des FilePond-Uploaders und ermöglicht das zuverlässige Hochladen großer Dateien auch bei langsameren Internetverbindungen.
