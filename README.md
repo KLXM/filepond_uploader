@@ -114,7 +114,7 @@ foreach($files as $file) {
 
 ### Uploads zu E-Mails hinzufügen
 Für die Übernahme der Uploads in E-Mails über YForm Formulare steht eine Action zur Verfügung, die in ein Formular eingebaut werden kann.
-In der Pipe Notatation schreibt man:
+In der Pipe Notation schreibt man:
 
 ```php
 action|filepond2email|label_filepond
