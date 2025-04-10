@@ -112,8 +112,7 @@ foreach($files as $file) {
 ?>
 ```
 
-### Uploads an E-Mails anhängen
-
+### Uploads zu E-Mails hinzufügen
 Für die Übernahme der Uploads in E-Mails über YForm Forumulare steht eine Action zur Verfügung, die in ein Formular eingebaut werden kann.
 
 In der Pipe Notatation schreibt man:
