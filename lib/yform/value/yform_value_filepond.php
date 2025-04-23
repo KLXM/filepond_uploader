@@ -5,6 +5,21 @@
         return implode(',', array_filter(array_map('trim', explode(',', str_replace('"', '', $value))), 'strlen'));
     }
 
+    // Hilfsfunktion, die Original-Dateinamen zu Medienpool-Dateinamen zuordnet
+    protected static function getMediapoolFilename($originalFilename) {
+        $sql = rex_sql::factory();
+        $result = $sql->getArray('SELECT filename FROM ' . rex::getTable('media') . ' WHERE originalname = ?', [$originalFilename]);
+        
+        if (count($result) > 0) {
+            // Wenn mehrere Dateien mit dem gleichen Originalnamen existieren, 
+            // nehmen wir die neueste (höchste ID)
+            $sql->setQuery('SELECT filename FROM ' . rex::getTable('media') . ' WHERE originalname = ? ORDER BY id DESC LIMIT 1', [$originalFilename]);
+            return $sql->getValue('filename');
+        }
+        
+        return $originalFilename; // Fallback auf den Originalnamen
+    }
+
     public function preValidateAction(): void
     {
         if ($this->params['send']) {
@@ -101,7 +116,6 @@
                 }
             }
 
-
             $errors = [];
             if ($this->getElement('required') == 1 && $value == '') {
                 $errors[] = $this->getElement('empty_value', 'Bitte wählen Sie eine Datei aus.');
@@ -112,6 +126,30 @@
                 $this->params['warning_messages'][$this->getId()] = implode(', ', $errors);
             }
 
+            // Hier konvertieren wir Original-Dateinamen in Medienpool-Dateinamen
+            if ($value) {
+                $fileNames = array_filter(explode(',', self::cleanValue($value)));
+                $convertedFileNames = [];
+                
+                foreach ($fileNames as $fileName) {
+                    // Prüfen ob es sich um einen Original-Dateinamen handelt,
+                    // der im Medienpool anders heißt
+                    if (!file_exists(rex_path::media($fileName))) {
+                        $mediaFileName = self::getMediapoolFilename($fileName);
+                        if ($mediaFileName !== $fileName) {
+                            $convertedFileNames[] = $mediaFileName;
+                            continue;
+                        }
+                    }
+                    $convertedFileNames[] = $fileName;
+                }
+                
+                // Wenn Dateinamen konvertiert wurden, setzen wir den neuen Wert
+                if (count($convertedFileNames) > 0) {
+                    $value = implode(',', $convertedFileNames);
+                }
+            }
+            
             $this->setValue($value);
             
             // Wert immer in die value_pools schreiben, auch wenn leer
