@@ -344,8 +344,30 @@
 
                     // Wenn alle Chunks erfolgreich hochgeladen wurden
                     // console.log('All chunks uploaded successfully, finalizing upload');
-                    // *** ACHTUNG: Verarbeite result.filename anstelle von file.name ***
-                    load(file.name);
+                    
+                    // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
+                    const lastChunkResponse = await fetch(basePath, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: formData,
+                        signal: abortController.signal
+                    });
+                    
+                    if (!lastChunkResponse.ok) {
+                        throw new Error(`Final chunk upload failed with status: ${lastChunkResponse.status}`);
+                    }
+                    
+                    const finalResult = await lastChunkResponse.json();
+                    
+                    // Den tatsächlichen Dateinamen aus dem Medienpool verwenden
+                    if (finalResult.filename) {
+                        load(finalResult.filename);
+                    } else {
+                        // Fallback auf den Originalnamen
+                        load(file.name);
+                    }
 
                 } catch (err) {
                     if (err.name === 'AbortError') {
@@ -448,7 +470,14 @@
                                 }
 
                                 const result = await response.json();
-                                load(result);
+                                // Wir verwenden den tatsächlichen Dateinamen aus dem Medienpool statt des Originalnamens
+                                if (typeof result === 'object' && result.filename) {
+                                    load(result.filename);
+                                } else if (typeof result === 'string') {
+                                    load(result);
+                                } else {
+                                    load(file.name);
+                                }
                             }
                         } catch (err) {
                             if (err.message !== 'Metadata input cancelled') {

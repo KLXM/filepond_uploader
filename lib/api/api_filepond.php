@@ -371,7 +371,8 @@ class rex_api_filepond_uploader extends rex_api_function
                 rex_response::cleanOutputBuffers();
                 rex_response::sendJson([
                     'status' => 'chunk-success',
-                    'filename' => $result // oder 'filename' => $result['filename'], je nachdem, was processUploadedFile zurückgibt
+                    'filename' => $result, // Der tatsächliche Dateiname im Medienpool
+                    'originalname' => $fileName // Der ursprüngliche Dateiname
                 ]);
                 exit;
             }
