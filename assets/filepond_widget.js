@@ -546,6 +546,19 @@
                     if (!currentValue.includes(file.serverId)) {
                         currentValue.push(file.serverId);
                         input.value = currentValue.join(',');
+                        
+                        // Der serverId enthält bereits den korrekten Dateinamen, wir müssen 
+                        // das Element im Widget aktualisieren
+                        const fileElement = pond.getFile(file.id);
+                        if (fileElement) {
+                            // Aktualisieren der Dateiansicht im FilePond Widget 
+                            // mit dem tatsächlichen Dateinamen
+                            const fileInfo = fileElement.querySelector('.filepond--file-info-main');
+                            if (fileInfo) {
+                                // Dateiname anzeigen, aber Status "Uploaded" beibehalten
+                                fileInfo.textContent = file.serverId;
+                            }
+                        }
                     }
                 }
             });
