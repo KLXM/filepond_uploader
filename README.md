@@ -181,7 +181,7 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-lang`         | Sprache (`de_de` / `en_gb`)             | `de_de`      |
 | `data-filepond-skip-meta`    | Meta-Eingabe deaktivieren               | `false`      |
 | `data-filepond-chunk-enabled`| Chunk-Upload aktivieren                 | `true`       |
-| `data-filepond-chunk-size`   | Chunk-Größe in Bytes                    | `5242880`    |
+| `data-filepond-chunk-size`   | Chunk-Größe in MB                       | `5`          |
 
 ### Erlaubte Dateitypen (MIME-Types)
 

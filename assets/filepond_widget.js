@@ -5,8 +5,6 @@
     const initFilePond = () => {
         console.log('initFilePond function called');
 
-        // Standardwerte für die Chunk-Größe 
-        const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB für bessere Performance
         // Translations
         const translations = {
             de_de: {
@@ -80,6 +78,9 @@
             fileInput.type = 'file';
             fileInput.multiple = true;
             input.parentNode.insertBefore(fileInput, input.nextSibling);
+
+            // Standardwerte für die Chunk-Größe 
+            const CHUNK_SIZE = parseInt(input.dataset.filepondChunkSize || '1') * 1024 * 1024; // Konfigurierbare Größe (Default: 1MB)
 
             // Create metadata dialog with SimpleModal
             const createMetadataDialog = (file, existingMetadata = null) => {
