@@ -418,22 +418,8 @@ class rex_api_filepond_uploader extends rex_api_function
                 
                 $this->log('info', "Final file type: $type, size: $finalSize bytes");
 
-                // Datei zum Medienpool hinzufügen
-                $uploadedFile = [
-                    'name' => $fileName,
-                    'type' => $type,
-                    'tmp_name' => $tmpFile,
-                    'size' => $finalSize,
-                    'metadata' => $metaData['metadata'] ?? []
-                ];
-
-                // Verarbeite die vollständige Datei
-                $result = $this->processUploadedFile($uploadedFile, $categoryId);
-
-                // Aufräumen - Chunks und Metadaten löschen
-                // Aufräumen erst in handleFinalizeUpload, nicht hier
-                //$this->cleanupChunks($fileChunkDir);
-                //@unlink($metaFile);
+                // WICHTIG: Die Datei wird NICHT mehr hier zum Medienpool hinzugefügt,
+                // sondern erst in handleFinalizeUpload, um doppelte Einträge zu vermeiden
 
                 flock($lock, LOCK_UN); // Lock freigeben
                 fclose($lock);
@@ -441,8 +427,8 @@ class rex_api_filepond_uploader extends rex_api_function
 
                 $this->sendResponse([
                     'status' => 'chunk-success',
-                    'filename' => $result, // Der tatsächliche Dateiname im Medienpool
-                    'originalname' => $fileName // Der ursprüngliche Dateiname
+                    'chunkIndex' => $chunkIndex,
+                    'remaining' => 0
                 ]);
             }
 
@@ -874,24 +860,60 @@ class rex_api_filepond_uploader extends rex_api_function
         if (!$user || !$user->isAdmin()) {
             throw new rex_api_exception('Unauthorized: Admin privileges required');
         }
-
+        
+        // Debug-Logging NICHT temporär aktivieren, sondern nur verwenden, wenn es global aktiviert ist
         $this->log('info', 'Admin-triggered cleanup of temporary files');
 
         $cleanedChunks = 0;
         $cleanedMetadata = 0;
+        $errors = [];
+        $debugInfo = [];
 
-        // Alte Chunk-Verzeichnisse löschen (älter als 24h)
-        $expireTime = time() - (24 * 60 * 60);
+        // Alte Chunk-Verzeichnisse löschen (älter als 1h statt 24h)
+        $expireTime = time() - (60 * 60); // 1 Stunde
         $chunksDir = $this->chunksDir;
+        
+        $debugInfo['chunks_dir'] = $chunksDir;
+        $debugInfo['metadata_dir'] = $this->metadataDir;
+        $debugInfo['expire_time'] = date('Y-m-d H:i:s', $expireTime);
+        $debugInfo['current_time'] = date('Y-m-d H:i:s');
 
         if (is_dir($chunksDir)) {
             $chunkDirs = glob($chunksDir . '/*', GLOB_ONLYDIR);
+            $debugInfo['found_chunk_dirs'] = count($chunkDirs);
+            
             foreach ($chunkDirs as $dir) {
                 $dirTime = filemtime($dir);
+                $dirAge = time() - $dirTime;
+                $debugInfo['chunk_dirs'][] = [
+                    'path' => $dir,
+                    'modified' => date('Y-m-d H:i:s', $dirTime),
+                    'age_seconds' => $dirAge,
+                    'is_expired' => ($dirTime < $expireTime)
+                ];
+                
                 if ($dirTime < $expireTime) {
-                    $this->cleanupChunks($dir);
-                    $cleanedChunks++;
+                    try {
+                        $this->log('info', "Cleaning up chunk directory: $dir (modified: ".date('Y-m-d H:i:s', $dirTime).")");
+                        $this->cleanupChunks($dir);
+                        $cleanedChunks++;
+                    } catch (Exception $e) {
+                        $errors[] = "Failed to clean chunk directory $dir: " . $e->getMessage();
+                        $this->log('error', "Failed to clean chunk directory $dir: " . $e->getMessage());
+                    }
                 }
+            }
+        } else {
+            $errors[] = "Chunks directory does not exist: $chunksDir";
+            $this->log('error', "Chunks directory does not exist: $chunksDir");
+            
+            // Versuchen, das Verzeichnis zu erstellen
+            try {
+                mkdir($chunksDir, 0775, true);
+                $this->log('info', "Created chunks directory: $chunksDir");
+            } catch (Exception $e) {
+                $errors[] = "Failed to create chunks directory: " . $e->getMessage();
+                $this->log('error', "Failed to create chunks directory: " . $e->getMessage());
             }
         }
 
@@ -900,19 +922,67 @@ class rex_api_filepond_uploader extends rex_api_function
 
         if (is_dir($metadataDir)) {
             $metaFiles = glob($metadataDir . '/*.json');
+            $debugInfo['found_meta_files'] = count($metaFiles);
+            
             foreach ($metaFiles as $file) {
                 $fileTime = filemtime($file);
+                $fileAge = time() - $fileTime;
+                $debugInfo['meta_files'][] = [
+                    'path' => $file,
+                    'modified' => date('Y-m-d H:i:s', $fileTime),
+                    'age_seconds' => $fileAge,
+                    'is_expired' => ($fileTime < $expireTime)
+                ];
+                
                 if ($fileTime < $expireTime) {
-                    @unlink($file);
-                    $cleanedMetadata++;
+                    try {
+                        $this->log('info', "Deleting metadata file: $file (modified: ".date('Y-m-d H:i:s', $fileTime).")");
+                        if (!@unlink($file)) {
+                            $errors[] = "Failed to delete metadata file: $file";
+                            $this->log('error', "Failed to delete metadata file: $file");
+                        } else {
+                            $cleanedMetadata++;
+                        }
+                    } catch (Exception $e) {
+                        $errors[] = "Failed to delete metadata file $file: " . $e->getMessage();
+                        $this->log('error', "Failed to delete metadata file $file: " . $e->getMessage());
+                    }
                 }
             }
+        } else {
+            $errors[] = "Metadata directory does not exist: $metadataDir";
+            $this->log('error', "Metadata directory does not exist: $metadataDir");
+            
+            // Versuchen, das Verzeichnis zu erstellen
+            try {
+                mkdir($metadataDir, 0775, true);
+                $this->log('info', "Created metadata directory: $metadataDir");
+            } catch (Exception $e) {
+                $errors[] = "Failed to create metadata directory: " . $e->getMessage();
+                $this->log('error', "Failed to create metadata directory: " . $e->getMessage());
+            }
         }
+        
+        // Debug-Logging zurücksetzen
+        $this->debug = $originalDebug;
 
-        return [
-            'status' => 'success',
+        // Antwort mit detaillierten Informationen
+        $response = [
+            'status' => empty($errors) ? 'success' : 'partial_success',
             'message' => "Cleanup completed. Removed $cleanedChunks chunk folders and $cleanedMetadata metadata files."
         ];
+        
+        if (!empty($errors)) {
+            $response['errors'] = $errors;
+            $response['message'] .= " Encountered " . count($errors) . " errors.";
+        }
+        
+        // Debug-Info nur im Backend anzeigen
+        if (rex::isBackend() && rex::getUser() && rex::getUser()->isAdmin()) {
+            $response['debug'] = $debugInfo;
+        }
+
+        return $response;
     }
 
     /**
