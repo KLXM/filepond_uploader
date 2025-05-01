@@ -58,7 +58,8 @@ class filepond_helper {
         $cssFiles = [
             $addon->getAssetsUrl('filepond/filepond.css'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.css'),
-            $addon->getAssetsUrl('filepond_widget.css')
+            $addon->getAssetsUrl('filepond_widget.css'),
+            $addon->getAssetsUrl('filepond-custom-styles.css') // Unsere neue CSS-Datei mit benutzerdefinierten Button-Stilen
         ];
 
         if (rex::isBackend()) {

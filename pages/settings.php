@@ -194,6 +194,12 @@ $field->setLabel($addon->i18n('filepond_settings_upload_skip_meta'));
 $field->addOption($addon->i18n('filepond_settings_upload_skip_meta_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_upload_skip_meta_notice'));
 
+// Neue Einstellung: Verzögerter Upload-Modus
+$field = $form->addCheckboxField('delayed_upload_mode');
+$field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
+$field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 

@@ -47,8 +47,9 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
        data-filepond-skip-meta="<?= $skip_meta ? 'true' : 'false' ?>"
        data-filepond-chunk-enabled="<?= $chunk_enabled ? 'true' : 'false' ?>"
        data-filepond-chunk-size="<?= $chunk_size ?>"
+       data-filepond-delayed-upload="<?= $delayed_upload ? 'true' : 'false' ?>"
     />
-
+    
     <?php if ($notice = $this->getElement('notice')): ?>
         <p class="help-block small"><?= rex_i18n::translate($notice, false) ?></p>
     <?php endif ?>

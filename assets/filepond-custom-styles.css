@@ -1,0 +1,118 @@
+/* CSS-Variablen für den Upload-Button */
+:root {
+    --filepond-upload-btn-color: #4285f4;
+    --filepond-upload-btn-hover-color: #3367d6;
+    --filepond-upload-btn-text-color: #fff;
+    --filepond-upload-btn-border-radius: 4px;
+    --filepond-upload-btn-padding: 10px 16px;
+    --filepond-upload-btn-margin: 0;
+    --filepond-upload-btn-font-size: 14px;
+    --filepond-upload-btn-font-weight: 500;
+    --filepond-upload-btn-transition-duration: 0.3s;
+    --filepond-upload-btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --filepond-upload-btn-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Container für den Upload-Button direkt nach dem FilePond-Element */
+.filepond-upload-button-container {
+    margin-top: 0;
+    width: 100%;
+}
+
+/* Upload-Button Stil */
+.filepond-upload-btn {
+    display: block;
+    width: 100%;
+    padding: var(--filepond-upload-btn-padding);
+    color: var(--filepond-upload-btn-text-color);
+    background-color: var(--filepond-upload-btn-color);
+    border: none;
+    border-radius: 0 0 var(--filepond-upload-btn-border-radius) var(--filepond-upload-btn-border-radius);
+    border-top: 0;
+    margin-top: -2px; /* Kleiner negativer Margin, um nahtlos anzuschließen */
+    font-size: var(--filepond-upload-btn-font-size);
+    font-weight: var(--filepond-upload-btn-font-weight);
+    cursor: pointer;
+    transition: all var(--filepond-upload-btn-transition-duration) ease;
+    box-shadow: var(--filepond-upload-btn-shadow);
+    position: relative;
+    text-align: center;
+}
+
+.filepond-upload-btn:hover {
+    background-color: var(--filepond-upload-btn-hover-color);
+    box-shadow: var(--filepond-upload-btn-shadow-hover);
+}
+
+.filepond-upload-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.4);
+}
+
+/* Upload-Icon als pseudoelement mit SVG statt FontAwesome */
+.filepond-upload-btn::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+/* Ripple-Effekt für eine schönere Interaktion */
+.filepond-upload-btn::after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform 0.5s, opacity 1s;
+}
+
+.filepond-upload-btn:active::after {
+    transform: scale(0, 0);
+    opacity: 0.3;
+    transition: 0s;
+}
+
+/* Deaktivierter Zustand */
+.filepond-upload-btn:disabled {
+    background-color: #cccccc;
+    color: #888888;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Alternative Stile für Themes */
+/* Dark mode */
+.dark-theme .filepond-upload-btn {
+    --filepond-upload-btn-color: #3d4852;
+    --filepond-upload-btn-hover-color: #2d3748;
+    --filepond-upload-btn-text-color: #f7fafc;
+}
+
+/* Minimal style */
+.minimal-theme .filepond-upload-btn {
+    --filepond-upload-btn-color: transparent;
+    --filepond-upload-btn-hover-color: rgba(0, 0, 0, 0.05);
+    --filepond-upload-btn-text-color: #2196F3;
+    --filepond-upload-btn-shadow: none;
+    --filepond-upload-btn-shadow-hover: none;
+    border: 1px solid currentColor;
+}
+
+/* Minimal style for the icon */
+.minimal-theme .filepond-upload-btn::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232196F3'%3E%3Cpath d='M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z'/%3E%3C/svg%3E");
+}

@@ -19,6 +19,9 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
 // Prüfen, ob Metadaten übersprungen werden sollen (neue Einstellung)
 $skipMeta = rex_config::get('filepond_uploader', 'upload_skip_meta', false);
 
+// Prüfen, ob verzögerter Upload-Modus aktiviert ist
+$delayedUpload = rex_config::get('filepond_uploader', 'delayed_upload_mode', false);
+
 // Session-Wert setzen für die API
 if ($skipMeta) {
     rex_set_session('filepond_no_meta', true);
@@ -54,6 +57,7 @@ $content = '
                             data-filepond-maxsize="'.rex_config::get('filepond_uploader', 'max_filesize', 10).'"
                             data-filepond-lang="'.$langCode.'"
                             data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
+                            data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
                             value=""
                         >
                     </div>
@@ -65,6 +69,8 @@ $content = '
 ';?>
 <script>
 $(document).on("rex:ready", function() {
+    console.log("FilePond Uploader page initialized");
+    
     $("#rex-mediapool-category").on("change", function() {
         const newCategory = $(this).val();
         const $input = $("#filepond-upload");
@@ -75,6 +81,29 @@ $(document).on("rex:ready", function() {
             pondElement.FilePond.removeFiles();
             // FilePond neu initialisieren
             document.dispatchEvent(new Event('filepond:init'));
+        }
+    });
+    
+    // Upload-Button für verzögerten Modus
+    $("#filepond-upload-btn").on("click", function() {
+        console.log("Upload button clicked");
+        
+        // Verwende die neue globale Referenz
+        const uploadElement = document.getElementById("filepond-upload");
+        
+        if (window.FilePondGlobal && window.FilePondGlobal.instances && window.FilePondGlobal.instances["filepond-upload"]) {
+            const pond = window.FilePondGlobal.instances["filepond-upload"];
+            console.log("FilePond instance found via global reference, processing files...", pond.getFiles().length);
+            
+            // Alle Dateien verarbeiten
+            pond.processFiles();
+        } 
+        else if (uploadElement && uploadElement.pondInstance) {
+            console.log("FilePond instance found via direct reference, processing files...", uploadElement.pondInstance.getFiles().length);
+            uploadElement.pondInstance.processFiles();
+        }
+        else {
+            console.error("FilePond instance not found! The element might not be initialized correctly.");
         }
     });
 });
