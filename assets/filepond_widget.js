@@ -588,7 +588,9 @@
                     uploadBtn.className = 'filepond-upload-btn';
                     uploadBtn.id = buttonId;
                     uploadBtn.setAttribute('data-for', input.id || '');
-                    uploadBtn.textContent = translations[lang]?.uploadButton || 'Dateien hochladen';
+                    const uploadButtonText = translations[lang]?.uploadButton || 'Dateien hochladen';
+                    uploadBtn.textContent = uploadButtonText;
+                    uploadBtn.setAttribute('aria-label', uploadButtonText);
                     
                     // Container für den Button
                     const buttonContainer = document.createElement('div');
