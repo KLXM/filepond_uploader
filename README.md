@@ -16,6 +16,13 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Fortschrittsanzeige für einzelne Chunks und die Gesamtdatei
     *   Automatisches Zusammenführen der Chunks nach dem Upload
 
+*   **Verzögerter Upload-Modus:**
+    *   Auswahl und Anordnung von Dateien vor dem Upload
+    *   Trennung von Dateiauswahl und Upload-Prozess
+    *   Benutzerfreundlicher Upload-Button erscheint automatisch
+    *   Löschen unerwünschter Dateien vor dem Upload
+    *   Ideal für Redakteure mit vielen Dateien
+
 *   **Moderne Oberfläche:**
     *   Drag & Drop für einfaches Hochladen von Dateien
     *   Live-Vorschau der Bilder während des Uploads
@@ -549,6 +556,72 @@ Wenn du kein Bootstrap oder FontAwesome verwendest, kannst du diese alternativen
 ```
 
 Du kannst einen dieser Stile in deine CSS-Datei einfügen oder direkt im HTML-Head-Bereich platzieren. Die Stile überschreiben das Bootstrap-Design und das FontAwesome-Icon durch eigene Gestaltung, ohne dass du Änderungen am HTML-Code vornehmen musst.
+
+## Verzögerter Upload-Modus
+
+Der verzögerte Upload-Modus trennt den Prozess der Dateiauswahl vom eigentlichen Upload-Vorgang. Dateien werden erst hochgeladen, wenn der Benutzer auf den "Dateien hochladen"-Button klickt.
+
+### Vorteile
+
+- **Bessere Kontrolle:** Vorschau und Sichtung vor dem Upload
+- **Datei-Management:** Löschen unerwünschter Dateien vor dem Upload
+- **Neuordnung:** Sortieren der Dateien vor dem Upload
+- **Effizientes Arbeiten:** Besonders nützlich für große Dateimengen
+
+### Aktivierung im Backend
+
+Der verzögerte Upload-Modus kann global in den FilePond-Einstellungen aktiviert werden:
+
+1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
+2. Aktiviere die Option **"Verzögerter Upload-Modus"**
+3. Speichere die Einstellungen
+
+### Aktivierung in YForm-Feldern
+
+Für YForm-Felder kann der verzögerte Upload-Modus individuell aktiviert werden:
+
+```php
+$yform->setValueField('filepond', [
+    'name' => 'bilder',
+    'label' => 'Bildergalerie',
+    'allowed_max_files' => 5,
+    'allowed_types' => 'image/*',
+    'delayed_upload' => 1  // Verzögerter Upload aktivieren
+]);
+```
+
+### Aktivierung via HTML-Attribut
+
+Bei direkter Einbindung kann der verzögerte Upload-Modus über ein Attribut aktiviert werden:
+
+```html
+<input
+    type="hidden"
+    name="REX_INPUT_VALUE[1]"
+    value="REX_VALUE[1]"
+    data-widget="filepond"
+    data-filepond-cat="1"
+    data-filepond-delayed-upload="true"
+>
+```
+
+### Anpassung des Upload-Buttons
+
+Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn der verzögerte Upload-Modus aktiviert ist. Die Optik kann über CSS-Variablen angepasst werden:
+
+```css
+:root {
+    --filepond-upload-btn-color: #4285f4;         /* Hintergrundfarbe */
+    --filepond-upload-btn-hover-color: #3367d6;   /* Hover-Farbe */
+    --filepond-upload-btn-text-color: #fff;       /* Textfarbe */
+    --filepond-upload-btn-border-radius: 4px;     /* Eckenradius */
+    --filepond-upload-btn-padding: 10px 16px;     /* Innenabstand */
+    --filepond-upload-btn-font-size: 14px;        /* Schriftgröße */
+    --filepond-upload-btn-font-weight: 500;       /* Schriftstärke */
+}
+```
+
+> **Hinweis:** Bei aktiviertem verzögerten Upload-Modus können Benutzer die Dateien vor dem Upload neu anordnen, löschen und in Ruhe auswählen. Die tatsächliche Upload-Verarbeitung beginnt erst nach dem Klick auf den Button.
 
 ## Credits
 
