@@ -5,8 +5,8 @@
     const initFilePond = () => {
         console.log('initFilePond function called');
 
-        // Standardwerte für die Chunk-Größe (5MB)
-        const CHUNK_SIZE = 5 * 1024 * 1024;
+        // Standardwerte für die Chunk-Größe 
+        const CHUNK_SIZE = 1 * 1024 * 1024; // 1MB für bessere Performance
         // Translations
         const translations = {
             de_de: {
@@ -345,18 +345,28 @@
                     // Wenn alle Chunks erfolgreich hochgeladen wurden
                     // console.log('All chunks uploaded successfully, finalizing upload');
                     
+                    // Umstellung auf finale direkte Anfrage statt weiteren Chunk-Upload
+                    const finalFormData = new FormData();
+                    finalFormData.append('rex-api-call', 'filepond_uploader');
+                    finalFormData.append('func', 'finalize-upload'); // Neue Funktion zum Finalisieren
+                    finalFormData.append('fileId', fileId);
+                    finalFormData.append('fieldName', fieldName);
+                    finalFormData.append('fileName', file.name);
+                    finalFormData.append('category_id', input.dataset.filepondCat || '0');
+                    finalFormData.append('totalChunks', totalChunks);
+                    
                     // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
                     const lastChunkResponse = await fetch(basePath, {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         },
-                        body: formData,
+                        body: finalFormData,
                         signal: abortController.signal
                     });
                     
                     if (!lastChunkResponse.ok) {
-                        throw new Error(`Final chunk upload failed with status: ${lastChunkResponse.status}`);
+                        throw new Error(`Final upload failed with status: ${lastChunkResponse.status}`);
                     }
                     
                     const finalResult = await lastChunkResponse.json();
