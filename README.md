@@ -16,6 +16,13 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Fortschrittsanzeige für einzelne Chunks und die Gesamtdatei
     *   Automatisches Zusammenführen der Chunks nach dem Upload
 
+*   **Verzögerter Upload-Modus:**
+    *   Auswahl und Anordnung von Dateien vor dem Upload
+    *   Trennung von Dateiauswahl und Upload-Prozess
+    *   Benutzerfreundlicher Upload-Button erscheint automatisch
+    *   Löschen unerwünschter Dateien vor dem Upload
+    *   Ideal für Redakteure mit vielen Dateien
+
 *   **Moderne Oberfläche:**
     *   Drag & Drop für einfaches Hochladen von Dateien
     *   Live-Vorschau der Bilder während des Uploads
@@ -366,6 +373,255 @@ Die Wartungsfunktion löscht:
 *   Videos können direkt im Upload-Dialog betrachtet werden.
 *   Bilder werden automatisch auf die maximale Größe optimiert.
 *   Chunk-Upload funktioniert auch bei langsameren Internetverbindungen zuverlässig.
+
+## Alternative Stile für den Upload-Button
+
+Wenn du kein Bootstrap oder FontAwesome verwendest, kannst du diese alternativen CSS-Stile für den vom Widget bereitgestellten Upload-Button verwenden. Füge diese Stile deinem CSS hinzu, um das Erscheinungsbild des Buttons anzupassen:
+
+### Einfacher, flacher Button mit SVG-Icon
+
+```css
+/* Einfacher, flacher Button ohne Bootstrap */
+.filepond-upload-btn {
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.filepond-upload-btn:hover {
+    background-color: #3367d6;
+}
+
+/* Entferne das FontAwesome-Icon und ersetze es durch ein SVG */
+.filepond-upload-btn .fa-upload {
+    display: none;
+}
+
+.filepond-upload-btn::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+```
+
+### Minimalistischer Button mit Pfeil
+
+```css
+/* Minimalistischer Button-Stil */
+.filepond-upload-btn {
+    background-color: transparent;
+    color: #2196F3;
+    border: 2px solid #2196F3;
+    border-radius: 3px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    box-shadow: none;
+}
+
+.filepond-upload-btn:hover {
+    background-color: rgba(33, 150, 243, 0.1);
+}
+
+/* Entferne das FontAwesome-Icon und ersetze es durch einen Pfeil */
+.filepond-upload-btn .fa-upload {
+    display: none;
+}
+
+.filepond-upload-btn::after {
+    content: "↑";
+    margin-left: 8px;
+    font-size: 18px;
+    line-height: 1;
+}
+```
+
+### Material Design inspirierter Button
+
+```css
+/* Material Design Button */
+.filepond-upload-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.filepond-upload-btn:hover {
+    background-color: #0d8aee;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Entferne das FontAwesome-Icon und ersetze es durch ein SVG */
+.filepond-upload-btn .fa-upload {
+    display: none;
+}
+
+.filepond-upload-btn::before {
+    content: "";
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    margin-right: 8px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Ripple-Effekt für Material Design */
+.filepond-upload-btn::after {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    transform: scale(10, 10);
+    opacity: 0;
+    transition: transform .5s, opacity 1s;
+}
+
+.filepond-upload-btn:active::after {
+    transform: scale(0, 0);
+    opacity: .3;
+    transition: 0s;
+}
+```
+
+### Schlichter Text-Button mit Unterstrich
+
+```css
+/* Schlichter Text-Button mit Unterstrich */
+.filepond-upload-btn {
+    background-color: transparent;
+    color: #0366d6;
+    border: none;
+    border-radius: 0;
+    padding: 8px 0;
+    margin-top: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    box-shadow: none;
+    border-bottom: 1px solid currentColor;
+}
+
+.filepond-upload-btn:hover {
+    color: #0076ff;
+}
+
+/* Entfernen des FontAwesome-Icons und ersetzen durch ein einfaches Plus-Zeichen */
+.filepond-upload-btn .fa-upload {
+    display: none;
+}
+
+.filepond-upload-btn::before {
+    content: "+";
+    margin-right: 6px;
+    font-size: 16px;
+}
+```
+
+Du kannst einen dieser Stile in deine CSS-Datei einfügen oder direkt im HTML-Head-Bereich platzieren. Die Stile überschreiben das Bootstrap-Design und das FontAwesome-Icon durch eigene Gestaltung, ohne dass du Änderungen am HTML-Code vornehmen musst.
+
+## Verzögerter Upload-Modus
+
+Der verzögerte Upload-Modus trennt den Prozess der Dateiauswahl vom eigentlichen Upload-Vorgang. Dateien werden erst hochgeladen, wenn der Benutzer auf den "Dateien hochladen"-Button klickt.
+
+### Vorteile
+
+- **Bessere Kontrolle:** Vorschau und Sichtung vor dem Upload
+- **Datei-Management:** Löschen unerwünschter Dateien vor dem Upload
+- **Neuordnung:** Sortieren der Dateien vor dem Upload
+- **Effizientes Arbeiten:** Besonders nützlich für große Dateimengen
+
+### Aktivierung im Backend
+
+Der verzögerte Upload-Modus kann global in den FilePond-Einstellungen aktiviert werden:
+
+1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
+2. Aktiviere die Option **"Verzögerter Upload-Modus"**
+3. Speichere die Einstellungen
+
+### Aktivierung in YForm-Feldern
+
+Für YForm-Felder kann der verzögerte Upload-Modus individuell aktiviert werden:
+
+```php
+$yform->setValueField('filepond', [
+    'name' => 'bilder',
+    'label' => 'Bildergalerie',
+    'allowed_max_files' => 5,
+    'allowed_types' => 'image/*',
+    'delayed_upload' => 1  // Verzögerter Upload aktivieren
+]);
+```
+
+### Aktivierung via HTML-Attribut
+
+Bei direkter Einbindung kann der verzögerte Upload-Modus über ein Attribut aktiviert werden:
+
+```html
+<input
+    type="hidden"
+    name="REX_INPUT_VALUE[1]"
+    value="REX_VALUE[1]"
+    data-widget="filepond"
+    data-filepond-cat="1"
+    data-filepond-delayed-upload="true"
+>
+```
+
+### Anpassung des Upload-Buttons
+
+Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn der verzögerte Upload-Modus aktiviert ist. Die Optik kann über CSS-Variablen angepasst werden:
+
+```css
+:root {
+    --filepond-upload-btn-color: #4285f4;         /* Hintergrundfarbe */
+    --filepond-upload-btn-hover-color: #3367d6;   /* Hover-Farbe */
+    --filepond-upload-btn-text-color: #fff;       /* Textfarbe */
+    --filepond-upload-btn-border-radius: 4px;     /* Eckenradius */
+    --filepond-upload-btn-padding: 10px 16px;     /* Innenabstand */
+    --filepond-upload-btn-font-size: 14px;        /* Schriftgröße */
+    --filepond-upload-btn-font-weight: 500;       /* Schriftstärke */
+}
+```
+
+> **Hinweis:** Bei aktiviertem verzögerten Upload-Modus können Benutzer die Dateien vor dem Upload neu anordnen, löschen und in Ruhe auswählen. Die tatsächliche Upload-Verarbeitung beginnt erst nach dem Klick auf den Button.
 
 ## Credits
 

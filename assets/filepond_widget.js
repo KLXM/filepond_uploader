@@ -405,6 +405,22 @@
                 maxFiles: parseInt(input.dataset.filepondMaxfiles) || null,
                 chunkSize: CHUNK_SIZE,
                 chunkForce: input.dataset.filepondChunkEnabled !== 'false', // Standardmäßig aktiviert, außer explizit deaktiviert
+                
+                // Verzögerter Upload-Modus
+                instantUpload: function() {
+                    const isDelayed = input.hasAttribute('data-filepond-delayed-upload') && 
+                                     input.getAttribute('data-filepond-delayed-upload') === 'true';
+                    console.log('Delayed Upload Mode enabled:', isDelayed);
+                    return !isDelayed; // instantUpload ist das Gegenteil von delayed
+                }(),
+                
+                // Wichtige Optionen für den verzögerten Upload-Modus
+                allowRemove: true,        // Erlaube Entfernen von Dateien
+                allowProcess: false,      // Deaktiviere automatisches Verarbeiten
+                allowRevert: true,        // Erlaube Rückgängigmachen
+                allowImagePreview: true,  // Erlaube Bildvorschau
+                imagePreviewHeight: 100,  // Höhe der Vorschaubilder
+                
                 server: {
                     url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
@@ -549,39 +565,118 @@
                 maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
                 credits: false
             });
+            
+            // Speichere Referenz auf pond-Instanz im input-Element
+            input.pondInstance = pond;
+            
+            // Speichere die Referenz auch im DOM-Element, um sie später leichter zu finden
+            const pondRoot = pond.element.parentNode;
+            if (pondRoot) {
+                pondRoot.pondReference = pond;
+                
+                // Für verzögerten Upload-Modus: Füge einen Upload-Button hinzu
+                const isDelayedUpload = input.hasAttribute('data-filepond-delayed-upload') && 
+                                        input.getAttribute('data-filepond-delayed-upload') === 'true';
+                
+                if (isDelayedUpload) {
+                    // Generiere eine eindeutige ID für den Button basierend auf der Input-ID
+                    const buttonId = `filepond-upload-btn-${input.id || Math.random().toString(36).substring(2, 15)}`;
+                    
+                    // Erstelle einen Upload-Button mit eigenem Stil (ohne Bootstrap-Klassen)
+                    const uploadBtn = document.createElement('button');
+                    uploadBtn.type = 'button';
+                    uploadBtn.className = 'filepond-upload-btn';
+                    uploadBtn.id = buttonId;
+                    uploadBtn.setAttribute('data-for', input.id || '');
+                    const uploadButtonText = translations[lang]?.uploadButton || 'Dateien hochladen';
+                    uploadBtn.textContent = uploadButtonText;
+                    uploadBtn.setAttribute('aria-label', uploadButtonText);
+                    
+                    // Container für den Button
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'filepond-upload-button-container';
+                    buttonContainer.appendChild(uploadBtn);
+                    
+                    // Button direkt nach dem FilePond-Element einfügen (nicht innerhalb)
+                    pondRoot.insertAdjacentElement('afterend', buttonContainer);
+                    
+                    // Event-Listener für den Button
+                    uploadBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        console.log('Upload button clicked for input:', input.id);
+                        if (pond && typeof pond.processFiles === 'function') {
+                            pond.processFiles();
+                        }
+                    });
+                }
+            }
+            
+            // Globales Objekt für alle FilePond-Instanzen, falls nicht vorhanden
+            if (!window.FilePondGlobal) {
+                window.FilePondGlobal = {
+                    instances: {}
+                };
+            }
+            
+            // Speichere diese Instanz mit ihrer ID
+            window.FilePondGlobal.instances[input.id] = pond;
 
             // Event handlers
             pond.on('processfile', (error, file) => {
                 if (!error && file.serverId) {
-                    const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
-                    if (!currentValue.includes(file.serverId)) {
-                        currentValue.push(file.serverId);
-                        input.value = currentValue.join(',');
+                    // Prüfen, ob maxFiles=1 ist - in diesem Fall ersetzen wir den kompletten Wert
+                    const maxFiles = parseInt(input.dataset.filepondMaxfiles) || null;
+                    
+                    if (maxFiles === 1) {
+                        // Bei maxFiles=1 kompletten Wert ersetzen statt anzuhängen
+                        input.value = file.serverId;
+                    } else {
+                        // Standardverhalten: An bestehenden Wert anhängen
+                        const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
+                        if (!currentValue.includes(file.serverId)) {
+                            currentValue.push(file.serverId);
+                            input.value = currentValue.join(',');
+                        }
+                    }
+                    
+                    // Versuchen, den Dateinamen in der FilePond-UI zu aktualisieren
+                    try {
+                        // Finde das DOM-Element für diese Datei über die FilePond-API
+                        const fileElement = pond.getFiles().find(f => f.id === file.id)?.element;
                         
-                        // Der serverId enthält bereits den korrekten Dateinamen, wir müssen 
-                        // das Element im Widget aktualisieren
-                        const fileElement = pond.getFile(file.id);
                         if (fileElement) {
-                            // Aktualisieren der Dateiansicht im FilePond Widget 
-                            // mit dem tatsächlichen Dateinamen
+                            // Aktualisieren der Dateiansicht im FilePond Widget
                             const fileInfo = fileElement.querySelector('.filepond--file-info-main');
                             if (fileInfo) {
                                 // Dateiname anzeigen, aber Status "Uploaded" beibehalten
                                 fileInfo.textContent = file.serverId;
                             }
                         }
+                    } catch (err) {
+                        console.warn('Failed to update file name in UI:', err);
+                        // Fehler ignorieren, ist nur kosmetisch
                     }
                 }
             });
 
             pond.on('removefile', (error, file) => {
                 if (!error) {
+                    // Sicherstellen, dass wir den aktuellsten Wert haben
                     const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
                     const removeValue = file.serverId || file.source;
-                    const index = currentValue.indexOf(removeValue);
-                    if (index > -1) {
-                        currentValue.splice(index, 1);
-                        input.value = currentValue.join(',');
+                    
+                    // Entferne alle Vorkommen dieses Wertes (für den Fall von Duplikaten)
+                    const filteredValue = currentValue.filter(val => val !== removeValue);
+                    
+                    // Wenn sich die Anzahl geändert hat, wurde etwas entfernt
+                    if (filteredValue.length !== currentValue.length) {
+                        // Neuen Wert direkt setzen
+                        input.value = filteredValue.join(',');
+                        
+                        // Explizit ein change-Event auslösen, damit Frameworks wie jQuery die Änderung erkennen
+                        const event = new Event('change', { bubbles: true });
+                        input.dispatchEvent(event);
                     }
                 }
             });
