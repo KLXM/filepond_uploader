@@ -623,6 +623,11 @@ class rex_api_filepond_uploader extends rex_api_function
         $originalName = $file['name'];
         $metadata = $file['metadata'] ?? [];
         $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
+        
+        // Direkt übergebenen Parameter mit höherer Priorität berücksichtigen
+        if (rex_request('skipMeta', 'string', '') === '1') {
+            $skipMeta = true;
+        }
 
         if ($categoryId === null || $categoryId < 0) {
             $categoryId = rex_config::get('filepond_uploader', 'category_id', 0);
@@ -654,8 +659,10 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
                     $sql->setValue('title', $metadata['title'] ?? '');
-                    $sql->setValue('med_alt', $metadata['alt'] ?? '');
-                    $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    if (!$skipMeta) {
+                        $sql->setValue('med_alt', $metadata['alt'] ?? '');
+                        $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    }
                     $sql->update();
                 }
 
@@ -1115,6 +1122,11 @@ class rex_api_filepond_uploader extends rex_api_function
             'size' => $finalSize,
             'metadata' => $metaData['metadata'] ?? []
         ];
+
+        // skipMeta-Parameter berücksichtigen
+        if (rex_request('skipMeta', 'string', '') === '1') {
+            $_REQUEST['skipMeta'] = '1'; // Sicherstellen, dass der Parameter auch für processUploadedFile verfügbar ist
+        }
 
         // Verarbeite die vollständige Datei
         $result = $this->processUploadedFile($uploadedFile, $categoryId);

@@ -299,6 +299,7 @@
                             formData.append('totalChunks', totalChunks);
                             formData.append('fileName', file.name);
                             formData.append('category_id', input.dataset.filepondCat || '0');
+                            formData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
 
                             try {
                                // console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
@@ -355,6 +356,7 @@
                     finalFormData.append('fileName', file.name);
                     finalFormData.append('category_id', input.dataset.filepondCat || '0');
                     finalFormData.append('totalChunks', totalChunks);
+                    finalFormData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
                     
                     // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
                     const lastChunkResponse = await fetch(basePath, {
@@ -481,6 +483,7 @@
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
                                 uploadFormData.append('category_id', input.dataset.filepondCat || '0');
+                                uploadFormData.append('skipMeta', skipMeta ? '1' : '0'); // Direkt skipMeta-Parameter übergeben
 
                                 const response = await fetch(basePath, {
                                     method: 'POST',
