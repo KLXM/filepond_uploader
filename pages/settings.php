@@ -194,6 +194,12 @@ $field->setLabel($addon->i18n('filepond_settings_upload_skip_meta'));
 $field->addOption($addon->i18n('filepond_settings_upload_skip_meta_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_upload_skip_meta_notice'));
 
+// Neue Einstellung: Dekorative Bilder erlauben
+$field = $form->addCheckboxField('allow_decorative_images');
+$field->setLabel($addon->i18n('filepond_settings_allow_decorative'));
+$field->addOption($addon->i18n('filepond_settings_allow_decorative_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_allow_decorative_notice'));
+
 // Neue Einstellung: Verzögerter Upload-Modus
 $field = $form->addCheckboxField('delayed_upload_mode');
 $field->setLabel($addon->i18n('filepond_settings_delayed_upload'));

@@ -107,6 +107,9 @@
                     const isImage = file.type?.startsWith('image/') || 
                                     (file instanceof File && file.type.startsWith('image/'));
                     
+                    // Prüfen ob dekorative Bilder erlaubt sind (aus der Konfiguration)
+                    const allowDecorativeImages = window.rex?.filepond_config?.allow_decorative_images || false;
+                    
                     formCol.innerHTML = `
                         <div class="simple-modal-form-group">
                             <label for="title">${t.titleLabel}</label>
@@ -117,7 +120,7 @@
                             <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
                             <div class="help-text">${t.altNotice}</div>
                         </div>
-                        ${isImage ? `
+                        ${isImage && allowDecorativeImages ? `
                         <div class="simple-modal-form-group">
                             <div class="simple-modal-checkbox-wrapper">
                                 <input type="checkbox" id="decorative" name="decorative" class="simple-modal-checkbox" ${existingMetadata?.decorative ? 'checked' : ''}>
@@ -125,12 +128,7 @@
                             </div>
                             <div class="help-text">${t.decorativeNotice}</div>
                         </div>
-                        ` : ''}
-                        <div class="simple-modal-form-group">
-                            <label for="copyright">${t.copyrightLabel}</label>
-                            <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
-                        </div>
-                    `;
+                        ` : ''}`;
 
                     form.appendChild(previewCol);
                     form.appendChild(formCol);

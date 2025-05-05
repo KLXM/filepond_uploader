@@ -32,6 +32,9 @@ filepond_settings_max_pixel_notice = Maximum width/height in pixels to which lar
 filepond_settings_upload_skip_meta = Disable meta dialog on upload page
 filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
 filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
+filepond_settings_allow_decorative = Allow decorative images
+filepond_settings_allow_decorative_label = Enable
+filepond_settings_allow_decorative_notice = Allows marking images as decorative, which makes alt text optional
 
 # YForm field
 filepond_empty_value_label = Error message if empty

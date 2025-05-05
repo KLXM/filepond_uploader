@@ -9,6 +9,15 @@ if (rex::isBackend() && rex::getUser()) {
     if (!$filepondScriptsLoaded) {
         filepond_helper::getStyles();
         filepond_helper::getScripts();
+        
+        // Konfigurationsoptionen für das Frontend
+        $config = [
+            'allow_decorative_images' => (bool)rex_config::get('filepond_uploader', 'allow_decorative_images', false),
+        ];
+        
+        // JavaScript-Konfigurationsobjekt hinzufügen
+        rex_view::addJsData('filepond_config', $config);
+        
         $filepondScriptsLoaded = true;
     }
 }
