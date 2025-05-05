@@ -13,6 +13,8 @@
                 titleLabel: 'Titel:',
                 altLabel: 'Alt-Text:',
                 altNotice: 'Alternativtext für Screenreader und SEO',
+                decorativeLabel: 'Dekoratives Bild',
+                decorativeNotice: 'Nur für Bilder - alt-Text wird nicht benötigt',
                 copyrightLabel: 'Copyright:',
                 fileInfo: 'Datei',
                 fileSize: 'Größe',
@@ -28,6 +30,8 @@
                 titleLabel: 'Title:',
                 altLabel: 'Alt Text:',
                 altNotice: 'Alternative text for screen readers and SEO',
+                decorativeLabel: 'Decorative image',
+                decorativeNotice: 'For images only - alt text not required',
                 copyrightLabel: 'Copyright:',
                 fileInfo: 'File',
                 fileSize: 'Size',
@@ -98,16 +102,30 @@
                     // Form Fields
                     const formCol = document.createElement('div');
                     formCol.className = 'simple-modal-col-8';
+                    
+                    // Prüfen, ob es sich um ein Bild handelt
+                    const isImage = file.type?.startsWith('image/') || 
+                                    (file instanceof File && file.type.startsWith('image/'));
+                    
                     formCol.innerHTML = `
                         <div class="simple-modal-form-group">
                             <label for="title">${t.titleLabel}</label>
                             <input type="text" id="title" name="title" class="simple-modal-input" required value="${existingMetadata?.title || ''}">
                         </div>
-                        <div class="simple-modal-form-group">
+                        <div class="simple-modal-form-group" id="alt-text-group">
                             <label for="alt">${t.altLabel}</label>
                             <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
                             <div class="help-text">${t.altNotice}</div>
                         </div>
+                        ${isImage ? `
+                        <div class="simple-modal-form-group">
+                            <div class="simple-modal-checkbox-wrapper">
+                                <input type="checkbox" id="decorative" name="decorative" class="simple-modal-checkbox" ${existingMetadata?.decorative ? 'checked' : ''}>
+                                <label for="decorative">${t.decorativeLabel}</label>
+                            </div>
+                            <div class="help-text">${t.decorativeNotice}</div>
+                        </div>
+                        ` : ''}
                         <div class="simple-modal-form-group">
                             <label for="copyright">${t.copyrightLabel}</label>
                             <input type="text" id="copyright" name="copyright" class="simple-modal-input" value="${existingMetadata?.copyright || ''}">
@@ -119,52 +137,40 @@
 
                     const modal = new SimpleModal();
 
-                    // Preview media
-                    const previewMedia = async () => {
-                        try {
-                            if (file instanceof File) {
-                                if (file.type.startsWith('image/')) {
-                                    const img = document.createElement('img');
-                                    img.src = URL.createObjectURL(file);
-                                    img.alt = file.name;
-                                    previewContainer.appendChild(img);
-                                } else if (file.type.startsWith('video/')) {
-                                    const video = document.createElement('video');
-                                    video.src = URL.createObjectURL(file);
-                                    video.controls = true;
-                                    video.muted = true;
-                                    previewContainer.appendChild(video);
-                                } else if (file.type.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
-                                } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
+                    // Event-Handler für die "Dekorativ"-Checkbox, wenn vorhanden
+                    if (isImage) {
+                        setTimeout(() => {
+                            const decorativeCheckbox = form.querySelector('#decorative');
+                            const altInput = form.querySelector('#alt');
+                            const altGroup = form.querySelector('#alt-text-group');
+                            
+                            if (decorativeCheckbox && altInput && altGroup) {
+                                // Initialen Zustand setzen
+                                if (decorativeCheckbox.checked) {
+                                    altInput.removeAttribute('required');
+                                    altGroup.classList.add('disabled');
+                                    altInput.disabled = true;
                                 }
-                            } else {
-                                const mediaUrl = '/media/' + file.source;
-                                if (file.type?.startsWith('image/')) {
-                                    const img = document.createElement('img');
-                                    img.src = mediaUrl;
-                                    img.alt = file.source;
-                                    previewContainer.appendChild(img);
-                                } else if (file.type?.startsWith('video/')) {
-                                    const video = document.createElement('video');
-                                    video.src = mediaUrl;
-                                    video.controls = true;
-                                    video.muted = true;
-                                    previewContainer.appendChild(video);
-                                } else if (file.type?.startsWith('application/pdf')) {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📄</span>';
-                                } else {
-                                    previewContainer.innerHTML = '<span class="simple-modal-file-icon">📁</span>';
-                                }
+                                
+                                // Event-Handler für Änderungen
+                                decorativeCheckbox.addEventListener('change', function() {
+                                    if (this.checked) {
+                                        // Wenn dekorativ, dann Alt-Text nicht erforderlich
+                                        altInput.removeAttribute('required');
+                                        altGroup.classList.add('disabled');
+                                        altInput.disabled = true;
+                                        // Alt-Text auf leer setzen (optional)
+                                        altInput.value = '';
+                                    } else {
+                                        // Wenn nicht dekorativ, Alt-Text erforderlich
+                                        altInput.setAttribute('required', 'required');
+                                        altGroup.classList.remove('disabled');
+                                        altInput.disabled = false;
+                                    }
+                                });
                             }
-                        } catch (error) {
-                            console.error('Error loading preview:', error);
-                            previewContainer.innerHTML = '';
-                        }
-                    };
-
-                    previewMedia();
+                        }, 100); // Kurze Verzögerung für DOM-Rendering
+                    }
 
                     modal.show({
                         title: `${t.metaTitle} ${file.filename || file.name}`,
@@ -182,18 +188,25 @@
                                     const titleInput = form.querySelector('[name="title"]');
                                     const altInput = form.querySelector('[name="alt"]');
                                     const copyrightInput = form.querySelector('[name="copyright"]');
+                                    const decorativeCheckbox = form.querySelector('#decorative');
+                                    const isDecorative = decorativeCheckbox && decorativeCheckbox.checked;
 
-                                    if (titleInput.value && altInput.value) {
+                                    // Alt-Text ist optional, wenn "Dekorativ" aktiviert ist
+                                    const isValid = titleInput.value && 
+                                                  (isDecorative || altInput.value);
+
+                                    if (isValid) {
                                         const metadata = {
                                             title: titleInput.value,
-                                            alt: altInput.value,
-                                            copyright: copyrightInput.value
+                                            alt: isDecorative ? '' : altInput.value,
+                                            copyright: copyrightInput.value,
+                                            decorative: isDecorative || false
                                         };
                                         modal.close();
                                         resolve(metadata);
                                     } else {
                                         if (!titleInput.value) titleInput.reportValidity();
-                                        if (!altInput.value) altInput.reportValidity();
+                                        if (!isDecorative && !altInput.value) altInput.reportValidity();
                                     }
                                 }
                             }
@@ -299,6 +312,7 @@
                             formData.append('totalChunks', totalChunks);
                             formData.append('fileName', file.name);
                             formData.append('category_id', input.dataset.filepondCat || '0');
+                            formData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
 
                             try {
                                // console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
@@ -355,6 +369,7 @@
                     finalFormData.append('fileName', file.name);
                     finalFormData.append('category_id', input.dataset.filepondCat || '0');
                     finalFormData.append('totalChunks', totalChunks);
+                    finalFormData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
                     
                     // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
                     const lastChunkResponse = await fetch(basePath, {
@@ -362,8 +377,7 @@
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
                         },
-                        body: finalFormData,
-                        signal: abortController.signal
+                        body: finalFormData
                     });
                     
                     if (!lastChunkResponse.ok) {
@@ -481,6 +495,7 @@
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
                                 uploadFormData.append('category_id', input.dataset.filepondCat || '0');
+                                uploadFormData.append('skipMeta', skipMeta ? '1' : '0'); // Direkt skipMeta-Parameter übergeben
 
                                 const response = await fetch(basePath, {
                                     method: 'POST',
@@ -511,6 +526,36 @@
                                 console.error('Upload error:', err);
                                 error('Upload failed: ' + err.message);
                             } else {
+                                console.log('Metadata dialog cancelled, removing uploaded file if exists');
+                                // Dialog wurde abgebrochen, prüfen ob die Datei bereits hochgeladen wurde
+                                // und bei Bedarf wieder löschen
+                                if (result && result.filename) {
+                                    try {
+                                        // API-Aufruf zum Löschen der Datei, die bereits hochgeladen wurde
+                                        const deleteFormData = new FormData();
+                                        deleteFormData.append('rex-api-call', 'filepond_uploader');
+                                        deleteFormData.append('func', 'cancel-upload');
+                                        deleteFormData.append('filename', result.filename);
+                                        
+                                        fetch(basePath, {
+                                            method: 'POST',
+                                            headers: {
+                                                'X-Requested-With': 'XMLHttpRequest'
+                                            },
+                                            body: deleteFormData
+                                        }).then(response => {
+                                            if (response.ok) {
+                                                console.log('Successfully removed file after metadata cancel');
+                                            } else {
+                                                console.error('Failed to remove file after metadata cancel');
+                                            }
+                                        }).catch(e => {
+                                            console.error('Error removing file after metadata cancel:', e);
+                                        });
+                                    } catch (deleteErr) {
+                                        console.error('Error removing file after metadata cancel:', deleteErr);
+                                    }
+                                }
                                 error('Upload cancelled');
                                 abort();
                             }
