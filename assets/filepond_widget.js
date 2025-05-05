@@ -654,8 +654,37 @@
                                 error('Upload failed: ' + err.message);
                             } else {
                                 console.log('Metadata dialog cancelled');
-                                error('Upload cancelled');
-                                abort();
+                                
+                                // Statt direktem Abbruch: Zeige einen Status mit Retry-Button an
+                                file.abortProcessing = true;
+                                
+                                // Speichere Original-Funktionen für späteren Aufruf
+                                const originalLoad = load;
+                                const originalProgress = progress;
+                                const originalError = error;
+                                const originalAbort = abort;
+                                
+                                // Abbrechen, aber mit Retry-Option durch speziellen Status
+                                error('cancelled', {
+                                    message: t.cancelBtn,
+                                    buttonLabel: t.retry,
+                                    buttonAction: () => {
+                                        // Starte den Upload für diese Datei erneut
+                                        // Der spezielle Status 'cancelled' mit Button wird von FilePond automatisch erkannt
+                                        const retryFile = pond.getFiles().find(f => f.id === file.id);
+                                        if (retryFile) {
+                                            file.abortProcessing = false;
+                                            pond.processFile(retryFile.id).then(
+                                                successFile => {
+                                                    console.log('Retry successful:', successFile.filename || successFile.file.name);
+                                                },
+                                                failureReason => {
+                                                    console.error('Retry failed:', failureReason);
+                                                }
+                                            );
+                                        }
+                                    }
+                                });
                             }
                         }
                     },
