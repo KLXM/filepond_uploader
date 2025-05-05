@@ -97,6 +97,74 @@
                     previewCol.className = 'simple-modal-col-4';
                     const previewContainer = document.createElement('div');
                     previewContainer.className = 'simple-modal-preview';
+                    
+                    // Hier fügen wir eine Vorschau basierend auf dem Dateityp ein
+                    if (file instanceof File) {
+                        if (file.type.startsWith('image/')) {
+                            // Bild-Vorschau
+                            const img = document.createElement('img');
+                            img.alt = '';
+                            const objectURL = URL.createObjectURL(file);
+                            img.src = objectURL;
+                            img.onload = () => {
+                                URL.revokeObjectURL(objectURL);
+                            };
+                            previewContainer.appendChild(img);
+                        } else if (file.type.startsWith('video/')) {
+                            // Video-Vorschau
+                            const video = document.createElement('video');
+                            video.controls = true;
+                            video.muted = true;
+                            const objectURL = URL.createObjectURL(file);
+                            video.src = objectURL;
+                            video.onload = () => {
+                                URL.revokeObjectURL(objectURL);
+                            };
+                            previewContainer.appendChild(video);
+                        } else {
+                            // Icon für andere Dateitypen
+                            const icon = document.createElement('div');
+                            icon.className = 'simple-modal-file-icon';
+                            icon.innerHTML = '<i class="fa fa-file"></i>';
+                            previewContainer.appendChild(icon);
+                            
+                            const fileName = document.createElement('div');
+                            fileName.textContent = file.name;
+                            fileName.style.marginTop = '10px';
+                            fileName.style.wordBreak = 'break-all';
+                            previewContainer.appendChild(fileName);
+                        }
+                    } else if (typeof file.source === 'string') {
+                        // Bereits hochgeladene Datei
+                        const fileName = file.source || file.filename || 'unknown';
+                        if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
+                            // Bild-Vorschau für bereits hochgeladene Dateien
+                            const img = document.createElement('img');
+                            img.alt = '';
+                            img.src = '/media/' + fileName;
+                            previewContainer.appendChild(img);
+                        } else if (/\.(mp4|webm|ogg)$/i.test(fileName)) {
+                            // Video-Vorschau für bereits hochgeladene Dateien
+                            const video = document.createElement('video');
+                            video.controls = true;
+                            video.muted = true;
+                            video.src = '/media/' + fileName;
+                            previewContainer.appendChild(video);
+                        } else {
+                            // Icon für andere Dateitypen
+                            const icon = document.createElement('div');
+                            icon.className = 'simple-modal-file-icon';
+                            icon.innerHTML = '<i class="fa fa-file"></i>';
+                            previewContainer.appendChild(icon);
+                            
+                            const fileNameEl = document.createElement('div');
+                            fileNameEl.textContent = fileName;
+                            fileNameEl.style.marginTop = '10px';
+                            fileNameEl.style.wordBreak = 'break-all';
+                            previewContainer.appendChild(fileNameEl);
+                        }
+                    }
+                    
                     previewCol.appendChild(previewContainer);
 
                     // Form Fields
@@ -191,14 +259,19 @@
                                     const decorativeCheckbox = form.querySelector('#decorative');
                                     const isDecorative = decorativeCheckbox && decorativeCheckbox.checked;
 
-                                    // Alt-Text ist optional, wenn "Dekorativ" aktiviert ist
-                                    const isValid = titleInput.value && 
-                                                  (isDecorative || altInput.value);
+                                    // Alt-Text ist nur für Bilder erforderlich, die nicht als dekorativ markiert sind
+                                    // Bei anderen Dateitypen ist kein Alt-Text erforderlich
+                                    let isValid = titleInput.value;
+                                    
+                                    if (isImage && altInput && !isDecorative) {
+                                        // Nur bei Bildern, die nicht dekorativ sind, Alt-Text prüfen
+                                        isValid = isValid && altInput.value;
+                                    }
 
                                     if (isValid) {
                                         const metadata = {
                                             title: titleInput.value,
-                                            alt: isDecorative ? '' : altInput.value,
+                                            alt: (isImage && altInput) ? (isDecorative ? '' : altInput.value) : '',
                                             copyright: copyrightInput.value,
                                             decorative: isDecorative || false
                                         };
@@ -206,7 +279,7 @@
                                         resolve(metadata);
                                     } else {
                                         if (!titleInput.value) titleInput.reportValidity();
-                                        if (!isDecorative && !altInput.value) altInput.reportValidity();
+                                        if (isImage && !isDecorative && altInput && !altInput.value) altInput.reportValidity();
                                     }
                                 }
                             }
