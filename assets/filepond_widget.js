@@ -122,17 +122,54 @@
                             };
                             previewContainer.appendChild(video);
                         } else {
-                            // Icon für andere Dateitypen
+                            // Passende Font Awesome 6 Icons basierend auf dem Dateityp
                             const icon = document.createElement('div');
                             icon.className = 'simple-modal-file-icon';
-                            icon.innerHTML = '<i class="fa fa-file"></i>';
-                            previewContainer.appendChild(icon);
                             
-                            const fileName = document.createElement('div');
-                            fileName.textContent = file.name;
-                            fileName.style.marginTop = '10px';
-                            fileName.style.wordBreak = 'break-all';
-                            previewContainer.appendChild(fileName);
+                            // Icon basierend auf dem Dateityp bestimmen
+                            let iconClass = 'fa-file'; // Standard-Icon
+                            if (file.type) {
+                                if (file.type.includes('pdf')) {
+                                    iconClass = 'fa-file-pdf';
+                                } else if (file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv') || file.name?.endsWith('.xlsx') || file.name?.endsWith('.xls')) {
+                                    iconClass = 'fa-file-excel';
+                                } else if (file.type.includes('word') || file.type.includes('document') || file.name?.endsWith('.docx') || file.name?.endsWith('.doc')) {
+                                    iconClass = 'fa-file-word';
+                                } else if (file.type.includes('powerpoint') || file.type.includes('presentation') || file.name?.endsWith('.pptx') || file.name?.endsWith('.ppt')) {
+                                    iconClass = 'fa-file-powerpoint';
+                                } else if (file.type.includes('zip') || file.type.includes('archive') || file.type.includes('compressed')) {
+                                    iconClass = 'fa-file-archive';
+                                } else if (file.type.includes('audio')) {
+                                    iconClass = 'fa-file-audio';
+                                } else if (file.type.includes('text') || file.type.includes('plain') || file.name?.endsWith('.txt')) {
+                                    iconClass = 'fa-file-alt';
+                                } else if (file.type.includes('code') || file.name?.endsWith('.json') || file.name?.endsWith('.js') || file.name?.endsWith('.html') || file.name?.endsWith('.css') || file.name?.endsWith('.php')) {
+                                    iconClass = 'fa-file-code';
+                                }
+                            } else if (file.name) {
+                                // Erkennung basierend auf dem Dateinamen als Fallback
+                                const name = file.name.toLowerCase();
+                                if (name.endsWith('.pdf')) {
+                                    iconClass = 'fa-file-pdf';
+                                } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
+                                    iconClass = 'fa-file-excel';
+                                } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                                    iconClass = 'fa-file-word';
+                                } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
+                                    iconClass = 'fa-file-powerpoint';
+                                } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
+                                    iconClass = 'fa-file-archive';
+                                } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
+                                    iconClass = 'fa-file-audio';
+                                } else if (name.endsWith('.txt')) {
+                                    iconClass = 'fa-file-alt';
+                                } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
+                                    iconClass = 'fa-file-code';
+                                }
+                            }
+                            
+                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
+                            previewContainer.appendChild(icon);
                         }
                     } else if (typeof file.source === 'string') {
                         // Bereits hochgeladene Datei
@@ -143,7 +180,7 @@
                             img.alt = '';
                             img.src = '/media/' + fileName;
                             previewContainer.appendChild(img);
-                        } else if (/\.(mp4|webm|ogg)$/i.test(fileName)) {
+                        } else if (/\.(mp4|webm|ogg|mov)$/i.test(fileName)) {
                             // Video-Vorschau für bereits hochgeladene Dateien
                             const video = document.createElement('video');
                             video.controls = true;
@@ -151,17 +188,34 @@
                             video.src = '/media/' + fileName;
                             previewContainer.appendChild(video);
                         } else {
-                            // Icon für andere Dateitypen
+                            // Icon basierend auf Dateiendung
                             const icon = document.createElement('div');
                             icon.className = 'simple-modal-file-icon';
-                            icon.innerHTML = '<i class="fa fa-file"></i>';
-                            previewContainer.appendChild(icon);
                             
-                            const fileNameEl = document.createElement('div');
-                            fileNameEl.textContent = fileName;
-                            fileNameEl.style.marginTop = '10px';
-                            fileNameEl.style.wordBreak = 'break-all';
-                            previewContainer.appendChild(fileNameEl);
+                            // Icon basierend auf der Dateiendung bestimmen
+                            let iconClass = 'fa-file'; // Standard-Icon
+                            const name = fileName.toLowerCase();
+                            
+                            if (name.endsWith('.pdf')) {
+                                iconClass = 'fa-file-pdf';
+                            } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
+                                iconClass = 'fa-file-excel';
+                            } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                                iconClass = 'fa-file-word';
+                            } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
+                                iconClass = 'fa-file-powerpoint';
+                            } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
+                                iconClass = 'fa-file-archive';
+                            } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
+                                iconClass = 'fa-file-audio';
+                            } else if (name.endsWith('.txt')) {
+                                iconClass = 'fa-file-alt';
+                            } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
+                                iconClass = 'fa-file-code';
+                            }
+                            
+                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
+                            previewContainer.appendChild(icon);
                         }
                     }
                     
