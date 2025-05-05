@@ -112,12 +112,12 @@
                             <label for="title">${t.titleLabel}</label>
                             <input type="text" id="title" name="title" class="simple-modal-input" required value="${existingMetadata?.title || ''}">
                         </div>
+                        ${isImage ? `
                         <div class="simple-modal-form-group" id="alt-text-group">
                             <label for="alt">${t.altLabel}</label>
                             <input type="text" id="alt" name="alt" class="simple-modal-input" required value="${existingMetadata?.alt || ''}">
                             <div class="help-text">${t.altNotice}</div>
                         </div>
-                        ${isImage ? `
                         <div class="simple-modal-form-group">
                             <div class="simple-modal-checkbox-wrapper">
                                 <input type="checkbox" id="decorative" name="decorative" class="simple-modal-checkbox" ${existingMetadata?.decorative ? 'checked' : ''}>
@@ -526,36 +526,7 @@
                                 console.error('Upload error:', err);
                                 error('Upload failed: ' + err.message);
                             } else {
-                                console.log('Metadata dialog cancelled, removing uploaded file if exists');
-                                // Dialog wurde abgebrochen, prüfen ob die Datei bereits hochgeladen wurde
-                                // und bei Bedarf wieder löschen
-                                if (result && result.filename) {
-                                    try {
-                                        // API-Aufruf zum Löschen der Datei, die bereits hochgeladen wurde
-                                        const deleteFormData = new FormData();
-                                        deleteFormData.append('rex-api-call', 'filepond_uploader');
-                                        deleteFormData.append('func', 'cancel-upload');
-                                        deleteFormData.append('filename', result.filename);
-                                        
-                                        fetch(basePath, {
-                                            method: 'POST',
-                                            headers: {
-                                                'X-Requested-With': 'XMLHttpRequest'
-                                            },
-                                            body: deleteFormData
-                                        }).then(response => {
-                                            if (response.ok) {
-                                                console.log('Successfully removed file after metadata cancel');
-                                            } else {
-                                                console.error('Failed to remove file after metadata cancel');
-                                            }
-                                        }).catch(e => {
-                                            console.error('Error removing file after metadata cancel:', e);
-                                        });
-                                    } catch (deleteErr) {
-                                        console.error('Error removing file after metadata cancel:', deleteErr);
-                                    }
-                                }
+                                console.log('Metadata dialog cancelled');
                                 error('Upload cancelled');
                                 abort();
                             }
