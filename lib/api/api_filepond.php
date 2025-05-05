@@ -87,6 +87,11 @@ class rex_api_filepond_uploader extends rex_api_function
                 case 'delete':
                     $result = $this->handleDelete();
                     $this->sendResponse($result);
+                
+                case 'cancel-upload':
+                    // Abbrechen des Metadaten-Dialogs: Hochgeladene Datei entfernen
+                    $result = $this->handleCancelUpload();
+                    $this->sendResponse($result);
 
                 case 'load':
                     // Spezialfall: Sendet die Datei direkt
@@ -659,10 +664,19 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
                     $sql->setValue('title', $metadata['title'] ?? '');
-                    if (!$skipMeta) {
+                    
+                    // Prüfen, ob Bild als dekorativ markiert ist
+                    $isDecorative = isset($metadata['decorative']) && $metadata['decorative'] === true;
+                    
+                    // Alt-Text und Copyright nur setzen, wenn nicht übersprungen und nicht dekorativ
+                    if (!$skipMeta && !$isDecorative) {
                         $sql->setValue('med_alt', $metadata['alt'] ?? '');
                         $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                    } elseif ($isDecorative) {
+                        // Bei dekorativen Bildern leeren Alt-Text setzen
+                        $sql->setValue('med_alt', '');
                     }
+                    
                     $sql->update();
                 }
 
@@ -1140,5 +1154,54 @@ class rex_api_filepond_uploader extends rex_api_function
             'filename' => $result, // Der tatsächliche Dateiname im Medienpool
             'originalname' => $fileName // Der ursprüngliche Dateiname
         ];
+    }
+
+    /**
+     * Löscht eine Datei aus dem Medienpool, wenn der Metadaten-Dialog abgebrochen wurde
+     * Diese Methode wird aufgerufen, wenn eine Datei zwar hochgeladen, aber der Metadaten-Dialog abgebrochen wurde
+     * Die Datei soll dann nicht im Medienpool bleiben, sondern komplett gelöscht werden
+     */
+    protected function handleCancelUpload()
+    {
+        $filename = trim(rex_request('filename', 'string', ''));
+
+        if (empty($filename)) {
+            throw new rex_api_exception('Missing filename');
+        }
+
+        $this->log('info', "Removing file after metadata dialog was cancelled: $filename");
+
+        try {
+            $media = rex_media::get($filename);
+            if ($media) {
+                // Prüfen, ob die Datei in Verwendung ist, sollte normalerweise nicht der Fall sein
+                // da sie gerade erst hochgeladen wurde und der Dialog abgebrochen wurde
+                $inUse = false;
+
+                // Lösche die Datei aus dem Medienpool
+                if (rex_media_service::deleteMedia($filename)) {
+                    $this->log('info', "Successfully removed file from media pool: $filename");
+                    return [
+                        'status' => 'success',
+                        'message' => "File $filename removed successfully"
+                    ];
+                } else {
+                    $this->log('warning', "Could not remove file from media pool: $filename");
+                    return [
+                        'status' => 'error',
+                        'message' => "Could not remove file $filename from media pool"
+                    ];
+                }
+            } else {
+                $this->log('warning', "File not found in media pool: $filename");
+                return [
+                    'status' => 'success',
+                    'message' => "File $filename not found in media pool"
+                ];
+            }
+        } catch (Exception $e) {
+            $this->log('error', 'Error removing file: ' . $e->getMessage());
+            throw new rex_api_exception('Error removing file: ' . $e->getMessage());
+        }
     }
 }
