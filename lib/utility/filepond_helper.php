@@ -20,6 +20,7 @@ class filepond_helper {
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-file-validate-type.js'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-file-validate-size.js'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.js'),
+			$addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-transform.js'),
             $addon->getAssetsUrl('filepond/filepond.js'),
             $addon->getAssetsUrl('filepond_modal.js'),
             $addon->getAssetsUrl('filepond_widget.js')

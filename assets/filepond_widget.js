@@ -47,7 +47,8 @@
         FilePond.registerPlugin(
             FilePondPluginFileValidateType,
             FilePondPluginFileValidateSize,
-            FilePondPluginImagePreview
+            FilePondPluginImagePreview,
+			FilePondPluginImageTransform
         );
 
         // Funktion zum Ermitteln des Basepaths
