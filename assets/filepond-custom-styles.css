@@ -122,39 +122,23 @@
  * Replace gradients with simple borders for success/failure states
  */
 
-/* Make the gradient overlays transparent (they use currentColor) */
+/* Hide the gradient overlays completely */
 .filepond--image-preview-overlay-success,
-.filepond--image-preview-overlay-failure,
-.filepond--image-preview-overlay-idle {
-    color: transparent !important;
+.filepond--image-preview-overlay-failure {
+    opacity: 0 !important;
 }
 
-/* Add default styling to image preview wrapper */
-.filepond--image-preview-wrapper {
-    position: relative;
-    transition: border 0.3s ease, box-shadow 0.3s ease;
-    border: 2px solid transparent;
-}
-
-/* Success state - green border */
-.filepond--image-preview-overlay-success {
+/* Success state - green border on the entire item container */
+[data-filepond-item-state='processing-complete'] {
     border: 3px solid rgba(54, 151, 99, 1) !important;
     box-shadow: 0 0 8px rgba(54, 151, 99, 0.3) !important;
-    border-radius: 0.45em;
-    background: transparent !important;
+    border-radius: 0.5em !important;
 }
 
-/* Failure state - red border */
-.filepond--image-preview-overlay-failure {
+/* Error state - red border on the entire item container */
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
     border: 3px solid rgba(196, 78, 71, 1) !important;
     box-shadow: 0 0 8px rgba(196, 78, 71, 0.3) !important;
-    border-radius: 0.45em;
-    background: transparent !important;
-}
-
-/* Idle state - no special border, just transparent overlay */
-.filepond--image-preview-overlay-idle {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
+    border-radius: 0.5em !important;
 }
