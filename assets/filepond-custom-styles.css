@@ -122,9 +122,9 @@
  * Replace gradients with simple borders for success/failure states
  */
 
-/* Hide the gradient overlays completely */
-.filepond--image-preview-overlay-success,
-.filepond--image-preview-overlay-failure {
+/* Hide only the SVG gradient content, not the entire overlay */
+.filepond--image-preview-overlay-success svg,
+.filepond--image-preview-overlay-failure svg {
     opacity: 0 !important;
 }
 
