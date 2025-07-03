@@ -128,17 +128,45 @@
     opacity: 0 !important;
 }
 
-/* Success state - green border on the entire item container */
+/* Glow animation keyframes for success state */
+@keyframes successGlow {
+    0% {
+        box-shadow: 0 0 8px rgba(54, 151, 99, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(54, 151, 99, 0.8), 0 0 30px rgba(54, 151, 99, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(54, 151, 99, 0.3);
+    }
+}
+
+/* Glow animation keyframes for error state */
+@keyframes errorGlow {
+    0% {
+        box-shadow: 0 0 8px rgba(196, 78, 71, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(196, 78, 71, 0.8), 0 0 30px rgba(196, 78, 71, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 8px rgba(196, 78, 71, 0.3);
+    }
+}
+
+/* Success state - green border with glow animation */
 [data-filepond-item-state='processing-complete'] {
     border: 3px solid rgba(54, 151, 99, 1) !important;
     box-shadow: 0 0 8px rgba(54, 151, 99, 0.3) !important;
     border-radius: 0.5em !important;
+    animation: successGlow 2s ease-in-out 3;
 }
 
-/* Error state - red border on the entire item container */
+/* Error state - red border with glow animation */
 [data-filepond-item-state*='error'],
 [data-filepond-item-state*='invalid'] {
     border: 3px solid rgba(196, 78, 71, 1) !important;
     box-shadow: 0 0 8px rgba(196, 78, 71, 0.3) !important;
     border-radius: 0.5em !important;
+    animation: errorGlow 2s ease-in-out 3;
 }
