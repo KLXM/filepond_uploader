@@ -308,6 +308,201 @@ Falls das Panel nicht richtig dargestellt wird, kann es helfen, den Stil anzupas
 }
 ```
 
+## Anpassung der FilePond-Stile
+
+Das AddOn enthält anpassbare Stile für verschiedene Bereiche der FilePond-Oberfläche. Diese können über CSS-Variablen und eigene CSS-Regeln individuell angepasst werden.
+
+### Upload-Button anpassen
+
+Der Upload-Button im verzögerten Upload-Modus kann über CSS-Variablen vollständig angepasst werden:
+
+```css
+:root {
+    --filepond-upload-btn-color: #4285f4;         /* Hintergrundfarbe */
+    --filepond-upload-btn-hover-color: #3367d6;   /* Hover-Farbe */
+    --filepond-upload-btn-text-color: #fff;       /* Textfarbe */
+    --filepond-upload-btn-border-radius: 4px;     /* Eckenradius */
+    --filepond-upload-btn-padding: 10px 16px;     /* Innenabstand */
+    --filepond-upload-btn-font-size: 14px;        /* Schriftgröße */
+    --filepond-upload-btn-font-weight: 500;       /* Schriftstärke */
+    --filepond-upload-btn-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);           /* Schatten */
+    --filepond-upload-btn-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.2);     /* Hover-Schatten */
+}
+```
+
+#### Beispiele für verschiedene Button-Stile
+
+**Roter Warn-Button:**
+```css
+:root {
+    --filepond-upload-btn-color: #dc3545;
+    --filepond-upload-btn-hover-color: #c82333;
+}
+```
+
+**Grüner Success-Button:**
+```css
+:root {
+    --filepond-upload-btn-color: #28a745;
+    --filepond-upload-btn-hover-color: #218838;
+}
+```
+
+**Minimalistischer Button:**
+```css
+:root {
+    --filepond-upload-btn-color: transparent;
+    --filepond-upload-btn-hover-color: rgba(0, 0, 0, 0.05);
+    --filepond-upload-btn-text-color: #007bff;
+    --filepond-upload-btn-shadow: none;
+    --filepond-upload-btn-shadow-hover: none;
+}
+
+.filepond-upload-btn {
+    border: 2px solid currentColor !important;
+}
+```
+
+### Thumbnail-Rahmen anpassen
+
+Die Rahmen bei Upload-Status (Erfolg/Fehler) können ebenfalls individuell angepasst werden:
+
+```css
+/* Erfolgreicher Upload - grüner Rahmen */
+[data-filepond-item-state='processing-complete'] {
+    border: 3px solid #28a745 !important;
+    box-shadow: 0 0 8px rgba(40, 167, 69, 0.3) !important;
+    border-radius: 0.5em !important;
+}
+
+/* Fehler beim Upload - roter Rahmen */
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
+    border: 3px solid #dc3545 !important;
+    box-shadow: 0 0 8px rgba(220, 53, 69, 0.3) !important;
+    border-radius: 0.5em !important;
+}
+```
+
+#### Glow-Animation deaktivieren
+
+Falls die pulsierenden Glow-Effekte nicht gewünscht sind:
+
+```css
+[data-filepond-item-state='processing-complete'],
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
+    animation: none !important;
+}
+```
+
+#### Alternative Rahmen-Stile
+
+**Dickere Rahmen:**
+```css
+[data-filepond-item-state='processing-complete'] {
+    border: 5px solid #28a745 !important;
+}
+
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
+    border: 5px solid #dc3545 !important;
+}
+```
+
+**Gestrichelte Rahmen:**
+```css
+[data-filepond-item-state='processing-complete'] {
+    border: 3px dashed #28a745 !important;
+}
+
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
+    border: 3px dashed #dc3545 !important;
+}
+```
+
+**Abgerundete Ecken anpassen:**
+```css
+[data-filepond-item-state='processing-complete'],
+[data-filepond-item-state*='error'],
+[data-filepond-item-state*='invalid'] {
+    border-radius: 15px !important; /* Stark abgerundete Ecken */
+}
+```
+
+### Theme-spezifische Anpassungen
+
+Das AddOn unterstützt vordefinierte Themes:
+
+**Dark Theme:**
+```css
+.dark-theme .filepond-upload-btn {
+    --filepond-upload-btn-color: #3d4852;
+    --filepond-upload-btn-hover-color: #2d3748;
+    --filepond-upload-btn-text-color: #f7fafc;
+}
+```
+
+**Minimal Theme:**
+```css
+.minimal-theme .filepond-upload-btn {
+    --filepond-upload-btn-color: transparent;
+    --filepond-upload-btn-hover-color: rgba(0, 0, 0, 0.05);
+    --filepond-upload-btn-text-color: #2196F3;
+    --filepond-upload-btn-shadow: none;
+    --filepond-upload-btn-shadow-hover: none;
+    border: 1px solid currentColor;
+}
+```
+
+### Eigene CSS-Datei einbinden
+
+Die Anpassungen sollten in einer eigenen CSS-Datei gespeichert und **nach** den FilePond-Styles geladen werden:
+
+```html
+<!-- Nach den FilePond-Styles -->
+<link rel="stylesheet" href="path/to/filepond-custom-styles.css">
+<link rel="stylesheet" href="path/to/meine-anpassungen.css">
+```
+
+**Im REDAXO-Template:**
+```php
+<?php
+// Standard FilePond-Styles laden
+echo filepond_helper::getStyles();
+
+// Eigene Anpassungen laden
+rex_view::addCssFile($this->getAssetsUrl('css/meine-filepond-anpassungen.css'));
+?>
+```
+
+### Vollständige Stil-Überschreibung
+
+Für umfassende Änderungen können die originalen Stile komplett überschrieben werden:
+
+```css
+/* Komplett eigener Upload-Button */
+.filepond-upload-btn {
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 25px !important;
+    padding: 15px 30px !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    transition: all 0.3s ease !important;
+}
+
+.filepond-upload-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3) !important;
+}
+```
+
+> **Tipp:** Verwende die Browser-Entwicklertools (F12), um die CSS-Selektoren zu identifizieren und deine Änderungen in Echtzeit zu testen, bevor du sie in deine CSS-Datei überträgst.
+
 ## Bildoptimierung
 
 Bilder werden automatisch optimiert, wenn sie eine konfigurierte maximale Pixelgröße überschreiten:
