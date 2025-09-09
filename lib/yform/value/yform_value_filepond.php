@@ -193,7 +193,7 @@
         $chunkSize = rex_config::get('filepond_uploader', 'chunk_size', 5) * 1024 * 1024;
         
         // Verzögerter Upload-Modus
-        $delayedUpload = (bool)$this->getElement('delayed_upload');
+        $delayedUpload = $this->getElement('delayed_upload');
 
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
             'category_id' => $this->getElement('category') ?: rex_config::get('filepond_uploader', 'category_id', 0),
@@ -208,7 +208,7 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1]';
+        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]';
     }
 
     public function getDefinitions(): array
@@ -251,11 +251,11 @@
                 ],
                 'skip_meta' => ['type' => 'checkbox',  'label' => 'Metaabfrage deaktivieren', 'default' => '0', 'options' => '0,1'],
                 'delayed_upload' => [
-                    'type' => 'checkbox',  
-                    'label' => 'Verzögerter Upload-Modus', 
-                    'notice' => 'Dateien werden erst nach Klick auf den Upload-Button hochgeladen',
+                    'type' => 'choice',  
+                    'label' => 'Verzögerter Upload-Modus',
+                    'choices' => ['0' => 'Deaktiviert', '1' => 'Upload-Button', '2' => 'Submit-Button'], 
+                    'notice' => 'Dateien werden erst nach Klick auf den Upload-Button oder nach Formular Übermittlung hochgeladen',
                     'default' => '0', 
-                    'options' => '0,1'
                 ]
             ],
             'description' => 'Filepond Dateiupload mit Medienpool-Integration und Chunk-Upload',
@@ -263,6 +263,7 @@
             'multi_edit' => false
         ];
     }
+
 
     public static function getSearchField($params)
     {
