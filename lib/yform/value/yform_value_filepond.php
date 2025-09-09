@@ -208,7 +208,7 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice';
+        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1]';
     }
 
     public function getDefinitions(): array
