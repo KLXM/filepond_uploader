@@ -30,7 +30,6 @@ foreach ($fileNames as $fileName) {
 
 $currentUser = rex::getUser();
 $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
-
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
     <label class="control-label" for="<?= $this->getFieldId() ?>"><?= $this->getLabel() ?></label>
@@ -47,7 +46,8 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
        data-filepond-skip-meta="<?= $skip_meta ? 'true' : 'false' ?>"
        data-filepond-chunk-enabled="<?= $chunk_enabled ? 'true' : 'false' ?>"
        data-filepond-chunk-size="<?= $chunk_size ?>"
-       data-filepond-delayed-upload="<?= $delayed_upload ? 'true' : 'false' ?>"
+       data-filepond-delayed-upload="<?= (1 == $delayed_upload || 2 == $delayed_upload) ? 'true' : 'false' ?>"
+       data-filepond-delayed-type="<?= $delayed_upload ?>"
     />
     
     <?php if ($notice = $this->getElement('notice')): ?>
