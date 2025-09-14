@@ -76,11 +76,27 @@ $yform->setValueField('filepond', [
     'allowed_max_files' => 5,
     'allowed_types' => 'image/*',
     'allowed_filesize' => 10,
-    'category' => 1
+    'category' => 1,
+    'delayed_upload' => 0
 ]);
 ```
 
-> **Hinweis:** Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden. Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden. In diesem Fall entfällt die automatische Löschung nicht verwendeter Medien.
+### Option: `delayed_upload`
+
+Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich hochgeladen und mit dem Formular verknüpft werden:
+
+| Wert | Verhalten | Typischer Einsatzzweck |
+|------|-----------|-------------------------|
+| `0`  | Dateien werden **sofort beim Auswählen** hochgeladen. | Standardverhalten, z. B. Bildergalerien |
+| `1`  | Dateien werden erst hochgeladen, wenn der Nutzer den **Upload-Button** klickt. | Wenn mehrere Dateien gesammelt und gemeinsam hochgeladen werden sollen (z. B. Bewerbungsunterlagen) |
+| `2`  | Nach dem Upload wird die **YForm sofort automatisch abgesendet**. | Schnell-Upload-Formulare. Hier sollten alle übrigen Felder des Formulars **clientseitig auf `required` geprüft werden**, da die Dateien sonst bereits hochgeladen werden, auch wenn die Formularvalidierung fehlschlägt. |
+
+---
+
+> **Hinweis:**  
+> Das `filepond`-Value-Feld in YForm ist eine bequeme Möglichkeit, den Uploader zu verwenden.  
+> Alternativ kann ein normales Input-Feld mit den notwendigen `data`-Attributen versehen werden.  
+> In diesem Fall entfällt jedoch die automatische Löschung nicht verwendeter Medien.
 
 ### Verwendung in Modulen
 
