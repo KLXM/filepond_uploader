@@ -745,12 +745,18 @@
             const pondRoot = pond.element.parentNode;
             if (pondRoot) {
                 pondRoot.pondReference = pond;
+
+                const delayedUploadType = input.hasAttribute('data-filepond-delayed-type') ? input.getAttribute('data-filepond-delayed-type') : 0;
                 
                 // Für verzögerten Upload-Modus: Füge einen Upload-Button hinzu
                 const isDelayedUpload = input.hasAttribute('data-filepond-delayed-upload') && 
-                                        input.getAttribute('data-filepond-delayed-upload') === 'true';
+                                        input.getAttribute('data-filepond-delayed-upload') === 'true';         
                 
                 if (isDelayedUpload) {
+
+                    if (1 == delayedUploadType) {
+                    // Eigener Upload Button
+
                     // Generiere eine eindeutige ID für den Button basierend auf der Input-ID
                     const buttonId = `filepond-upload-btn-${input.id || Math.random().toString(36).substring(2, 15)}`;
                     
@@ -781,7 +787,31 @@
                             pond.processFiles();
                         }
                     });
-                }
+
+                    } else if (2 == delayedUploadType) {
+                    // Upload via Formular Submit
+
+                    const formEl = pondRoot.closest('form');
+
+                    // Event-Listener für Submit
+                    formEl.addEventListener('submit', function(e) {
+                        e.preventDefault();
+
+                        console.log('Upload triggered for input:', input.id);
+                        if (pond && typeof pond.processFiles === 'function') {
+
+                        pond.on('processfiles', () => {
+                            console.log('All files uploaded');
+                            formEl.submit();
+                        });
+
+                        pond.processFiles();
+                        }  
+                    });
+
+                    }
+            }
+
             }
             
             // Globales Objekt für alle FilePond-Instanzen, falls nicht vorhanden
