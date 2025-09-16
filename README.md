@@ -2,8 +2,6 @@
 
 **Ein moderner Datei-Uploader für REDAXO mit Chunk-Upload und nahtloser Medienpool-Integration.**
 
-![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/dino.png?raw=true)
-
 ![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
 Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreiheit und rechtliche Anforderungen entwickelt. Er bietet eine moderne Drag-and-Drop-Oberfläche und integriert sich nahtlos in den REDAXO-Medienpool.
