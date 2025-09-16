@@ -112,7 +112,7 @@ class rex_api_filepond_uploader extends rex_api_function
             }
         } catch (Exception $e) {
             rex_logger::logException($e);
-            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_INTERNAL_ERROR);
+            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_FORBIDDEN);
         }
     }
 
