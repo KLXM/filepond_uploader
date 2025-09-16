@@ -656,6 +656,8 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 *   **Vendor:** FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
 *   **Lizenz:** MIT
 
+We believe in giving back to the community. You'll find various open source projects in our repositories that we've developed and maintain. We're also proud contributors to the REDAXO CMS ecosystem, actively participating in its development and community.
+
 ## Support
 
 *   **GitHub Issues:** Für Fehlermeldungen und Feature-Anfragen.
