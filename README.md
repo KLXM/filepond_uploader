@@ -651,7 +651,7 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 
 ## Credits
 
-*   **KLXM Crossmedia GmbH:** [klxm.de](https://klxm.de)
+*   **KLXM Crossmedia GmbH:** [klxm.de](https://klxm.de) - Die Werbeagentur vom Niederrhein
 *   **Entwickler:** [Thomas Skerbis](https://github.com/skerbis)
 *   **Vendor:** FilePond - [pqina.nl/filepond](https://pqina.nl/filepond/)
 *   **Lizenz:** MIT
