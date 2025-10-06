@@ -1,4 +1,4 @@
-# FilePond Uploader für REDAXO
+# KLXM FilePond Uploader für REDAXO
 
 **Ein moderner Datei-Uploader für REDAXO mit Chunk-Upload und nahtloser Medienpool-Integration.**
 
