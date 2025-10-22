@@ -22,7 +22,8 @@
                 cancelBtn: 'Abbrechen',
                 chunkStatus: 'Chunk {current} von {total} hochgeladen',
                 retry: 'Erneut versuchen',
-                resumeUpload: 'Upload fortsetzen'
+                resumeUpload: 'Upload fortsetzen',
+                uploadButton: 'Dateien hochladen'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -39,7 +40,8 @@
                 cancelBtn: 'Cancel',
                 chunkStatus: 'Chunk {current} of {total} uploaded',
                 retry: 'Retry',
-                resumeUpload: 'Resume upload'
+                resumeUpload: 'Resume upload',
+                uploadButton: 'Upload files'
             }
         };
 
