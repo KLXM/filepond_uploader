@@ -58,6 +58,7 @@ $content = '
                             data-filepond-lang="'.$langCode.'"
                             data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
                             data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
+                            data-filepond-delayed-type="'.($delayedUpload ? '1' : '0').'"
                             value=""
                         >
                     </div>
