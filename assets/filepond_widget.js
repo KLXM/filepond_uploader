@@ -50,6 +50,118 @@
             FilePondPluginImagePreview
         );
 
+        // Funktion zum Konvertieren von Dateiendungen zu MIME-Types
+        const extensionToMimeType = (extension) => {
+            // Entferne den führenden Punkt, falls vorhanden
+            const ext = extension.toLowerCase().replace(/^\./, '');
+            
+            const mimeMap = {
+                // Bilder
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif',
+                'webp': 'image/webp',
+                'avif': 'image/avif',
+                'svg': 'image/svg+xml',
+                'bmp': 'image/bmp',
+                'tiff': 'image/tiff',
+                'tif': 'image/tiff',
+                'ico': 'image/x-icon',
+                
+                // Videos
+                'mp4': 'video/mp4',
+                'webm': 'video/webm',
+                'ogg': 'video/ogg',
+                'ogv': 'video/ogg',
+                'avi': 'video/x-msvideo',
+                'mov': 'video/quicktime',
+                'wmv': 'video/x-ms-wmv',
+                'flv': 'video/x-flv',
+                'mkv': 'video/x-matroska',
+                
+                // Audio
+                'mp3': 'audio/mpeg',
+                'wav': 'audio/wav',
+                'ogg': 'audio/ogg',
+                'oga': 'audio/ogg',
+                'flac': 'audio/flac',
+                'm4a': 'audio/mp4',
+                'aac': 'audio/aac',
+                
+                // Dokumente
+                'pdf': 'application/pdf',
+                'doc': 'application/msword',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls': 'application/vnd.ms-excel',
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt': 'application/vnd.ms-powerpoint',
+                'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'odt': 'application/vnd.oasis.opendocument.text',
+                'ods': 'application/vnd.oasis.opendocument.spreadsheet',
+                'odp': 'application/vnd.oasis.opendocument.presentation',
+                
+                // Text
+                'txt': 'text/plain',
+                'csv': 'text/csv',
+                'rtf': 'application/rtf',
+                'html': 'text/html',
+                'htm': 'text/html',
+                'xml': 'application/xml',
+                'json': 'application/json',
+                
+                // Archive
+                'zip': 'application/zip',
+                'rar': 'application/x-rar-compressed',
+                '7z': 'application/x-7z-compressed',
+                'tar': 'application/x-tar',
+                'gz': 'application/gzip',
+                'bz2': 'application/x-bzip2'
+            };
+            
+            return mimeMap[ext] || null;
+        };
+
+        // Funktion zum Normalisieren von acceptedFileTypes
+        // Konvertiert Dateiendungen (.pdf, .doc) in MIME-Types (application/pdf, application/msword)
+        // Behält MIME-Types und Wildcards (image/*, video/*) bei
+        const normalizeFileTypes = (typesString) => {
+            if (!typesString) return [];
+            
+            const types = typesString.split(',').map(type => type.trim()).filter(Boolean);
+            const normalized = [];
+            
+            types.forEach(type => {
+                // Wenn es ein MIME-Type oder Wildcard ist (enthält '/'), direkt übernehmen
+                if (type.includes('/')) {
+                    normalized.push(type);
+                }
+                // Wenn es eine Dateiendung ist (beginnt mit '.'), konvertieren
+                else if (type.startsWith('.')) {
+                    const mimeType = extensionToMimeType(type);
+                    if (mimeType) {
+                        normalized.push(mimeType);
+                    } else {
+                        // Fallback: Behalte die Endung für FilePond's eigene Validierung
+                        console.warn(`Unknown file extension: ${type}, keeping as-is`);
+                        normalized.push(type);
+                    }
+                }
+                // Wenn es weder '/' noch '.' enthält, versuche es als Endung
+                else {
+                    const mimeType = extensionToMimeType(type);
+                    if (mimeType) {
+                        normalized.push(mimeType);
+                    } else {
+                        console.warn(`Could not convert type: ${type}, keeping as-is`);
+                        normalized.push(type);
+                    }
+                }
+            });
+            
+            return normalized;
+        };
+
         // Funktion zum Ermitteln des Basepaths
         const getBasePath = () => {
             const baseElement = document.querySelector('base');
@@ -733,7 +845,7 @@
                 styleButtonProcessItemPosition: 'right',
                 imagePreviewHeight: 100,
                 itemPanelAspectRatio: 1,
-                acceptedFileTypes: (input.dataset.filepondTypes || 'image/*').split(','),
+                acceptedFileTypes: normalizeFileTypes(input.dataset.filepondTypes || 'image/*'),
                 maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
                 credits: false
             });

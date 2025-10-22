@@ -208,7 +208,7 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]';
+        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]';
     }
 
     public function getDefinitions(): array
@@ -228,7 +228,7 @@
                 'allowed_types' => [
                     'type' => 'text',   
                     'label' => 'Erlaubte Dateitypen',
-                    'notice' => 'z.B.: image/*,video/*,application/pdf',
+                    'notice' => 'MIME-Types (z.B.: image/*,video/*,application/pdf) oder Dateiendungen (.pdf,.doc,.docx) - beide Formate können gemischt werden',
                     'default' => rex_config::get('filepond_uploader', 'allowed_types', 'image/*')
                 ],
                 'allowed_filesize' => [
