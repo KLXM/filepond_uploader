@@ -203,6 +203,8 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-skip-meta`    | Meta-Eingabe deaktivieren               | `false`      |
 | `data-filepond-chunk-enabled`| Chunk-Upload aktivieren                 | `true`       |
 | `data-filepond-chunk-size`   | Chunk-Größe in MB                       | `5`          |
+| `data-filepond-delayed-upload` | Verzögerter Upload-Modus              | `false`      |
+| `data-filepond-delayed-type` | Upload-Modus-Typ (1=Button, 2=Submit) | `1` wenn delayed-upload aktiv |
 
 ### Erlaubte Dateitypen (MIME-Types)
 
@@ -630,6 +632,12 @@ Bei direkter Einbindung kann der verzögerte Upload-Modus über ein Attribut akt
     data-filepond-delayed-upload="true"
 >
 ```
+
+**Hinweis:** Das Attribut `data-filepond-delayed-type` steuert den Upload-Modus:
+- `1`: Upload-Button wird angezeigt (Standard wenn `data-filepond-delayed-upload="true"`)
+- `2`: Upload erfolgt beim Formular-Submit (muss explizit gesetzt werden)
+
+Das Attribut `data-filepond-delayed-type` muss nur gesetzt werden, wenn der Submit-Modus (`2`) gewünscht ist. Beim Aktivieren von `data-filepond-delayed-upload="true"` wird automatisch der Upload-Button-Modus (`1`) verwendet.
 
 ### Anpassung des Upload-Buttons
 

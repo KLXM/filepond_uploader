@@ -22,7 +22,8 @@
                 cancelBtn: 'Abbrechen',
                 chunkStatus: 'Chunk {current} von {total} hochgeladen',
                 retry: 'Erneut versuchen',
-                resumeUpload: 'Upload fortsetzen'
+                resumeUpload: 'Upload fortsetzen',
+                uploadButton: 'Dateien hochladen'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -39,7 +40,8 @@
                 cancelBtn: 'Cancel',
                 chunkStatus: 'Chunk {current} of {total} uploaded',
                 retry: 'Retry',
-                resumeUpload: 'Resume upload'
+                resumeUpload: 'Resume upload',
+                uploadButton: 'Upload files'
             }
         };
 
@@ -746,11 +748,14 @@
             if (pondRoot) {
                 pondRoot.pondReference = pond;
 
-                const delayedUploadType = input.hasAttribute('data-filepond-delayed-type') ? input.getAttribute('data-filepond-delayed-type') : 0;
-                
                 // Für verzögerten Upload-Modus: Füge einen Upload-Button hinzu
                 const isDelayedUpload = input.hasAttribute('data-filepond-delayed-upload') && 
-                                        input.getAttribute('data-filepond-delayed-upload') === 'true';         
+                                        input.getAttribute('data-filepond-delayed-upload') === 'true';
+                
+                // Default ist 1 (Upload-Button) wenn delayed upload aktiviert ist, sonst 0
+                const delayedUploadType = input.hasAttribute('data-filepond-delayed-type') ? 
+                                         input.getAttribute('data-filepond-delayed-type') : 
+                                         (isDelayedUpload ? '1' : '0');
                 
                 if (isDelayedUpload) {
 
