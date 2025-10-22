@@ -113,6 +113,8 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
     data-filepond-lang="de_de"
     data-filepond-chunk-enabled="true"
     data-filepond-chunk-size="5242880"
+    data-filepond-delayed-upload="false"
+    data-filepond-delayed-type="0"
 >
 ```
 
@@ -203,6 +205,8 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-skip-meta`    | Meta-Eingabe deaktivieren               | `false`      |
 | `data-filepond-chunk-enabled`| Chunk-Upload aktivieren                 | `true`       |
 | `data-filepond-chunk-size`   | Chunk-Größe in MB                       | `5`          |
+| `data-filepond-delayed-upload` | Verzögerter Upload-Modus              | `false`      |
+| `data-filepond-delayed-type` | Upload-Modus-Typ (0=aus, 1=Button, 2=Submit) | `0`    |
 
 ### Erlaubte Dateitypen (MIME-Types)
 
@@ -628,8 +632,14 @@ Bei direkter Einbindung kann der verzögerte Upload-Modus über ein Attribut akt
     data-widget="filepond"
     data-filepond-cat="1"
     data-filepond-delayed-upload="true"
+    data-filepond-delayed-type="1"
 >
 ```
+
+**Hinweis:** Das Attribut `data-filepond-delayed-type` steuert den Upload-Modus:
+- `0`: Deaktiviert (Standard)
+- `1`: Upload-Button wird angezeigt
+- `2`: Upload erfolgt beim Formular-Submit
 
 ### Anpassung des Upload-Buttons
 
