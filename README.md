@@ -288,7 +288,7 @@ data-filepond-types="image/*, video/*, application/pdf, .doc, .docx, .txt"
 
 Das Addon konvertiert automatisch folgende Dateiendungen zu den entsprechenden MIME-Types:
 
-*   **Bilder:** `.jpg, .jpeg, .png, .gif, .webp, .avif, .svg, .bmp, .tiff, .ico`
+*   **Bilder:** `.jpg, .jpeg, .png, .gif, .webp, .avif, .svg, .bmp, .tiff, .tif, .ico`
 *   **Videos:** `.mp4, .webm, .ogg, .avi, .mov, .wmv, .flv, .mkv`
 *   **Audio:** `.mp3, .wav, .ogg, .flac, .m4a, .aac`
 *   **Dokumente:** `.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .odt, .ods, .odp`
