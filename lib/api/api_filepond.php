@@ -841,24 +841,34 @@ class rex_api_filepond_uploader extends rex_api_function
                 imageflip($image, IMG_FLIP_HORIZONTAL);
                 break;
             case 3: // 180 rotate
-                $image = imagerotate($image, 180, 0);
+                $rotated = imagerotate($image, 180, 0);
+                imagedestroy($image);
+                $image = $rotated;
                 break;
             case 4: // Vertical flip
                 imageflip($image, IMG_FLIP_VERTICAL);
                 break;
             case 5: // Vertical flip + 90 rotate clockwise
                 imageflip($image, IMG_FLIP_VERTICAL);
-                $image = imagerotate($image, -90, 0);
+                $rotated = imagerotate($image, -90, 0);
+                imagedestroy($image);
+                $image = $rotated;
                 break;
             case 6: // 90 rotate clockwise
-                $image = imagerotate($image, -90, 0);
+                $rotated = imagerotate($image, -90, 0);
+                imagedestroy($image);
+                $image = $rotated;
                 break;
             case 7: // Horizontal flip + 90 rotate clockwise
                 imageflip($image, IMG_FLIP_HORIZONTAL);
-                $image = imagerotate($image, -90, 0);
+                $rotated = imagerotate($image, -90, 0);
+                imagedestroy($image);
+                $image = $rotated;
                 break;
             case 8: // 90 rotate counter-clockwise
-                $image = imagerotate($image, 90, 0);
+                $rotated = imagerotate($image, 90, 0);
+                imagedestroy($image);
+                $image = $rotated;
                 break;
         }
 
