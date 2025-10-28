@@ -599,6 +599,31 @@ Bilder werden automatisch optimiert, wenn sie eine konfigurierte maximale Pixelg
 
 Standardmäßig ist die maximale Größe 1200 Pixel (Breite oder Höhe). Dieser Wert und die Kompressionsqualität können in den Einstellungen angepasst werden.
 
+### EXIF-Orientierung korrigieren
+
+Das AddOn kann automatisch die Bildausrichtung basierend auf EXIF-Daten korrigieren. Dies ist besonders nützlich für Fotos, die mit Smartphones aufgenommen wurden, da diese oft EXIF-Orientierungsinformationen enthalten, die anzeigen, wie das Bild gedreht werden sollte.
+
+**Funktionsweise:**
+
+*   Erkennt EXIF-Orientierungsinformationen in JPEG-Bildern
+*   Dreht und spiegelt Bilder automatisch in die korrekte Ausrichtung
+*   Verhindert, dass Hochformat-Bilder als Querformat erscheinen
+*   Entfernt die EXIF-Orientierungsinformation nach der Korrektur
+
+**Aktivierung:**
+
+Die EXIF-Orientierungskorrektur ist standardmäßig deaktiviert und kann in den Einstellungen aktiviert werden:
+
+1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
+2. Aktiviere die Option **"EXIF-Orientierung automatisch korrigieren"**
+3. Speichere die Einstellungen
+
+**Hinweise:**
+
+*   Die Funktion benötigt die PHP-EXIF-Erweiterung (normalerweise standardmäßig verfügbar)
+*   Nur JPEG-Bilder werden verarbeitet, da andere Formate selten EXIF-Daten enthalten
+*   Die Korrektur erfolgt vor allen anderen Bildoptimierungen
+
 ## Metadaten
 
 Folgende Metadaten können für jede hochgeladene Datei erfasst werden:
