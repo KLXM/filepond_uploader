@@ -290,7 +290,7 @@ Das Addon konvertiert automatisch folgende Dateiendungen zu den entsprechenden M
 
 *   **Bilder:** `.jpg, .jpeg, .png, .gif, .webp, .avif, .svg, .bmp, .tiff, .tif, .ico`
 *   **Videos:** `.mp4, .webm, .ogg, .ogv, .avi, .mov, .wmv, .flv, .mkv`
-*   **Audio:** `.mp3, .wav, .ogg, .flac, .m4a, .aac`
+*   **Audio:** `.mp3, .wav, .ogg, .oga, .flac, .m4a, .aac`
 *   **Dokumente:** `.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .odt, .ods, .odp`
 *   **Text:** `.txt, .csv, .rtf, .html, .xml, .json`
 *   **Archive:** `.zip, .rar, .7z, .tar, .gz, .bz2`
