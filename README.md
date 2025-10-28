@@ -292,7 +292,7 @@ Das Addon konvertiert automatisch folgende Dateiendungen zu den entsprechenden M
 *   **Videos:** `.mp4, .webm, .ogg, .ogv, .avi, .mov, .wmv, .flv, .mkv`
 *   **Audio:** `.mp3, .wav, .ogg, .oga, .flac, .m4a, .aac`
 *   **Dokumente:** `.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .odt, .ods, .odp`
-*   **Text:** `.txt, .csv, .rtf, .html, .xml, .json`
+*   **Text:** `.txt, .csv, .rtf, .html, .htm, .xml, .json`
 *   **Archive:** `.zip, .rar, .7z, .tar, .gz, .bz2`
 
 > **Hinweis:** MIME-Types sind die bevorzugte Methode, da sie eindeutiger sind und weniger Fehleranfälligkeit haben. Dateiendungen werden nur aus Kompatibilitätsgründen unterstützt und automatisch in MIME-Types konvertiert.
