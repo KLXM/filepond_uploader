@@ -116,6 +116,11 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
 >
 ```
 
+**Hinweis zu `data-filepond-types`:**
+- MIME-Types werden bevorzugt: `image/*`, `video/*`, `application/pdf`
+- Dateiendungen werden automatisch konvertiert: `.pdf`, `.doc`, `.docx`
+- Beide Formate können gemischt werden: `image/*, .pdf, .doc`
+
 #### Ausgabe
 
 ```php
@@ -196,7 +201,7 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | Attribut                     | Beschreibung                            | Standardwert |
 | ---------------------------- | --------------------------------------- | ------------ |
 | `data-filepond-cat`          | Medienpool Kategorie ID                 | `0`          |
-| `data-filepond-types`        | Erlaubte Dateitypen                     | `image/*`    |
+| `data-filepond-types`        | Erlaubte Dateitypen (MIME-Types oder Dateiendungen, kommagetrennt) | `image/*`    |
 | `data-filepond-maxfiles`     | Maximale Anzahl an Dateien              | `30`         |
 | `data-filepond-maxsize`      | Maximale Dateigröße in MB               | `10`         |
 | `data-filepond-lang`         | Sprache (`de_de` / `en_gb`)             | `de_de`      |
@@ -210,25 +215,89 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 
 #### Grundlegende Syntax
 
-`data-filepond-types="mime/type"`
+Das Addon unterstützt **sowohl MIME-Types als auch Dateiendungen**. MIME-Types werden jedoch bevorzugt, da sie sicherer und eindeutiger sind.
 
-*   **Bilder:** `image/*`
-*   **Videos:** `video/*`
+**Empfohlene Verwendung (MIME-Types):**
+```
+data-filepond-types="mime/type"
+```
+
+**Alternativ (Dateiendungen):**
+```
+data-filepond-types=".extension"
+```
+
+**Wichtig:** Dateiendungen werden automatisch in MIME-Types konvertiert. Beide Formate können gemischt werden.
+
+#### Standard MIME-Types
+
+*   **Bilder:** `image/*` oder `image/jpeg, image/png, image/gif, image/webp`
+*   **Videos:** `video/*` oder `video/mp4, video/webm, video/quicktime`
+*   **Audio:** `audio/*` oder `audio/mpeg, audio/wav, audio/ogg`
 *   **PDFs:** `application/pdf`
-*   **Medienformate (Bilder, Videos, Audio):** `image/*, video/*, audio/*`
+*   **Microsoft Word:** `application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+*   **Microsoft Excel:** `application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+*   **Microsoft PowerPoint:** `application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation`
 
-**Beispiele:**
+#### Beispiele
 
+**Nur Bilder (empfohlen):**
 ```html
-<!-- Alle Bildtypen -->
 data-filepond-types="image/*"
+```
 
-<!-- Bilder und PDFs -->
+**Bilder und PDFs (MIME-Types - empfohlen):**
+```html
 data-filepond-types="image/*, application/pdf"
+```
 
-<!-- Microsoft Office -->
+**Bilder und PDFs (gemischt - funktioniert auch):**
+```html
+data-filepond-types="image/*, .pdf"
+```
+
+**Bilder, Videos und PDFs (MIME-Types - empfohlen):**
+```html
+data-filepond-types="image/*, video/*, application/pdf"
+```
+
+**Bilder, Videos und PDFs (Dateiendungen - wird automatisch konvertiert):**
+```html
+data-filepond-types="image/*, video/*, .pdf"
+```
+
+**Dokumente (MIME-Types - empfohlen):**
+```html
+data-filepond-types="application/pdf, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, text/plain"
+```
+
+**Dokumente (Dateiendungen - wird automatisch konvertiert):**
+```html
+data-filepond-types=".pdf, .doc, .docx, .txt"
+```
+
+**Microsoft Office (MIME-Types - empfohlen):**
+```html
 data-filepond-types="application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation"
 ```
+
+**Medien und Dokumente gemischt (beide Formate):**
+```html
+data-filepond-types="image/*, video/*, application/pdf, .doc, .docx, .txt"
+```
+
+#### Unterstützte Dateiendungen
+
+Das Addon konvertiert automatisch folgende Dateiendungen zu den entsprechenden MIME-Types:
+
+*   **Bilder:** `.jpg, .jpeg, .png, .gif, .webp, .avif, .svg, .bmp, .tiff, .tif, .ico`
+*   **Videos:** `.mp4, .webm, .ogg, .ogv, .avi, .mov, .wmv, .flv, .mkv`
+*   **Audio:** `.mp3, .wav, .ogg, .oga, .flac, .m4a, .aac`
+*   **Dokumente:** `.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .odt, .ods, .odp`
+*   **Text:** `.txt, .csv, .rtf, .html, .htm, .xml, .json`
+*   **Archive:** `.zip, .rar, .7z, .tar, .gz, .bz2`
+
+> **Hinweis:** MIME-Types sind die bevorzugte Methode, da sie eindeutiger sind und weniger Fehleranfälligkeit haben. Dateiendungen werden nur aus Kompatibilitätsgründen unterstützt und automatisch in MIME-Types konvertiert.
 
 ## Session-Konfiguration für individuelle Anpassungen
 
