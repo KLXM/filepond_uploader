@@ -32,6 +32,9 @@ filepond_settings_max_pixel_notice = Maximum width/height in pixels to which lar
 filepond_settings_upload_skip_meta = Disable meta dialog on upload page
 filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
 filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
+filepond_settings_fix_exif_orientation = Fix EXIF orientation
+filepond_settings_fix_exif_orientation_label = Automatically fix EXIF orientation
+filepond_settings_fix_exif_orientation_notice = Corrects image orientation based on EXIF data (e.g., for smartphone photos). Prevents images from appearing incorrectly rotated.
 
 # YForm field
 filepond_empty_value_label = Error message if empty

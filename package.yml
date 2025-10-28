@@ -34,6 +34,7 @@ default_config:
     always_show_meta: false
     replace_mediapool: false
     upload_skip_meta: false
+    fix_exif_orientation: false
 installer_ignore:
     - node_modules
     - package.json

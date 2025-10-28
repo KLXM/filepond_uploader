@@ -52,6 +52,9 @@ filepond_settings_upload_skip_meta_notice = Deaktiviert die Metadaten-Abfrage au
 filepond_settings_delayed_upload = Verzögerter Upload-Modus
 filepond_settings_delayed_upload_label = Aktiviert
 filepond_settings_delayed_upload_notice = Dateien werden erst nach Klick auf einen Upload-Button hochgeladen, nicht sofort nach Auswahl
+filepond_settings_fix_exif_orientation = EXIF-Orientierung korrigieren
+filepond_settings_fix_exif_orientation_label = EXIF-Orientierung automatisch korrigieren
+filepond_settings_fix_exif_orientation_notice = Korrigiert die Bildausrichtung basierend auf EXIF-Daten (z.B. bei Smartphone-Fotos). Verhindert, dass Bilder falsch gedreht erscheinen.
 
 # YForm field
 filepond_empty_value_label = Fehlermeldung wenn leer

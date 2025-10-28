@@ -97,6 +97,12 @@ $field = $form->addInputField('number', 'image_quality', null, [
 $field->setLabel($addon->i18n('filepond_settings_image_quality'));
 $field->setNotice($addon->i18n('filepond_settings_image_quality_notice'));
 
+// EXIF-Orientierung korrigieren
+$field = $form->addCheckboxField('fix_exif_orientation');
+$field->setLabel($addon->i18n('filepond_settings_fix_exif_orientation'));
+$field->addOption($addon->i18n('filepond_settings_fix_exif_orientation_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_fix_exif_orientation_notice'));
+
 // Thumbnail erstellen
 $field = $form->addCheckboxField('create_thumbnails');
 $field->setLabel($addon->i18n('filepond_settings_create_thumbnails'));

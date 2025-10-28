@@ -698,6 +698,7 @@ class rex_api_filepond_uploader extends rex_api_function
     {
         $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
         $quality = rex_config::get('filepond_uploader', 'image_quality', 90);
+        $fixExifOrientation = rex_config::get('filepond_uploader', 'fix_exif_orientation', false);
 
         $imageInfo = getimagesize($tmpFile);
         if (!$imageInfo) {
@@ -705,6 +706,16 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         list($width, $height, $type) = $imageInfo;
+
+        // Fix EXIF orientation first, before any other processing
+        if ($fixExifOrientation) {
+            $this->fixExifOrientation($tmpFile, $type);
+            // Re-read image info after orientation fix, as dimensions may have changed
+            $imageInfo = getimagesize($tmpFile);
+            if ($imageInfo) {
+                list($width, $height, $type) = $imageInfo;
+            }
+        }
 
         // Return if image is smaller than max dimensions
         if ($width <= $maxPixel && $height <= $maxPixel) {
@@ -779,6 +790,86 @@ class rex_api_filepond_uploader extends rex_api_function
         // Free memory
         imagedestroy($srcImage);
         imagedestroy($dstImage);
+    }
+
+    /**
+     * Fix image orientation based on EXIF data
+     * 
+     * @param string $tmpFile Path to the image file
+     * @param int $type Image type constant
+     * @return void
+     */
+    protected function fixExifOrientation($tmpFile, $type)
+    {
+        // Only process JPEG images as they typically contain EXIF data
+        if ($type !== IMAGETYPE_JPEG) {
+            return;
+        }
+
+        // Check if exif functions are available
+        if (!function_exists('exif_read_data')) {
+            $this->log('warning', 'EXIF functions not available - cannot fix orientation');
+            return;
+        }
+
+        // Read EXIF data
+        $exif = @exif_read_data($tmpFile);
+        if (!$exif || !isset($exif['Orientation'])) {
+            // No orientation data found, nothing to fix
+            return;
+        }
+
+        $orientation = $exif['Orientation'];
+        
+        // No rotation needed
+        if ($orientation === 1) {
+            return;
+        }
+
+        $this->log('info', "Fixing EXIF orientation: $orientation for file: $tmpFile");
+
+        // Load the image
+        $image = imagecreatefromjpeg($tmpFile);
+        if (!$image) {
+            $this->log('error', 'Failed to load image for EXIF orientation fix');
+            return;
+        }
+
+        // Rotate/flip based on orientation value
+        switch ($orientation) {
+            case 2: // Horizontal flip
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                break;
+            case 3: // 180 rotate
+                $image = imagerotate($image, 180, 0);
+                break;
+            case 4: // Vertical flip
+                imageflip($image, IMG_FLIP_VERTICAL);
+                break;
+            case 5: // Vertical flip + 90 rotate clockwise
+                imageflip($image, IMG_FLIP_VERTICAL);
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 6: // 90 rotate clockwise
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 7: // Horizontal flip + 90 rotate clockwise
+                imageflip($image, IMG_FLIP_HORIZONTAL);
+                $image = imagerotate($image, -90, 0);
+                break;
+            case 8: // 90 rotate counter-clockwise
+                $image = imagerotate($image, 90, 0);
+                break;
+        }
+
+        // Get image quality setting
+        $quality = rex_config::get('filepond_uploader', 'image_quality', 90);
+
+        // Save the corrected image
+        imagejpeg($image, $tmpFile, $quality);
+        imagedestroy($image);
+
+        $this->log('info', 'EXIF orientation corrected successfully');
     }
 
     protected function handleDelete()
