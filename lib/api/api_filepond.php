@@ -712,9 +712,11 @@ class rex_api_filepond_uploader extends rex_api_function
             $this->fixExifOrientation($tmpFile, $type);
             // Re-read image info after orientation fix, as dimensions may have changed
             $imageInfo = getimagesize($tmpFile);
-            if ($imageInfo) {
-                list($width, $height, $type) = $imageInfo;
+            if (!$imageInfo) {
+                $this->log('error', 'Failed to read image info after EXIF orientation fix');
+                return;
             }
+            list($width, $height, $type) = $imageInfo;
         }
 
         // Return if image is smaller than max dimensions
@@ -794,7 +796,7 @@ class rex_api_filepond_uploader extends rex_api_function
 
     /**
      * Fix image orientation based on EXIF data
-     * 
+     *
      * @param string $tmpFile Path to the image file
      * @param int $type Image type constant
      * @return void
@@ -842,6 +844,10 @@ class rex_api_filepond_uploader extends rex_api_function
                 break;
             case 3: // 180 rotate
                 $rotated = imagerotate($image, 180, 0);
+                if ($rotated === false) {
+                    imagedestroy($image);
+                    return;
+                }
                 imagedestroy($image);
                 $image = $rotated;
                 break;
@@ -851,22 +857,38 @@ class rex_api_filepond_uploader extends rex_api_function
             case 5: // Vertical flip + 90 rotate clockwise
                 imageflip($image, IMG_FLIP_VERTICAL);
                 $rotated = imagerotate($image, -90, 0);
+                if ($rotated === false) {
+                    imagedestroy($image);
+                    return;
+                }
                 imagedestroy($image);
                 $image = $rotated;
                 break;
             case 6: // 90 rotate clockwise
                 $rotated = imagerotate($image, -90, 0);
+                if ($rotated === false) {
+                    imagedestroy($image);
+                    return;
+                }
                 imagedestroy($image);
                 $image = $rotated;
                 break;
             case 7: // Horizontal flip + 90 rotate clockwise
                 imageflip($image, IMG_FLIP_HORIZONTAL);
                 $rotated = imagerotate($image, -90, 0);
+                if ($rotated === false) {
+                    imagedestroy($image);
+                    return;
+                }
                 imagedestroy($image);
                 $image = $rotated;
                 break;
             case 8: // 90 rotate counter-clockwise
                 $rotated = imagerotate($image, 90, 0);
+                if ($rotated === false) {
+                    imagedestroy($image);
+                    return;
+                }
                 imagedestroy($image);
                 $image = $rotated;
                 break;
