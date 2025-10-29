@@ -840,7 +840,11 @@ class rex_api_filepond_uploader extends rex_api_function
         // Rotate/flip based on orientation value
         switch ($orientation) {
             case 2: // Horizontal flip
-                imageflip($image, IMG_FLIP_HORIZONTAL);
+                if (!imageflip($image, IMG_FLIP_HORIZONTAL)) {
+                    $this->log('error', 'Failed to flip image horizontally');
+                    imagedestroy($image);
+                    return;
+                }
                 break;
             case 3: // 180 rotate
                 $rotated = imagerotate($image, 180, 0);
@@ -853,10 +857,18 @@ class rex_api_filepond_uploader extends rex_api_function
                 $image = $rotated;
                 break;
             case 4: // Vertical flip
-                imageflip($image, IMG_FLIP_VERTICAL);
+                if (!imageflip($image, IMG_FLIP_VERTICAL)) {
+                    $this->log('error', 'Failed to flip image vertically');
+                    imagedestroy($image);
+                    return;
+                }
                 break;
             case 5: // Vertical flip + 90 rotate clockwise
-                imageflip($image, IMG_FLIP_VERTICAL);
+                if (!imageflip($image, IMG_FLIP_VERTICAL)) {
+                    $this->log('error', 'Failed to flip image vertically');
+                    imagedestroy($image);
+                    return;
+                }
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
                     $this->log('error', 'Failed to rotate image -90 degrees after vertical flip');
@@ -877,7 +889,11 @@ class rex_api_filepond_uploader extends rex_api_function
                 $image = $rotated;
                 break;
             case 7: // Horizontal flip + 90 rotate clockwise
-                imageflip($image, IMG_FLIP_HORIZONTAL);
+                if (!imageflip($image, IMG_FLIP_HORIZONTAL)) {
+                    $this->log('error', 'Failed to flip image horizontally');
+                    imagedestroy($image);
+                    return;
+                }
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
                     $this->log('error', 'Failed to rotate image -90 degrees after horizontal flip');
