@@ -845,6 +845,7 @@ class rex_api_filepond_uploader extends rex_api_function
             case 3: // 180 rotate
                 $rotated = imagerotate($image, 180, 0);
                 if ($rotated === false) {
+                    $this->log('error', 'Failed to rotate image 180 degrees');
                     imagedestroy($image);
                     return;
                 }
@@ -858,6 +859,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 imageflip($image, IMG_FLIP_VERTICAL);
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
+                    $this->log('error', 'Failed to rotate image -90 degrees after vertical flip');
                     imagedestroy($image);
                     return;
                 }
@@ -867,6 +869,7 @@ class rex_api_filepond_uploader extends rex_api_function
             case 6: // 90 rotate clockwise
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
+                    $this->log('error', 'Failed to rotate image -90 degrees');
                     imagedestroy($image);
                     return;
                 }
@@ -877,6 +880,7 @@ class rex_api_filepond_uploader extends rex_api_function
                 imageflip($image, IMG_FLIP_HORIZONTAL);
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
+                    $this->log('error', 'Failed to rotate image -90 degrees after horizontal flip');
                     imagedestroy($image);
                     return;
                 }
@@ -886,6 +890,7 @@ class rex_api_filepond_uploader extends rex_api_function
             case 8: // 90 rotate counter-clockwise
                 $rotated = imagerotate($image, 90, 0);
                 if ($rotated === false) {
+                    $this->log('error', 'Failed to rotate image 90 degrees');
                     imagedestroy($image);
                     return;
                 }
