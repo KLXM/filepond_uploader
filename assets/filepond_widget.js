@@ -422,6 +422,9 @@
             // Erweiterte MetaInfo-Dialog
             const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
                 return new Promise((resolve, reject) => {
+                    // Generiere eindeutige Modal-ID für diese Instanz
+                    const modalId = 'modal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                    
                     // Aktuellen Dateityp für die Feldlogik setzen
                     currentFileType = file.type || (file.file ? file.file.type : null);
                     
@@ -449,7 +452,7 @@
                     const sortedFields = sortMetaInfoFields(fields);
                     
                     for (const field of sortedFields) {
-                        formHTML += createFieldHTML(field, existingMetadata, input);
+                        formHTML += createFieldHTML(field, existingMetadata, input, modalId);
                     }
                     
                     formCol.innerHTML = formHTML;
@@ -659,8 +662,9 @@
             };
             
             // Erstellt HTML für ein MetaInfo-Feld
-            const createFieldHTML = (field, existingMetadata, currentInput) => {
+            const createFieldHTML = (field, existingMetadata, currentInput, modalId = '') => {
                 const fieldId = `field_${field.name}`;
+                const uniqueFieldId = modalId ? `${field.name}_${modalId}` : field.name;
                 const isImage = currentFileType && currentFileType.startsWith('image/');
                 let html = '';
                 
@@ -718,10 +722,10 @@
                     // Weitere Sprachen (über Globus einblendbar)
                     if (otherLangs.length > 0) {
                         html += `<div class="lang-field-container">`;
-                        html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${field.name}">`;
+                        html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${uniqueFieldId}">`;
                         html += `<i class="fa fa-globe"></i> Weitere Sprachen (${otherLangs.length})`;
                         html += `</button>`;
-                        html += `<div class="lang-fields" id="lang-fields-${field.name}" style="display: none; margin-top: 8px;">`;
+                        html += `<div class="lang-fields" id="lang-fields-${uniqueFieldId}" style="display: none; margin-top: 8px;">`;
                         
                         for (const lang of otherLangs) {
                             const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
@@ -812,8 +816,15 @@
                 form.querySelectorAll('.lang-toggle').forEach(button => {
                     button.addEventListener('click', (e) => {
                         e.preventDefault();
+                        e.stopPropagation(); // Verhindere Event-Bubbling
                         const target = button.getAttribute('data-target');
-                        const container = document.getElementById(`lang-fields-${target}`);
+                        
+                        // Suche nur innerhalb des gleichen Modals
+                        const modalContainer = button.closest('.simple-modal-content') || button.closest('.simple-modal');
+                        const container = modalContainer ? 
+                            modalContainer.querySelector(`#lang-fields-${target}`) : 
+                            document.getElementById(`lang-fields-${target}`);
+                        
                         const icon = button.querySelector('i');
                         
                         if (container) {
