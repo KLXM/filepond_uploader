@@ -14,89 +14,76 @@ if (rex::isBackend() && rex::getUser()) {
 }
 
 // Register extension point to format MetaInfo Lang Fields in media pool
-rex_extension::register('PACKAGES_INCLUDED', function() {
-    if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+    
+    // Hook in OUTPUT_FILTER um die Beschreibungen zu formatieren
+    rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
+        $content = $ep->getSubject();
         
-        rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
-            $content = $ep->getSubject();
+        // Nur auf MediaPool Seiten
+        if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false) {
             
-            // Only on mediapool pages
-            if (rex_be_controller::getCurrentPage() === 'mediapool/media') {
-                $currentLang = rex_clang::getCurrentId();
-                $noDescMsg = rex_i18n::msg('filepond_no_description');
-                
-                $script = "
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    function formatMultilingualJson(jsonString) {
+            // Verschiedene Patterns für escaped/unescaped JSON
+            $patterns = [
+                '/<p>\[(\{&quot;clang_id&quot;[^<]+)\]<\/p>/', // HTML-escaped
+                '/<p>\[(\{"clang_id"[^<]+)\]<\/p>/', // Nicht escaped
+                '/<p>(\[.*?clang_id.*?\])<\/p>/', // Allgemeiner
+                '/<p>([^<]*clang_id[^<]*)<\/p>/' // Noch allgemeiner
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $matches = [];
+                if (preg_match_all($pattern, $content, $matches)) {
+                    // Verwende das erste funktionierende Pattern
+                    $content = preg_replace_callback($pattern, function($match) {
+                        $jsonString = $match[1];
+                        
+                        // HTML-Entities dekodieren falls nötig
+                        if (strpos($jsonString, '&quot;') !== false) {
+                            $jsonString = html_entity_decode($jsonString);
+                        }
+                        
+                        // Sicherstellen dass es mit [ beginnt
+                        if (!str_starts_with($jsonString, '[')) {
+                            $jsonString = '[' . $jsonString . ']';
+                        }
+                        
                         try {
-                            const data = JSON.parse(jsonString);
-                            if (!Array.isArray(data)) return jsonString;
-                            
-                            const currentLang = <?= json_encode($currentLang) ?>;
-                            let descriptions = [];
-                            
-                            for (let entry of data) {
-                                if (entry.clang_id == currentLang && entry.value && entry.value.trim()) {
-                                    return '<strong>' + getLangCode(entry.clang_id) + ':</strong> ' + entry.value.trim();
+                            $langData = json_decode($jsonString, true);
+                            if (is_array($langData)) {
+                                $currentLang = rex_clang::getCurrentId();
+                                $langCodes = [1 => 'DE', 2 => 'EN', 3 => 'FR', 4 => 'IT', 5 => 'ES'];
+                                
+                                // Suche aktuelle Sprache
+                                foreach ($langData as $entry) {
+                                    if ($entry['clang_id'] == $currentLang && !empty($entry['value'])) {
+                                        $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                        return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
+                                    }
+                                }
+                                
+                                // Fallback: erste verfügbare Sprache
+                                foreach ($langData as $entry) {
+                                    if (!empty($entry['value'])) {
+                                        $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                        return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
+                                    }
                                 }
                             }
-                            
-                            for (let entry of data) {
-                                if (entry.value && entry.value.trim()) {
-                                    let langCode = getLangCode(entry.clang_id);
-                                    descriptions.push('<strong>' + langCode + ':</strong> ' + entry.value.trim());
-                                }
-                            }
-                            
-                            return descriptions.length > 0 ? descriptions.join(' &nbsp;&nbsp; ') : <?= json_encode($noDescMsg) ?>;
-                        } catch (e) {
-                            return jsonString;
+                        } catch (Exception $e) {
+                            // Bei Fehlern das Original zurückgeben
                         }
-                    }
+                        return $match[0];
+                    }, $content);
                     
-                    function getLangCode(clangId) {
-                        // Map common language IDs to codes
-                        const langMap = {
-                            1: 'DE',
-                            2: 'EN', 
-                            3: 'FR',
-                            4: 'IT',
-                            5: 'ES'
-                        };
-                        return langMap[clangId] || 'L' + clangId;
-                    }
-                    
-                    const descParagraphs = document.querySelectorAll('td p');
-                    descParagraphs.forEach(function(p) {
-                        const text = p.textContent.trim();
-                        if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
-                            const formatted = formatMultilingualJson(text);
-                            if (formatted !== text) {
-                                // Use textContent instead of innerHTML to prevent XSS
-                                // But since we need HTML formatting, we'll create DOM elements safely
-                                p.innerHTML = ''; // Clear content first
-                                const tempDiv = document.createElement('div');
-                                tempDiv.innerHTML = formatted;
-                                // Move all child nodes from temp div to paragraph
-                                while (tempDiv.firstChild) {
-                                    p.appendChild(tempDiv.firstChild);
-                                }
-                                p.style.color = '#666';
-                                p.title = 'Mehrsprachige Beschreibung';
-                            }
-                        }
-                    });
-                });
-                </script>";
-                
-                $content = str_replace('</body>', $script . '</body>', $content);
+                    break; // Verwende nur das erste funktionierende Pattern
+                }
             }
-            
-            return $content;
-        });
-    }
-});
+        }
+        
+        return $content;
+    });
+}
 
 if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
 {    
@@ -114,3 +101,4 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
         }
     });
 }
+
