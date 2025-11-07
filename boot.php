@@ -14,14 +14,23 @@ if (rex::isBackend() && rex::getUser()) {
 }
 
 // Register extension point to format MetaInfo Lang Fields in media pool
-if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
-    
-    // Hook in OUTPUT_FILTER um die Beschreibungen zu formatieren
-    rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
-        $content = $ep->getSubject();
+rex_extension::register('PACKAGES_INCLUDED', function() {
+    if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
         
-        // Nur auf MediaPool Seiten
-        if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false) {
+        // Hook in OUTPUT_FILTER um die Beschreibungen zu formatieren
+        rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
+            $content = $ep->getSubject();
+            
+            // Null-Check für Content
+            if (!$content) {
+                return $content;
+            }
+            
+            // Nur auf MediaPool Seiten
+            $currentPage = rex_be_controller::getCurrentPage();
+            if (!$currentPage || strpos($currentPage, 'mediapool') === false) {
+                return $content;
+            }
             
             // Verschiedene Patterns für escaped/unescaped JSON
             $patterns = [
@@ -36,7 +45,12 @@ if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::
                 if (preg_match_all($pattern, $content, $matches)) {
                     // Verwende das erste funktionierende Pattern
                     $content = preg_replace_callback($pattern, function($match) {
-                        $jsonString = $match[1];
+                        $jsonString = $match[1] ?? '';
+                        
+                        // Null/Empty-Check
+                        if (!$jsonString) {
+                            return $match[0];
+                        }
                         
                         // HTML-Entities dekodieren falls nötig
                         if (strpos($jsonString, '&quot;') !== false) {
@@ -56,7 +70,8 @@ if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::
                                 
                                 // Suche aktuelle Sprache
                                 foreach ($langData as $entry) {
-                                    if (isset($entry['clang_id']) && isset($entry['value']) && $entry['clang_id'] == $currentLang && !empty($entry['value'])) {
+                                    if (isset($entry['clang_id']) && isset($entry['value']) && 
+                                        $entry['clang_id'] == $currentLang && !empty($entry['value'])) {
                                         $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
                                         return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
                                     }
@@ -79,68 +94,77 @@ if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::
                     break; // Verwende nur das erste funktionierende Pattern
                 }
             }
-        }
-        
-        return $content;
-    });
-}
-
-// Register general OUTPUT_FILTER for med_description formatting (works without metainfo_lang_fields addon)
-rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
-    $content = $ep->getSubject();
-    
-    // Nur auf MediaPool Seiten
-    if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false) {
-        
-        // Pattern für med_description JSON-Formatierung in Table Cells
-        $pattern = '/<td[^>]*>\s*<p>\s*(\[.*?"clang_id".*?\])\s*<\/p>\s*<\/td>/';
-        
-        if (preg_match_all($pattern, $content, $matches)) {
-            $content = preg_replace_callback($pattern, function($match) {
-                $jsonString = $match[1];
-                
-                // HTML-Entities dekodieren falls nötig
-                if (strpos($jsonString, '&quot;') !== false) {
-                    $jsonString = html_entity_decode($jsonString);
-                }
-                
-                try {
-                    $langData = json_decode($jsonString, true);
-                    if (is_array($langData)) {
-                        $currentLang = rex_clang::getCurrentId();
-                        $langCodes = [1 => 'DE', 2 => 'EN', 3 => 'FR', 4 => 'IT', 5 => 'ES'];
-                        
-                        // Suche aktuelle Sprache
-                        foreach ($langData as $entry) {
-                            if (isset($entry['clang_id']) && isset($entry['value']) && $entry['clang_id'] == $currentLang && !empty($entry['value'])) {
-                                $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
-                                $formatted = '<p style="color: #666; font-style: italic;"><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
-                                return str_replace($match[1], $formatted, $match[0]);
-                            }
-                        }
-                        
-                        // Fallback: erste verfügbare Sprache
-                        foreach ($langData as $entry) {
-                            if (isset($entry['clang_id']) && isset($entry['value']) && !empty($entry['value'])) {
-                                $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
-                                $formatted = '<p style="color: #666; font-style: italic;"><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
-                                return str_replace($match[1], $formatted, $match[0]);
-                            }
-                        }
-                        
-                        // Keine Werte gefunden
-                        $noDesc = '<em style="color: #999;">Keine Beschreibung</em>';
-                        return str_replace($match[1], $noDesc, $match[0]);
-                    }
-                } catch (Exception $e) {
-                    // Bei Fehlern das Original zurückgeben
-                }
-                return $match[0];
-            }, $content);
-        }
+            
+            return $content;
+        });
     }
-    
-    return $content;
+});
+
+// Register extension point specifically for MediaPool media list rendering
+rex_extension::register('PAGES_PREPARED', function() {
+    if (rex::isBackend() && rex_be_controller::getCurrentPage() === 'mediapool/media') {
+        // Hook into MediaPool output rendering
+        rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
+            $content = $ep->getSubject();
+            
+            // Only process if we have table content and clang_id patterns
+            if (strpos($content, '<table') !== false && strpos($content, 'clang_id') !== false) {
+                // Pattern for JSON strings in the content
+                $patterns = [
+                    '/\[{"clang_id"[^\]]*}\]/',
+                    '/\[{&quot;clang_id&quot;[^\]]*}\]/',
+                ];
+                
+                foreach ($patterns as $pattern) {
+                    if (preg_match_all($pattern, $content, $matches)) {
+                        $content = preg_replace_callback($pattern, function($match) {
+                            $jsonString = $match[0];
+                            
+                            // HTML-Entities dekodieren
+                            $jsonString = html_entity_decode($jsonString);
+                            
+                            try {
+                                $langData = json_decode($jsonString, true);
+                                
+                                if (is_array($langData)) {
+                                    $currentLang = rex_clang::getCurrentId();
+                                    $langCodes = [1 => 'DE', 2 => 'EN', 3 => 'FR', 4 => 'IT', 5 => 'ES'];
+                                    
+                                    // Suche aktuelle Sprache
+                                    foreach ($langData as $entry) {
+                                        if (isset($entry['clang_id']) && isset($entry['value']) && 
+                                            $entry['clang_id'] == $currentLang && !empty($entry['value'])) {
+                                            $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                            return '<strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']);
+                                        }
+                                    }
+                                    
+                                    // Fallback: erste verfügbare Sprache
+                                    foreach ($langData as $entry) {
+                                        if (isset($entry['clang_id']) && isset($entry['value']) && !empty($entry['value'])) {
+                                            $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                            return '<strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']);
+                                        }
+                                    }
+                                    
+                                    // Keine Werte gefunden - leere JSON-Struktur
+                                    return '<em>Keine Beschreibung</em>';
+                                }
+                            } catch (Exception $e) {
+                                // Bei JSON-Fehlern Original beibehalten
+                            }
+                            
+                            return $match[0];
+                        }, $content);
+                        
+                        break; // Stop after first successful pattern
+                    }
+                }
+            }
+            
+            return $content;
+        }, rex_extension::LATE); // Use LATE priority to ensure it runs after other processing
+    }
 });
 
 if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
@@ -159,4 +183,3 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
         }
     });
 }
-
