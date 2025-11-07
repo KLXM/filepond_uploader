@@ -285,15 +285,22 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             $sql->setTable('rex_media');
             $sql->setWhere(['filename' => $fileId]);
             
-            // Verarbeite jedes Feld
+            // Verarbeite jedes Feld mit Validierung
             foreach ($metadata as $fieldName => $fieldValue) {
+                // Validiere Feldname gegen Whitelist
+                if (!$this->isValidMetaInfoField($fieldName)) {
+                    continue; // Skip invalid field names
+                }
+                
                 if ($this->isMultilingual($fieldName)) {
                     // Mehrsprachiges Feld - konvertiere zu MetaInfo Lang Fields Format
-                    $langData = $this->convertToMetaInfoLangFormat($fieldValue);
+                    $sanitizedValue = $this->sanitizeMetaInfoValue($fieldValue);
+                    $langData = $this->convertToMetaInfoLangFormat($sanitizedValue);
                     $sql->setValue($fieldName, json_encode($langData));
                 } else {
                     // Standard-Feld
-                    $sql->setValue($fieldName, $fieldValue);
+                    $sanitizedValue = $this->sanitizeMetaInfoValue($fieldValue);
+                    $sql->setValue($fieldName, $sanitizedValue);
                 }
             }
             
@@ -454,5 +461,49 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
         
         return $result;
+    }
+
+    /**
+     * Validate if a field name is allowed for MetaInfo updates
+     */
+    private function isValidMetaInfoField($fieldName)
+    {
+        // Get all valid MetaInfo fields from database
+        static $validFields = null;
+        
+        if ($validFields === null) {
+            $validFields = [];
+            $sql = rex_sql::factory();
+            $sql->setQuery('SELECT name FROM rex_metainfo_field WHERE table_name = "rex_media"');
+            while ($sql->hasNext()) {
+                $validFields[] = 'med_' . $sql->getValue('name');
+                $sql->next();
+            }
+        }
+        
+        return in_array($fieldName, $validFields, true);
+    }
+
+    /**
+     * Sanitize a metadata value (string or array)
+     */
+    private function sanitizeMetaInfoValue($value)
+    {
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $k => $v) {
+                // Recursively sanitize for nested arrays (e.g., multilingual fields)
+                $sanitized[$k] = $this->sanitizeMetaInfoValue($v);
+            }
+            return $sanitized;
+        } else {
+            // Sanitize string: trim, remove dangerous chars but keep basic formatting
+            $sanitized = trim((string)$value);
+            // Remove potential script tags and other dangerous content
+            $sanitized = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $sanitized);
+            $sanitized = preg_replace('/javascript:/i', '', $sanitized);
+            $sanitized = preg_replace('/on\w+\s*=/i', '', $sanitized);
+            return $sanitized;
+        }
     }
 }

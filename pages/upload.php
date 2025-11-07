@@ -134,20 +134,43 @@ $(document).on("rex:ready", function() {
                     '<?php echo rex_i18n::msg('filepond_select_for_medialist'); ?>' :
                     '<?php echo rex_i18n::msg('filepond_select_for_media'); ?>';
                 
-                listItem.innerHTML = `
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <strong><i class="fa fa-file"></i> ${filename}</strong>
-                            <br><small class="text-muted">Erfolgreich hochgeladen</small>
-                        </div>
-                        <div class="col-sm-6 text-right">
-                            <button type="button" class="btn btn-success btn-sm filepond-select-media" 
-                                    data-filename="${filename}" data-is-medialist="${isMediaList}">
-                                <i class="fa fa-check"></i> ${buttonText}
-                            </button>
-                        </div>
-                    </div>
-                `;
+                // Build DOM tree safely to avoid XSS
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                
+                const colLeft = document.createElement('div');
+                colLeft.className = 'col-sm-6';
+                
+                const strongEl = document.createElement('strong');
+                const iconEl = document.createElement('i');
+                iconEl.className = 'fa fa-file';
+                strongEl.appendChild(iconEl);
+                strongEl.appendChild(document.createTextNode(' ' + filename));
+                colLeft.appendChild(strongEl);
+                colLeft.appendChild(document.createElement('br'));
+                const smallEl = document.createElement('small');
+                smallEl.className = 'text-muted';
+                smallEl.textContent = 'Erfolgreich hochgeladen';
+                colLeft.appendChild(smallEl);
+                
+                const colRight = document.createElement('div');
+                colRight.className = 'col-sm-6 text-right';
+                
+                const buttonEl = document.createElement('button');
+                buttonEl.type = 'button';
+                buttonEl.className = 'btn btn-success btn-sm filepond-select-media';
+                buttonEl.setAttribute('data-filename', filename);
+                buttonEl.setAttribute('data-is-medialist', isMediaList);
+                const buttonIcon = document.createElement('i');
+                buttonIcon.className = 'fa fa-check';
+                buttonEl.appendChild(buttonIcon);
+                buttonEl.appendChild(document.createTextNode(' ' + buttonText));
+                colRight.appendChild(buttonEl);
+                
+                rowDiv.appendChild(colLeft);
+                rowDiv.appendChild(colRight);
+                
+                listItem.appendChild(rowDiv);
                 
                 filesList.appendChild(listItem);
                 
@@ -520,24 +543,59 @@ if ($isMediaWidget): ?>
                 const isImage = this.isImageFile(filename);
                 const previewHtml = isImage ? this.createImagePreview(filename) : this.createFileIcon(filename);
                 
-                listItem.innerHTML = `
-                    <div class="row">
-                        <div class="col-sm-2">
-                            ${previewHtml}
-                        </div>
-                        <div class="col-sm-6">
-                            <strong><i class="fa fa-file"></i> ${filename}</strong>
-                            <br><small class="text-muted">Erfolgreich hochgeladen</small>
-                            ${isImage ? '<br><small class="text-info"><i class="fa fa-image"></i> Bilddatei</small>' : ''}
-                        </div>
-                        <div class="col-sm-4 text-right">
-                            <button type="button" class="btn btn-success btn-sm filepond-select-media" 
-                                    data-filename="${filename}">
-                                <i class="fa fa-check"></i> ${buttonText}
-                            </button>
-                        </div>
-                    </div>
-                `;
+                // Build DOM tree safely to avoid XSS
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                
+                const colPreview = document.createElement('div');
+                colPreview.className = 'col-sm-2';
+                colPreview.innerHTML = previewHtml; // previewHtml is created by safe methods
+                
+                const colInfo = document.createElement('div');
+                colInfo.className = 'col-sm-6';
+                
+                const strongEl = document.createElement('strong');
+                const iconEl = document.createElement('i');
+                iconEl.className = 'fa fa-file';
+                strongEl.appendChild(iconEl);
+                strongEl.appendChild(document.createTextNode(' ' + filename));
+                colInfo.appendChild(strongEl);
+                colInfo.appendChild(document.createElement('br'));
+                
+                const smallEl = document.createElement('small');
+                smallEl.className = 'text-muted';
+                smallEl.textContent = 'Erfolgreich hochgeladen';
+                colInfo.appendChild(smallEl);
+                
+                if (isImage) {
+                    colInfo.appendChild(document.createElement('br'));
+                    const imageInfo = document.createElement('small');
+                    imageInfo.className = 'text-info';
+                    const imageIcon = document.createElement('i');
+                    imageIcon.className = 'fa fa-image';
+                    imageInfo.appendChild(imageIcon);
+                    imageInfo.appendChild(document.createTextNode(' Bilddatei'));
+                    colInfo.appendChild(imageInfo);
+                }
+                
+                const colButton = document.createElement('div');
+                colButton.className = 'col-sm-4 text-right';
+                
+                const buttonEl = document.createElement('button');
+                buttonEl.type = 'button';
+                buttonEl.className = 'btn btn-success btn-sm filepond-select-media';
+                buttonEl.setAttribute('data-filename', filename);
+                const buttonIcon = document.createElement('i');
+                buttonIcon.className = 'fa fa-check';
+                buttonEl.appendChild(buttonIcon);
+                buttonEl.appendChild(document.createTextNode(' ' + buttonText));
+                colButton.appendChild(buttonEl);
+                
+                rowDiv.appendChild(colPreview);
+                rowDiv.appendChild(colInfo);
+                rowDiv.appendChild(colButton);
+                
+                listItem.appendChild(rowDiv);
                 
                 filesList.appendChild(listItem);
                 

@@ -91,24 +91,59 @@ class FilePondMediaWidget {
             const isImage = this.isImageFile(filename);
             const previewHtml = isImage ? this.createImagePreview(filename) : this.createFileIcon(filename);
             
-            listItem.innerHTML = `
-                <div class="row">
-                    <div class="col-sm-2">
-                        ${previewHtml}
-                    </div>
-                    <div class="col-sm-6">
-                        <strong><i class="fa fa-file"></i> ${filename}</strong>
-                        <br><small class="text-muted">Erfolgreich hochgeladen</small>
-                        ${isImage ? '<br><small class="text-info"><i class="fa fa-image"></i> Bilddatei</small>' : ''}
-                    </div>
-                    <div class="col-sm-4 text-right">
-                        <button type="button" class="btn btn-success btn-sm filepond-select-media" 
-                                data-filename="${filename}">
-                            <i class="fa fa-check"></i> ${buttonText}
-                        </button>
-                    </div>
-                </div>
-            `;
+            // Build DOM tree safely to avoid XSS
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'row';
+            
+            const colPreview = document.createElement('div');
+            colPreview.className = 'col-sm-2';
+            colPreview.innerHTML = previewHtml; // previewHtml is created by safe methods
+            
+            const colInfo = document.createElement('div');
+            colInfo.className = 'col-sm-6';
+            
+            const strongEl = document.createElement('strong');
+            const iconEl = document.createElement('i');
+            iconEl.className = 'fa fa-file';
+            strongEl.appendChild(iconEl);
+            strongEl.appendChild(document.createTextNode(' ' + filename));
+            colInfo.appendChild(strongEl);
+            colInfo.appendChild(document.createElement('br'));
+            
+            const smallEl = document.createElement('small');
+            smallEl.className = 'text-muted';
+            smallEl.textContent = 'Erfolgreich hochgeladen';
+            colInfo.appendChild(smallEl);
+            
+            if (isImage) {
+                colInfo.appendChild(document.createElement('br'));
+                const imageInfo = document.createElement('small');
+                imageInfo.className = 'text-info';
+                const imageIcon = document.createElement('i');
+                imageIcon.className = 'fa fa-image';
+                imageInfo.appendChild(imageIcon);
+                imageInfo.appendChild(document.createTextNode(' Bilddatei'));
+                colInfo.appendChild(imageInfo);
+            }
+            
+            const colButton = document.createElement('div');
+            colButton.className = 'col-sm-4 text-right';
+            
+            const buttonEl = document.createElement('button');
+            buttonEl.type = 'button';
+            buttonEl.className = 'btn btn-success btn-sm filepond-select-media';
+            buttonEl.setAttribute('data-filename', filename);
+            const buttonIcon = document.createElement('i');
+            buttonIcon.className = 'fa fa-check';
+            buttonEl.appendChild(buttonIcon);
+            buttonEl.appendChild(document.createTextNode(' ' + buttonText));
+            colButton.appendChild(buttonEl);
+            
+            rowDiv.appendChild(colPreview);
+            rowDiv.appendChild(colInfo);
+            rowDiv.appendChild(colButton);
+            
+            listItem.appendChild(rowDiv);
             
             filesList.appendChild(listItem);
             
@@ -140,26 +175,33 @@ class FilePondMediaWidget {
     
     createImagePreview(filename) {
         const mediaUrl = this.getMediaUrl(filename);
-        return `
-            <div class="filepond-preview-container">
-                <img src="${mediaUrl}" 
-                     alt="${filename}" 
-                     class="filepond-preview-image"
-                     style="
-                         max-width: 80px; 
-                         max-height: 80px; 
-                         border-radius: 4px; 
-                         border: 1px solid #ddd;
-                         object-fit: cover;
-                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                     "
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
-                />
-                <div style="display: none; width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
-                    <i class="fa fa-image text-muted" style="font-size: 24px;"></i>
-                </div>
-            </div>
-        `;
+        
+        // Build DOM tree safely to avoid XSS
+        const container = document.createElement('div');
+        container.className = 'filepond-preview-container';
+        
+        const img = document.createElement('img');
+        img.src = mediaUrl;
+        img.alt = filename; // Safe: browser automatically escapes alt attribute
+        img.className = 'filepond-preview-image';
+        img.style.cssText = 'max-width: 80px; max-height: 80px; border-radius: 4px; border: 1px solid #ddd; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+        
+        const fallbackDiv = document.createElement('div');
+        fallbackDiv.style.cssText = 'display: none; width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center;';
+        const fallbackIcon = document.createElement('i');
+        fallbackIcon.className = 'fa fa-image text-muted';
+        fallbackIcon.style.fontSize = '24px';
+        fallbackDiv.appendChild(fallbackIcon);
+        
+        img.onerror = function() {
+            this.style.display = 'none';
+            fallbackDiv.style.display = 'flex';
+        };
+        
+        container.appendChild(img);
+        container.appendChild(fallbackDiv);
+        
+        return container.outerHTML;
     }
     
     createFileIcon(filename) {

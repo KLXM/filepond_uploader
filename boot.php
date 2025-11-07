@@ -33,7 +33,7 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                             const data = JSON.parse(jsonString);
                             if (!Array.isArray(data)) return jsonString;
                             
-                            const currentLang = {$currentLang};
+                            const currentLang = <?= json_encode($currentLang) ?>;
                             let descriptions = [];
                             
                             for (let entry of data) {
@@ -49,7 +49,7 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                                 }
                             }
                             
-                            return descriptions.length > 0 ? descriptions.join(' &nbsp;&nbsp; ') : '{$noDescMsg}';
+                            return descriptions.length > 0 ? descriptions.join(' &nbsp;&nbsp; ') : <?= json_encode($noDescMsg) ?>;
                         } catch (e) {
                             return jsonString;
                         }
@@ -73,7 +73,15 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                         if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
                             const formatted = formatMultilingualJson(text);
                             if (formatted !== text) {
-                                p.innerHTML = formatted;
+                                // Use textContent instead of innerHTML to prevent XSS
+                                // But since we need HTML formatting, we'll create DOM elements safely
+                                p.innerHTML = ''; // Clear content first
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = formatted;
+                                // Move all child nodes from temp div to paragraph
+                                while (tempDiv.firstChild) {
+                                    p.appendChild(tempDiv.firstChild);
+                                }
                                 p.style.color = '#666';
                                 p.title = 'Mehrsprachige Beschreibung';
                             }
