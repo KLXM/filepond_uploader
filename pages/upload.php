@@ -126,8 +126,7 @@ $(document).on("rex:ready", function() {
             
             if (filesList) {
                 const listItem = document.createElement('li');
-                listItem.className = 'media-upload-result';
-                listItem.style.cssText = 'padding: 10px; border: 1px solid #d4edda; background-color: #f8fff9; margin-bottom: 10px; border-radius: 4px;';
+                listItem.className = 'media-upload-result fp-media-upload-result';
                 
                 const isMediaList = openerInputField.startsWith('REX_MEDIALIST_');
                 const buttonText = isMediaList ? 
@@ -380,8 +379,7 @@ if ($isMediaWidget): ?>
             if (this.resultsContainer) return this.resultsContainer;
             
             this.resultsContainer = document.createElement('div');
-            this.resultsContainer.className = 'panel panel-success';
-            this.resultsContainer.style.marginTop = '20px';
+            this.resultsContainer.className = 'panel panel-success fp-results-container';
             this.resultsContainer.innerHTML = `
                 <div class="panel-heading">
                     <h4 class="panel-title">
@@ -391,11 +389,11 @@ if ($isMediaWidget): ?>
                 <div class="panel-body">
                     <ul id="filepond-uploaded-files" class="list-unstyled"></ul>
                     ${this.isMediaList ? `
-                        <div id="filepond-bulk-actions" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px solid #d4edda;">
+                        <div id="filepond-bulk-actions" class="fp-bulk-actions">
                             <button type="button" class="btn btn-primary btn-sm" id="filepond-select-all">
                                 <i class="fa fa-download"></i> Alle Dateien in Medienliste übernehmen
                             </button>
-                            <small class="text-muted" style="margin-left: 10px;">
+                            <small class="text-muted fp-bulk-actions-text">
                                 Übernimmt alle hochgeladenen Dateien auf einmal
                             </small>
                         </div>
@@ -437,22 +435,14 @@ if ($isMediaWidget): ?>
         createImagePreview(filename) {
             const mediaUrl = this.getMediaUrl(filename);
             return `
-                <div class="filepond-preview-container">
+                <div class="fp-preview-container">
                     <img src="${mediaUrl}" 
                          alt="${filename}" 
-                         class="filepond-preview-image"
-                         style="
-                             max-width: 80px; 
-                             max-height: 80px; 
-                             border-radius: 4px; 
-                             border: 1px solid #ddd;
-                             object-fit: cover;
-                             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                         "
+                         class="fp-preview-image"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                     />
-                    <div style="display: none; width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; align-items: center; justify-content: center;">
-                        <i class="fa fa-image text-muted" style="font-size: 24px;"></i>
+                    <div class="fp-image-preview-fallback">
+                        <i class="fa fa-image text-muted"></i>
                     </div>
                 </div>
             `;
@@ -509,20 +499,9 @@ if ($isMediaWidget): ?>
             }
             
             return `
-                <div class="filepond-file-icon" style="
-                    width: 80px; 
-                    height: 80px; 
-                    background: #f8f9fa; 
-                    border: 1px solid #ddd; 
-                    border-radius: 4px; 
-                    display: flex; 
-                    flex-direction: column;
-                    align-items: center; 
-                    justify-content: center;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                ">
-                    <i class="fa ${iconClass}" style="font-size: 32px; color: ${iconColor}; margin-bottom: 4px;"></i>
-                    <small style="font-size: 10px; color: #6c757d; text-transform: uppercase; font-weight: bold;">${extension}</small>
+                <div class="fp-file-icon">
+                    <i class="fa ${iconClass}" style="color: ${iconColor};"></i>
+                    <small>${extension}</small>
                 </div>
             `;
         },
@@ -536,7 +515,7 @@ if ($isMediaWidget): ?>
             
             if (filesList) {
                 const listItem = document.createElement('li');
-                listItem.style.cssText = 'padding: 15px; border: 1px solid #d4edda; background-color: #f8fff9; margin-bottom: 10px; border-radius: 4px;';
+                listItem.className = 'fp-media-upload-result-extended';
                 listItem.dataset.filename = filename; // Für "Alle übernehmen" Funktion
                 
                 const buttonText = this.isMediaList ? 'In Medienliste übernehmen' : 'Übernehmen';

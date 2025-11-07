@@ -235,6 +235,192 @@
     background-color: rgba(0, 0, 0, 0.75);
 }
 
+/* Token Input Group */
+.fp-token-input-group {
+    margin: 10px 0;
+}
+
+/* Bulk Actions */
+.fp-bulk-actions {
+    display: none;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #d4edda;
+}
+
+.rex-theme-dark .fp-bulk-actions {
+    border-top-color: #404448;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-bulk-actions {
+        border-top-color: #404448;
+    }
+}
+
+.fp-bulk-actions-text {
+    margin-left: 10px;
+}
+
+/* File Icon Container */
+.fp-file-icon {
+    width: 80px;
+    height: 80px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rex-theme-dark .fp-file-icon {
+    background: #2c3136;
+    border-color: #404448;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-file-icon {
+        background: #2c3136;
+        border-color: #404448;
+    }
+}
+
+.fp-file-icon i {
+    font-size: 32px;
+    margin-bottom: 4px;
+}
+
+.fp-file-icon small {
+    font-size: 10px;
+    color: #6c757d;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.rex-theme-dark .fp-file-icon small {
+    color: #bbb;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-file-icon small {
+        color: #bbb;
+    }
+}
+
+/* Image Preview Fallback */
+.fp-image-preview-fallback {
+    display: none;
+    width: 80px;
+    height: 80px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.rex-theme-dark .fp-image-preview-fallback {
+    background: #2c3136;
+    border-color: #404448;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-image-preview-fallback {
+        background: #2c3136;
+        border-color: #404448;
+    }
+}
+
+.fp-image-preview-fallback i {
+    font-size: 24px;
+}
+
+/* Lang Fields */
+.fp-lang-fields {
+    display: none;
+    margin-top: 10px;
+}
+
+/* Media Upload Result */
+.fp-media-upload-result {
+    padding: 10px;
+    border: 1px solid #d4edda;
+    background-color: #f8fff9;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.rex-theme-dark .fp-media-upload-result {
+    border-color: #404448;
+    background-color: rgba(44, 49, 54, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-media-upload-result {
+        border-color: #404448;
+        background-color: rgba(44, 49, 54, 0.6);
+    }
+}
+
+/* Media Upload Result Extended */
+.fp-media-upload-result-extended {
+    padding: 15px;
+    border: 1px solid #d4edda;
+    background-color: #f8fff9;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.rex-theme-dark .fp-media-upload-result-extended {
+    border-color: #404448;
+    background-color: rgba(44, 49, 54, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-media-upload-result-extended {
+        border-color: #404448;
+        background-color: rgba(44, 49, 54, 0.6);
+    }
+}
+
+/* Preview Container for Media Widget */
+.fp-preview-container {
+    max-width: 80px;
+    max-height: 80px;
+}
+
+.fp-preview-image {
+    max-width: 80px;
+    max-height: 80px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    object-fit: cover;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.rex-theme-dark .fp-preview-image {
+    border-color: #404448;
+}
+
+@media (prefers-color-scheme: dark) {
+    body:not(.rex-theme-light):not(.rex-theme-dark) .fp-preview-image {
+        border-color: #404448;
+    }
+}
+
+/* Results Container */
+.fp-results-container {
+    margin-top: 20px;
+}
+
+/* YForm Value Media File */
+.rex-yform-value-mediafile img {
+    max-width: 100px;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .filepond--item {

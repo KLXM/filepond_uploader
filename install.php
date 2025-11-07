@@ -15,7 +15,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         $message = '<div class="alert alert-info">';
         $message .= '<p><strong>Installation erfolgreich!</strong></p>';
         $message .= '<p>Ihr API-Token wurde generiert. Bitte notieren Sie sich den Token, er wird aus Sicherheitsgründen nur einmal angezeigt:</p>';
-        $message .= '<div class="input-group" style="margin: 10px 0;">';
+        $message .= '<div class="input-group fp-token-input-group">';
         $message .= '<input type="text" class="form-control" id="initial-token" value="' . rex_escape($token) . '" readonly>';
         $message .= '<span class="input-group-btn">';
         $message .= '<clipboard-copy for="initial-token" class="btn btn-default"><i class="fa fa-clipboard"></i> Token kopieren</clipboard-copy>';

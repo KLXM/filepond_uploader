@@ -324,7 +324,7 @@
                             $downloads[] = sprintf(
                                 '<div class="rex-yform-value-mediafile">
                                     <a href="%s" title="%s" target="_blank">
-                                        <img src="%s" alt="%s" style="max-width: 100px;">
+                                        <img src="%s" alt="%s">
                                         <span class="filename">%s</span>
                                     </a>
                                 </div>',

@@ -300,7 +300,7 @@ class FilePondAutoMetaInfo {
             html += `</button>`;
             
             // Sprachfelder (initial versteckt) mit eindeutiger ID
-            html += `<div class="lang-fields" id="lang-fields-${uniqueFieldId}" style="display: none; margin-top: 10px;">`;
+            html += `<div class="lang-fields fp-lang-fields" id="lang-fields-${uniqueFieldId}">`;
             
             for (const lang of field.languages) {
                 const langValue = existingMetadata[field.name] && existingMetadata[field.name][lang.code] 
