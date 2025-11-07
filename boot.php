@@ -183,3 +183,17 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
         }
     });
 }
+
+// Info Center FilePond Upload Widget Integration
+if (rex_addon::exists('info_center') && rex_addon::get('info_center')->isAvailable()) {
+    rex_extension::register('PACKAGES_INCLUDED', function() {
+        $infoCenter = \KLXM\InfoCenter\InfoCenter::getInstance();
+        
+        // Check if user has permission (only for logged-in users)
+        if (rex::getUser()) {
+            $widget = new \KLXM\InfoCenter\Widgets\FilePondUploadWidget();
+            $widget->setPriority(0.5); // After TimeTracker (0), before Article (1)
+            $infoCenter->registerWidget($widget);
+        }
+    });
+}
