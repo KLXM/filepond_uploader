@@ -30,6 +30,8 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                 $script = "
                 <script>
                 document.addEventListener('DOMContentLoaded', function() {
+                    console.log('FilePond: Multilingual formatter loaded');
+                    
                     function formatMultilingualJson(jsonString) {
                         try {
                             const data = JSON.parse(jsonString);
@@ -38,12 +40,14 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                             const currentLang = <?= json_encode($currentLang) ?>;
                             let descriptions = [];
                             
+                            // Zeige aktuelle Sprache zuerst
                             for (let entry of data) {
                                 if (entry.clang_id == currentLang && entry.value && entry.value.trim()) {
                                     return '<strong>' + getLangCode(entry.clang_id) + ':</strong> ' + entry.value.trim();
                                 }
                             }
                             
+                            // Dann alle anderen Sprachen
                             for (let entry of data) {
                                 if (entry.value && entry.value.trim()) {
                                     let langCode = getLangCode(entry.clang_id);
@@ -53,6 +57,7 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                             
                             return descriptions.length > 0 ? descriptions.join(' &nbsp;&nbsp; ') : <?= json_encode($noDescMsg) ?>;
                         } catch (e) {
+                            console.log('FilePond: JSON parse error:', e);
                             return jsonString;
                         }
                     }
@@ -69,54 +74,63 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                         return langMap[clangId] || 'L' + clangId;
                     }
                     
-                    const descParagraphs = document.querySelectorAll('td p');
-                    descParagraphs.forEach(function(p) {
-                        const text = p.textContent.trim();
-                        if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
-                            const formatted = formatMultilingualJson(text);
-                            if (formatted !== text) {
-                                // Use textContent instead of innerHTML to prevent XSS
-                                // But since we need HTML formatting, we'll create DOM elements safely
-                                p.innerHTML = ''; // Clear content first
-                                const tempDiv = document.createElement('div');
-                                tempDiv.innerHTML = formatted;
-                                // Move all child nodes from temp div to paragraph
-                                while (tempDiv.firstChild) {
-                                    p.appendChild(tempDiv.firstChild);
+                    function processDescriptions() {
+                        // Versuche verschiedene Selektoren
+                        const selectors = [
+                            'td p',           // Original
+                            '.rex-table td p', // Mit Rex-Table-Klasse
+                            'table td p',     // Allgemeine Tabelle
+                            '.media-list td p', // Media-spezifisch
+                            'td.rex-table-data-1 p', // Rex spezifische Spalte
+                        ];
+                        
+                        let found = 0;
+                        
+                        for (const selector of selectors) {
+                            const paragraphs = document.querySelectorAll(selector);
+                            console.log('FilePond: Found', paragraphs.length, 'paragraphs with selector:', selector);
+                            
+                            paragraphs.forEach(function(p) {
+                                const text = p.textContent.trim();
+                                if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
+                                    console.log('FilePond: Processing multilingual text:', text.substring(0, 50) + '...');
+                                    const formatted = formatMultilingualJson(text);
+                                    if (formatted !== text) {
+                                        p.innerHTML = '';
+                                        const tempDiv = document.createElement('div');
+                                        tempDiv.innerHTML = formatted;
+                                        while (tempDiv.firstChild) {
+                                            p.appendChild(tempDiv.firstChild);
+                                        }
+                                        p.style.color = '#666';
+                                        p.title = 'Mehrsprachige Beschreibung';
+                                        found++;
+                                        console.log('FilePond: Converted to:', formatted);
+                                    }
                                 }
-                                p.style.color = '#666';
-                                p.title = 'Mehrsprachige Beschreibung';
-                            }
+                            });
                         }
-                    });
+                        
+                        console.log('FilePond: Processed', found, 'multilingual descriptions');
+                        return found;
+                    }
+                    
+                    
+                    // Initiale Verarbeitung
+                    processDescriptions();
                     
                     // Überwache DOM-Änderungen für dynamisch geladene Inhalte
                     const observer = new MutationObserver(function(mutations) {
+                        let shouldProcess = false;
                         mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList') {
-                                mutation.addedNodes.forEach(function(node) {
-                                    if (node.nodeType === Node.ELEMENT_NODE) {
-                                        const newParagraphs = node.querySelectorAll ? node.querySelectorAll('td p') : [];
-                                        newParagraphs.forEach(function(p) {
-                                            const text = p.textContent.trim();
-                                            if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
-                                                const formatted = formatMultilingualJson(text);
-                                                if (formatted !== text) {
-                                                    p.innerHTML = '';
-                                                    const tempDiv = document.createElement('div');
-                                                    tempDiv.innerHTML = formatted;
-                                                    while (tempDiv.firstChild) {
-                                                        p.appendChild(tempDiv.firstChild);
-                                                    }
-                                                    p.style.color = '#666';
-                                                    p.title = 'Mehrsprachige Beschreibung';
-                                                }
-                                            }
-                                        });
-                                    }
-                                });
+                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                shouldProcess = true;
                             }
                         });
+                        
+                        if (shouldProcess) {
+                            setTimeout(() => processDescriptions(), 100);
+                        }
                     });
                     
                     observer.observe(document.body, {
