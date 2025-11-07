@@ -9,6 +9,7 @@ perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
 # Tabs
 filepond_uploader_upload = Upload
 filepond_uploader_settings = Einstellungen
+help = Hilfe
 
 # Upload page
 filepond_upload_title = Datei-Upload
@@ -52,6 +53,9 @@ filepond_settings_upload_skip_meta_notice = Deaktiviert die Metadaten-Abfrage au
 filepond_settings_delayed_upload = Verzögerter Upload-Modus
 filepond_settings_delayed_upload_label = Aktiviert
 filepond_settings_delayed_upload_notice = Dateien werden erst nach Klick auf einen Upload-Button hochgeladen, nicht sofort nach Auswahl
+filepond_settings_title_required = Titel-Feld auf Upload-Seite als Pflichtfeld
+filepond_settings_title_required_label = title Feld auf der Upload-Seite als Pflichtfeld markieren
+filepond_settings_title_required_notice = Wenn aktiviert, wird das title Feld auf der Upload-Seite als Pflichtfeld behandelt. Für andere Widgets (YForm, Module etc.) muss weiterhin das data-Attribut verwendet werden.
 filepond_settings_fix_exif_orientation = EXIF-Orientierung korrigieren
 filepond_settings_fix_exif_orientation_label = EXIF-Orientierung automatisch korrigieren
 filepond_settings_fix_exif_orientation_notice = Korrigiert die Bildausrichtung basierend auf EXIF-Daten (z.B. bei Smartphone-Fotos). Verhindert, dass Bilder falsch gedreht erscheinen.
@@ -76,6 +80,17 @@ filepond_error_upload_aborted = Upload wurde abgebrochen
 filepond_upload_success = Datei erfolgreich hochgeladen
 filepond_delete_success = Datei erfolgreich gelöscht
 filepond_chunk_uploaded = Chunk {current} von {total} hochgeladen
+
+# Metadata fields
+pool_file_description = Beschreibung
+filepond_metadata_title = Titel
+filepond_metadata_alt = Alternativer Text (Alt-Attribut)
+filepond_metadata_alt_decorative = Dekoratives Bild (kein Alt-Text erforderlich)
+filepond_metadata_alt_notice = Beschreibt den Bildinhalt für Screenreader und SEO
+filepond_metadata_copyright = Copyright / Bildrechte
+filepond_metadata_description = Beschreibung
+filepond_metadata_save = Metadaten speichern
+filepond_metadata_cancel = Abbrechen
 
 # Token Settings
 filepond_token_section = API Token Einstellungen
@@ -106,3 +121,14 @@ filepond_chunk_upload_retry = Erneut versuchen
 filepond_chunk_upload_abort = Upload abbrechen
 filepond_chunk_upload_resume = Upload fortsetzen
 filepond_upload_button = Dateien hochladen
+
+# Multilingual Display
+filepond_no_description = Keine Beschreibung
+
+# Media Widget Integration
+filepond_uploaded_files_media = Hochgeladene Dateien - Bereit zur Übernahme
+filepond_uploaded_files_medialist = Hochgeladene Dateien - Bereit für Medienliste
+filepond_select_for_media = In Media-Feld übernehmen
+filepond_select_for_medialist = In Medienliste übernehmen
+filepond_uploader_media_widget_mode = Upload-Auswahl
+filepond_uploader_media_widget_info = Die ausgewählten Elemente können in die Liste übernommen werden.

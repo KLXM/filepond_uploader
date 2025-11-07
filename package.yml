@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '1.12.1'
+version: '1.13.0'
 author: 'KLXM Crossmedia GmbH Thomas Skerbis'
 supportpage: https://github.com/KLXM/filepond_uploader
 requires:
@@ -20,6 +20,11 @@ page:
             title: 'translate:filepond_uploader_settings',
             perm: admin
         }
+        help: { 
+            title: 'translate:help', 
+            subPath: README.md, 
+            itemClass: 'pull-right' 
+        }
 default_config:
     allowed_types: 'image/*,video/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation'
     max_filesize: 200
@@ -34,6 +39,8 @@ default_config:
     always_show_meta: false
     replace_mediapool: false
     upload_skip_meta: false
+    delayed_upload_mode: false
+    title_required_default: false
     fix_exif_orientation: true
 installer_ignore:
     - node_modules

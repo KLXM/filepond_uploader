@@ -48,6 +48,7 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
        data-filepond-chunk-size="<?= $chunk_size ?>"
        data-filepond-delayed-upload="<?= (1 == $delayed_upload || 2 == $delayed_upload) ? 'true' : 'false' ?>"
        data-filepond-delayed-type="<?= $delayed_upload ?>"
+       data-filepond-title-required="<?= ($this->getElement('title_required') ? 'true' : 'false') ?>"
     />
     
     <?php if ($notice = $this->getElement('notice')): ?>

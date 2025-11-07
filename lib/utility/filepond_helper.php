@@ -22,7 +22,8 @@ class filepond_helper {
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.js'),
             $addon->getAssetsUrl('filepond/filepond.js'),
             $addon->getAssetsUrl('filepond_modal.js'),
-            $addon->getAssetsUrl('filepond_widget.js')
+            $addon->getAssetsUrl('filepond_widget.js'),
+            $addon->getAssetsUrl('filepond_auto_metainfo.js')  // Unser neues MetaInfo JavaScript
         ];
 
         if (rex::isBackend()) {
@@ -59,7 +60,8 @@ class filepond_helper {
             $addon->getAssetsUrl('filepond/filepond.css'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.css'),
             $addon->getAssetsUrl('filepond_widget.css'),
-            $addon->getAssetsUrl('filepond-custom-styles.css') // Unsere neue CSS-Datei mit benutzerdefinierten Button-Stilen
+            $addon->getAssetsUrl('filepond-custom-styles.css'), // Unsere neue CSS-Datei mit benutzerdefinierten Button-Stilen
+            $addon->getAssetsUrl('filepond_metainfo_lang.css')  // MetaInfo Lang Fields Styles
         ];
 
         if (rex::isBackend()) {

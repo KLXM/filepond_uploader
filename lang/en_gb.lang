@@ -6,6 +6,7 @@ perm_general_filepond_uploader[upload] = Use Filepond upload page
 # Tabs
 filepond_uploader_upload = Upload
 filepond_uploader_settings = Settings
+help = Help
 
 # Upload page
 filepond_upload_title = File Upload
@@ -32,6 +33,12 @@ filepond_settings_max_pixel_notice = Maximum width/height in pixels to which lar
 filepond_settings_upload_skip_meta = Disable meta dialog on upload page
 filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
 filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
+filepond_settings_delayed_upload = Delayed upload mode
+filepond_settings_delayed_upload_label = Enabled
+filepond_settings_delayed_upload_notice = Files are uploaded only after clicking an upload button, not immediately after selection
+filepond_settings_title_required = Title field on upload page as required field
+filepond_settings_title_required_label = Mark title field on upload page as required
+filepond_settings_title_required_notice = When enabled, the title field on the upload page is treated as a required field. For other widgets (YForm, modules etc.) data attributes must still be used.
 filepond_settings_fix_exif_orientation = Fix EXIF orientation
 filepond_settings_fix_exif_orientation_label = Automatically fix EXIF orientation
 filepond_settings_fix_exif_orientation_notice = Corrects image orientation based on EXIF data (e.g., for smartphone photos). Prevents images from appearing incorrectly rotated.
@@ -54,6 +61,17 @@ filepond_error_invalid_function = Invalid function
 filepond_upload_success = File successfully uploaded
 filepond_delete_success = File successfully deleted
 
+# Metadata fields  
+pool_file_description = Description
+filepond_metadata_title = Title
+filepond_metadata_alt = Alternative Text (Alt Attribute)
+filepond_metadata_alt_decorative = Decorative Image (no alt text required)
+filepond_metadata_alt_notice = Describes the image content for screen readers and SEO
+filepond_metadata_copyright = Copyright / Image Rights
+filepond_metadata_description = Description
+filepond_metadata_save = Save Metadata
+filepond_metadata_cancel = Cancel
+
 # Token Settings
 filepond_token_section = API Token Settings
 filepond_current_token = Current API Token
@@ -67,3 +85,14 @@ filepond_token_regenerated = API Token has been regenerated.
 # General Settings
 filepond_general_settings = General Settings
 filepond_save = Save
+
+# Multilingual Display
+filepond_no_description = No description
+
+# Media Widget Integration
+filepond_uploaded_files_media = Uploaded Files - Ready for Selection
+filepond_uploaded_files_medialist = Uploaded Files - Ready for Media List
+filepond_select_for_media = Select for Media Field
+filepond_select_for_medialist = Add to Media List
+filepond_uploader_media_widget_mode = Upload Selection
+filepond_uploader_media_widget_info = The selected items can be added to the list.

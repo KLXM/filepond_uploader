@@ -1,9 +1,11 @@
 (function() {
     // Tracking für bereits initialisierte Elemente
     const initializedElements = new Set();
+    
+    // Globale Variable für den aktuellen Dateityp
+    let currentFileType = null;
 
     const initFilePond = () => {
-        console.log('initFilePond function called');
 
         // Translations
         const translations = {
@@ -13,9 +15,10 @@
                 titleLabel: 'Titel:',
                 altLabel: 'Alt-Text:',
                 altNotice: 'Alternativtext für Screenreader und SEO',
-                decorativeLabel: 'Dekoratives Bild',
+                decorativeLabel: 'Dekoratives Bild (kein Alt-Text erforderlich)',
                 decorativeNotice: 'Nur für Bilder - alt-Text wird nicht benötigt',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Beschreibung:',
                 fileInfo: 'Datei',
                 fileSize: 'Größe',
                 saveBtn: 'Speichern',
@@ -31,9 +34,10 @@
                 titleLabel: 'Title:',
                 altLabel: 'Alt Text:',
                 altNotice: 'Alternative text for screen readers and SEO',
-                decorativeLabel: 'Decorative image',
-                decorativeNotice: 'For images only - alt text not required',
+                decorativeLabel: 'Decorative Image (no alt text required)',
+                decorativeNotice: 'For images only - alt text not needed',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Description:',
                 fileInfo: 'File',
                 fileSize: 'Size',
                 saveBtn: 'Save',
@@ -200,138 +204,305 @@
             // Standardwerte für die Chunk-Größe 
             const CHUNK_SIZE = parseInt(input.dataset.filepondChunkSize || '1') * 1024 * 1024; // Konfigurierbare Größe (Default: 1MB)
 
-            // Create metadata dialog with SimpleModal
-            const createMetadataDialog = (file, existingMetadata = null) => {
+            // Wiederverwendbare Funktion für File Preview
+            const createFilePreview = (file, container) => {
+                // Clear container
+                container.innerHTML = '';
+                
+                if (file instanceof File) {
+                    const fileName = file.name || '';
+                    const isVideo = file.type.startsWith('video/') || 
+                                  /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName);
+                    
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.alt = '';
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '300px';
+                        img.style.objectFit = 'contain';
+                        const objectURL = URL.createObjectURL(file);
+                        img.src = objectURL;
+                        img.onload = () => URL.revokeObjectURL(objectURL);
+                        container.appendChild(img);
+                    } else if (isVideo) {
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.muted = true;
+                        video.preload = 'metadata';
+                        video.style.maxWidth = '100%';
+                        video.style.maxHeight = '300px';
+                        video.style.objectFit = 'contain';
+                        video.style.backgroundColor = '#000';
+                        video.style.borderRadius = '4px';
+                        
+                        // Safari hat Probleme mit Blob URLs für Videos
+                        // Verwende FileReader als Alternative für Safari
+                        if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                video.src = e.target.result;
+                            };
+                            reader.onerror = function(e) {
+                                console.error('FileReader error:', e);
+                                createFileIcon(container, 'fa-file-video-o');
+                            };
+                            reader.readAsDataURL(file);
+                        } else {
+                            // Standard Blob URL für andere Browser
+                            const objectURL = URL.createObjectURL(file);
+                            video.src = objectURL;
+                            
+                            video.onloadedmetadata = () => {
+                                URL.revokeObjectURL(objectURL);
+                            };
+                        }
+                        
+                        video.onerror = (e) => {
+                            console.error('Video loading error:', e);
+                            if (video.src.startsWith('blob:')) {
+                                URL.revokeObjectURL(video.src);
+                            }
+                            createFileIcon(container, 'fa-file-video-o');
+                        };
+                        
+                        container.appendChild(video);
+                        
+                        // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
+                        setTimeout(() => {
+                            if (video.readyState === 0) {
+                                video.load();
+                            }
+                        }, 1000);
+                    } else {
+                        // Icon für andere Dateitypen basierend auf MIME-Type
+                        createFileIconFromMimeType(container, file.type, file.name);
+                    }
+                } else if (typeof file.source === 'string') {
+                    // Bereits hochgeladene Datei
+                    const fileName = file.source || file.filename || 'unknown';
+                    
+                    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
+                        const img = document.createElement('img');
+                        img.alt = '';
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '300px';
+                        img.style.objectFit = 'contain';
+                        img.src = '/media/' + fileName;
+                        container.appendChild(img);
+                    } else if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName)) {
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.muted = true;
+                        video.preload = 'metadata';
+                        video.style.maxWidth = '100%';
+                        video.style.maxHeight = '300px';
+                        video.style.objectFit = 'contain';
+                        video.style.backgroundColor = '#000';
+                        video.style.borderRadius = '4px';
+                        video.crossOrigin = 'anonymous'; // Für CORS falls nötig
+                        video.src = '/media/' + fileName;
+                        
+                        video.onerror = (e) => {
+                            console.error('Uploaded video loading error:', e);
+                            createFileIcon(container, 'fa-file-video-o');
+                        };
+                        
+                        container.appendChild(video);
+                        
+                        // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
+                        setTimeout(() => {
+                            if (video.readyState === 0) {
+                                video.load();
+                            }
+                        }, 1000);
+                    } else {
+                        // Icon für andere Dateitypen basierend auf Dateiendung
+                        createFileIconFromExtension(container, fileName);
+                    }
+                } else {
+                    createFileIcon(container, 'fa-file');
+                }
+            };
+
+            // Hilfsfunktion für File Icons
+            const createFileIcon = (container, iconClass) => {
+                // Container leeren, falls schon andere Inhalte drin sind
+                container.innerHTML = '';
+                
+                const icon = document.createElement('div');
+                icon.className = 'simple-modal-file-icon';
+                icon.style.cssText = 'width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+                icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
+                container.appendChild(icon);
+            };
+
+            // Icon basierend auf MIME-Type
+            const createFileIconFromMimeType = (container, mimeType, fileName) => {
+                let iconClass = 'fa-file';
+                
+                if (mimeType) {
+                    if (mimeType.includes('pdf')) {
+                        iconClass = 'fa-file-pdf';
+                    } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
+                        iconClass = 'fa-file-excel';
+                    } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                        iconClass = 'fa-file-word';
+                    } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
+                        iconClass = 'fa-file-powerpoint';
+                    } else if (mimeType.includes('zip') || mimeType.includes('archive') || mimeType.includes('compressed')) {
+                        iconClass = 'fa-file-archive';
+                    } else if (mimeType.includes('audio')) {
+                        iconClass = 'fa-file-audio';
+                    } else if (mimeType.includes('text') || mimeType.includes('plain')) {
+                        iconClass = 'fa-file-alt';
+                    } else if (mimeType.includes('code') || mimeType.includes('json') || mimeType.includes('javascript')) {
+                        iconClass = 'fa-file-code';
+                    }
+                }
+                
+                // Fallback auf Dateiendung wenn MIME-Type nicht hilfreich ist
+                if (iconClass === 'fa-file' && fileName) {
+                    return createFileIconFromExtension(container, fileName);
+                }
+                
+                createFileIcon(container, iconClass);
+            };
+
+            // Icon basierend auf Dateiendung
+            const createFileIconFromExtension = (container, fileName) => {
+                let iconClass = 'fa-file';
+                const name = fileName.toLowerCase();
+                
+                if (name.endsWith('.pdf')) {
+                    iconClass = 'fa-file-pdf';
+                } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
+                    iconClass = 'fa-file-excel';
+                } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                    iconClass = 'fa-file-word';
+                } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
+                    iconClass = 'fa-file-powerpoint';
+                } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
+                    iconClass = 'fa-file-archive';
+                } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
+                    iconClass = 'fa-file-audio';
+                } else if (name.endsWith('.txt')) {
+                    iconClass = 'fa-file-alt';
+                } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
+                    iconClass = 'fa-file-code';
+                }
+                
+                createFileIcon(container, iconClass);
+            };
+
+            // Create metadata dialog with SimpleModal and MetaInfo integration
+            const createMetadataDialog = async (file, existingMetadata = null) => {
+                try {
+                    // Lade MetaInfo-Felder über API
+                    const metaInfoFields = await loadMetaInfoFields();
+                    return createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
+                } catch (error) {
+                    console.warn('MetaInfo integration failed, using standard modal:', error);
+                    return createStandardMetadataDialog(file, existingMetadata);
+                }
+            };
+            
+            // Lädt MetaInfo-Felder über API
+            const loadMetaInfoFields = async () => {
+                const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Fehler beim Laden der MetaInfo-Felder');
+                }
+                return data.fields;
+            };
+            
+            // Erweiterte MetaInfo-Dialog
+            const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
                 return new Promise((resolve, reject) => {
+                    // Aktuellen Dateityp für die Feldlogik setzen
+                    currentFileType = file.type || (file.file ? file.file.type : null);
+                    
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
-                    // Preview Container
+                    // Preview Container (verwendet neue Preview-Funktion)
                     const previewCol = document.createElement('div');
                     previewCol.className = 'simple-modal-col-4';
                     const previewContainer = document.createElement('div');
                     previewContainer.className = 'simple-modal-preview';
                     
-                    // Hier fügen wir eine Vorschau basierend auf dem Dateityp ein
-                    if (file instanceof File) {
-                        if (file.type.startsWith('image/')) {
-                            // Bild-Vorschau
-                            const img = document.createElement('img');
-                            img.alt = '';
-                            const objectURL = URL.createObjectURL(file);
-                            img.src = objectURL;
-                            img.onload = () => {
-                                URL.revokeObjectURL(objectURL);
-                            };
-                            previewContainer.appendChild(img);
-                        } else if (file.type.startsWith('video/')) {
-                            // Video-Vorschau
-                            const video = document.createElement('video');
-                            video.controls = true;
-                            video.muted = true;
-                            const objectURL = URL.createObjectURL(file);
-                            video.src = objectURL;
-                            video.onload = () => {
-                                URL.revokeObjectURL(objectURL);
-                            };
-                            previewContainer.appendChild(video);
-                        } else {
-                            // Passende Font Awesome 6 Icons basierend auf dem Dateityp
-                            const icon = document.createElement('div');
-                            icon.className = 'simple-modal-file-icon';
-                            
-                            // Icon basierend auf dem Dateityp bestimmen
-                            let iconClass = 'fa-file'; // Standard-Icon
-                            if (file.type) {
-                                if (file.type.includes('pdf')) {
-                                    iconClass = 'fa-file-pdf';
-                                } else if (file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv') || file.name?.endsWith('.xlsx') || file.name?.endsWith('.xls')) {
-                                    iconClass = 'fa-file-excel';
-                                } else if (file.type.includes('word') || file.type.includes('document') || file.name?.endsWith('.docx') || file.name?.endsWith('.doc')) {
-                                    iconClass = 'fa-file-word';
-                                } else if (file.type.includes('powerpoint') || file.type.includes('presentation') || file.name?.endsWith('.pptx') || file.name?.endsWith('.ppt')) {
-                                    iconClass = 'fa-file-powerpoint';
-                                } else if (file.type.includes('zip') || file.type.includes('archive') || file.type.includes('compressed')) {
-                                    iconClass = 'fa-file-archive';
-                                } else if (file.type.includes('audio')) {
-                                    iconClass = 'fa-file-audio';
-                                } else if (file.type.includes('text') || file.type.includes('plain') || file.name?.endsWith('.txt')) {
-                                    iconClass = 'fa-file-alt';
-                                } else if (file.type.includes('code') || file.name?.endsWith('.json') || file.name?.endsWith('.js') || file.name?.endsWith('.html') || file.name?.endsWith('.css') || file.name?.endsWith('.php')) {
-                                    iconClass = 'fa-file-code';
-                                }
-                            } else if (file.name) {
-                                // Erkennung basierend auf dem Dateinamen als Fallback
-                                const name = file.name.toLowerCase();
-                                if (name.endsWith('.pdf')) {
-                                    iconClass = 'fa-file-pdf';
-                                } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
-                                    iconClass = 'fa-file-excel';
-                                } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
-                                    iconClass = 'fa-file-word';
-                                } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
-                                    iconClass = 'fa-file-powerpoint';
-                                } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
-                                    iconClass = 'fa-file-archive';
-                                } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
-                                    iconClass = 'fa-file-audio';
-                                } else if (name.endsWith('.txt')) {
-                                    iconClass = 'fa-file-alt';
-                                } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
-                                    iconClass = 'fa-file-code';
-                                }
-                            }
-                            
-                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
-                            previewContainer.appendChild(icon);
-                        }
-                    } else if (typeof file.source === 'string') {
-                        // Bereits hochgeladene Datei
-                        const fileName = file.source || file.filename || 'unknown';
-                        if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
-                            // Bild-Vorschau für bereits hochgeladene Dateien
-                            const img = document.createElement('img');
-                            img.alt = '';
-                            img.src = '/media/' + fileName;
-                            previewContainer.appendChild(img);
-                        } else if (/\.(mp4|webm|ogg|mov)$/i.test(fileName)) {
-                            // Video-Vorschau für bereits hochgeladene Dateien
-                            const video = document.createElement('video');
-                            video.controls = true;
-                            video.muted = true;
-                            video.src = '/media/' + fileName;
-                            previewContainer.appendChild(video);
-                        } else {
-                            // Icon basierend auf Dateiendung
-                            const icon = document.createElement('div');
-                            icon.className = 'simple-modal-file-icon';
-                            
-                            // Icon basierend auf der Dateiendung bestimmen
-                            let iconClass = 'fa-file'; // Standard-Icon
-                            const name = fileName.toLowerCase();
-                            
-                            if (name.endsWith('.pdf')) {
-                                iconClass = 'fa-file-pdf';
-                            } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
-                                iconClass = 'fa-file-excel';
-                            } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
-                                iconClass = 'fa-file-word';
-                            } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
-                                iconClass = 'fa-file-powerpoint';
-                            } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
-                                iconClass = 'fa-file-archive';
-                            } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
-                                iconClass = 'fa-file-audio';
-                            } else if (name.endsWith('.txt')) {
-                                iconClass = 'fa-file-alt';
-                            } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
-                                iconClass = 'fa-file-code';
-                            }
-                            
-                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
-                            previewContainer.appendChild(icon);
-                        }
+                    // Verwende die neue wiederverwendbare Preview-Funktion
+                    createFilePreview(file, previewContainer);
+                    
+                    previewCol.appendChild(previewContainer);
+
+                    // Form Container mit MetaInfo-Feldern
+                    const formCol = document.createElement('div');
+                    formCol.className = 'simple-modal-col-8';
+                    
+                    let formHTML = '';
+                    
+                    // Sortiere Felder: title, med_title_lang, med_alt, med_copyright, rest
+                    const sortedFields = sortMetaInfoFields(fields);
+                    
+                    for (const field of sortedFields) {
+                        formHTML += createFieldHTML(field, existingMetadata, input);
                     }
+                    
+                    formCol.innerHTML = formHTML;
+                    
+                    form.appendChild(previewCol);
+                    form.appendChild(formCol);
+
+                    const modal = new SimpleModal();
+                    
+                    // Setup nach DOM-Einfügung
+                    setTimeout(() => {
+                        setupEnhancedFieldEvents(form, fields, file);
+                    }, 100);
+
+                    modal.show({
+                        title: `${t.metaTitle} ${file.filename || file.name}`,
+                        content: form,
+                        buttons: [
+                            {
+                                text: t.cancelBtn,
+                                closeModal: true,
+                                handler: () => reject(new Error('Metadata input cancelled'))
+                            },
+                            {
+                            text: t.saveBtn,
+                            primary: true,
+                            handler: () => {
+                                const metadata = collectEnhancedFormData(form, fields);
+                                if (validateEnhancedMetadata(metadata, fields, form, input)) {
+                                    // Erweiterte Metadaten - sende an unsere API
+                                    saveEnhancedMetadata(file, metadata, modal, resolve, reject);
+                                }
+                            }
+                        }
+                        ]
+                    });
+                });
+            };
+            
+            // Standard-Dialog (Fallback)
+            const createStandardMetadataDialog = (file, existingMetadata = null) => {
+                return new Promise((resolve, reject) => {
+                    const form = document.createElement('div');
+                    form.className = 'simple-modal-grid';
+
+                    // Preview Container (verwendet neue Preview-Funktion)
+                    const previewCol = document.createElement('div');
+                    previewCol.className = 'simple-modal-col-4';
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'simple-modal-preview';
+                    
+                    // Verwende die neue wiederverwendbare Preview-Funktion
+                    createFilePreview(file, previewContainer);
                     
                     previewCol.appendChild(previewContainer);
 
@@ -454,6 +625,433 @@
                         ]
                     });
                 });
+            };
+            
+            // MetaInfo-Integration Hilfsfunktionen
+            
+            // Sortiert Felder in gewünschter Reihenfolge
+            const sortMetaInfoFields = (fields) => {
+                const order = ['title', 'med_title_lang', 'med_alt', 'med_copyright', 'med_description'];
+                const sorted = [];
+                
+                for (const fieldName of order) {
+                    const field = fields.find(f => f.name === fieldName);
+                    if (field) sorted.push(field);
+                }
+                
+                for (const field of fields) {
+                    if (!order.includes(field.name)) sorted.push(field);
+                }
+                
+                return sorted;
+            };
+            
+            // Hilfsfunktion für Übersetzungen basierend auf aktueller Sprache
+            const getFieldTranslation = (fieldName, lang = 'de_de') => {
+                const translationMap = {
+                    'title': translations[lang]?.titleLabel || 'Titel:',
+                    'med_title_lang': 'Titel (Mehrsprachig):',
+                    'med_alt': translations[lang]?.altLabel || 'Alt-Text:',
+                    'med_copyright': translations[lang]?.copyrightLabel || 'Copyright:',
+                    'med_description': translations[lang]?.descriptionLabel || 'Beschreibung:'
+                };
+                return translationMap[fieldName] || fieldName;
+            };
+            
+            // Erstellt HTML für ein MetaInfo-Feld
+            const createFieldHTML = (field, existingMetadata, currentInput) => {
+                const fieldId = `field_${field.name}`;
+                const isImage = currentFileType && currentFileType.startsWith('image/');
+                let html = '';
+                
+                // Widget-Referenz für data-Attribute (verwende das übergebene Element)
+                const widget = currentInput;
+                
+                // ALT-Felder nur bei Bildern anzeigen
+                if (field.name === 'med_alt' && !isImage) {
+                    return '';
+                }
+                
+                // Übersetztes Label verwenden
+                const translatedLabel = getFieldTranslation(field.name) || field.label;
+                
+                if (field.multilingual && field.languages && field.languages.length > 0) {
+                    // Mehrsprachiges Feld - zeige erste Sprache sichtbar, andere über Globus
+                    const firstLang = field.languages[0];
+                    const otherLangs = field.languages.slice(1);
+                    const firstLangValue = existingMetadata?.[field.name]?.[firstLang.code] || '';
+                    
+                    html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
+                    html += `<label for="${fieldId}" class="simple-modal-label">${translatedLabel}</label>`;
+                    
+                    // Globale dekorative Checkbox für ALT-Felder bei Bildern (gilt für alle Sprachen)
+                    if (field.name === 'med_alt' && isImage) {
+                        const decorativeCheckboxId = `decorative_global`;
+                        html += `<div class="decorative-checkbox-group">`;
+                        html += `<label for="${decorativeCheckboxId}" class="simple-modal-checkbox-label">`;
+                        html += `<input type="checkbox" id="${decorativeCheckboxId}" class="decorative-checkbox-global">`;
+                        html += `${translations.de_de.decorativeLabel}`;
+                        html += `</label>`;
+                        html += `</div>`;
+                    }
+                    
+                    // Erste Sprache (immer sichtbar)
+                    // Required-Attribut bestimmen
+                    let isRequired = '';
+                    if (field.name === 'med_alt' && isImage) {
+                        isRequired = 'required';
+                    } else if (field.name === 'med_title_lang') {
+                        // Mehrsprachige Titel-Felder sind immer required
+                        isRequired = 'required';
+                    }
+                    
+                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                    
+                    if (field.type === 'textarea') {
+                        html += `<textarea id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" rows="3" ${isRequired} ${isDisabled}>${firstLangValue}</textarea>`;
+                    } else {
+                        html += `<input type="text" id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" value="${firstLangValue}" ${isRequired} ${isDisabled}>`;
+                    }
+                    
+                    // Weitere Sprachen (über Globus einblendbar)
+                    if (otherLangs.length > 0) {
+                        html += `<div class="lang-field-container">`;
+                        html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${field.name}">`;
+                        html += `<i class="fa fa-globe"></i> Weitere Sprachen (${otherLangs.length})`;
+                        html += `</button>`;
+                        html += `<div class="lang-fields" id="lang-fields-${field.name}" style="display: none; margin-top: 8px;">`;
+                        
+                        for (const lang of otherLangs) {
+                            const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
+                            html += `<div class="form-group">`;
+                            html += `<label class="control-label">${lang.name}</label>`;
+                            
+                            // Keine individuelle Checkbox mehr - nutze globale dekorative Checkbox
+                            
+                            // Required-Attribut für verschiedene Felder
+                            let langRequired = '';
+                            if (field.name === 'med_title_lang') {
+                                langRequired = 'required'; // Mehrsprachige Titel sind immer required
+                            } else if (field.name === 'med_alt' && isImage) {
+                                langRequired = 'required';
+                            }
+                            const langDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                            
+                            if (field.type === 'textarea') {
+                                html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" rows="3" ${langRequired} ${langDisabled}>${langValue}</textarea>`;
+                            } else {
+                                html += `<input type="text" class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}" ${langRequired} ${langDisabled}>`;
+                            }
+                            html += `</div>`;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    html += `</div>`;
+                } else {
+                    // Standard-Feld
+                    html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
+                    html += `<label for="${fieldId}" class="simple-modal-label">${translatedLabel}`;
+                    
+                    if (field.name === 'title') {
+                        html += ` <small class="text-muted">(nur für interne Verwaltung)</small>`;
+                    }
+                    
+                    html += `</label>`;
+                    
+                    // Globale dekorative Checkbox wird nur einmal angezeigt (bei mehrsprachigen Feldern)
+                    
+                    const fieldValue = existingMetadata?.[field.name] || '';
+                    
+                    // Required-Attribut für verschiedene Felder
+                    let isRequired = '';
+                    if (field.name === 'med_title_lang') {
+                        isRequired = 'required'; // Mehrsprachige Titel sind immer required
+                    } else if (field.name === 'title') {
+                        // Einfaches title Feld - basierend auf data-Attribut
+                        const titleRequiredAttr = widget?.getAttribute('data-filepond-title-required');
+                        if (titleRequiredAttr === 'true') {
+                            isRequired = 'required';
+                        }
+                    } else if (field.name === 'med_alt' && isImage) {
+                        isRequired = 'required';
+                    }
+                    
+                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                    
+                    if (field.type === 'textarea') {
+                        html += `<textarea id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" rows="3" ${isRequired} ${isDisabled}>${fieldValue}</textarea>`;
+                    } else {
+                        html += `<input type="text" id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" value="${fieldValue}" ${isRequired} ${isDisabled}>`;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                return html;
+            };
+            
+            // Setup Events für erweiterte Felder
+            const setupEnhancedFieldEvents = (form, fields, file) => {
+                // Auto-Titel-Generierung
+                const titleField = form.querySelector('[data-field="title"]');
+                if (titleField && !titleField.value) {
+                    const filename = file.name || file.filename || '';
+                    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+                    titleField.value = nameWithoutExt;
+                }
+                
+                // Toggle-Buttons für mehrsprachige Felder
+                form.querySelectorAll('.lang-toggle').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const target = button.getAttribute('data-target');
+                        const container = document.getElementById(`lang-fields-${target}`);
+                        const icon = button.querySelector('i');
+                        
+                        if (container) {
+                            if (container.style.display === 'none') {
+                                container.style.display = 'block';
+                                icon.className = 'fa fa-globe';
+                                // Text bleibt gleich
+                            } else {
+                                container.style.display = 'none';
+                                icon.className = 'fa fa-globe';
+                                // Text bleibt gleich
+                            }
+                        }
+                    });
+                });
+                
+                // Globale dekorative Bild-Checkbox für ALT-Felder
+                const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');
+                if (globalDecorativeCheckbox) {
+                    globalDecorativeCheckbox.addEventListener('change', function() {
+                        const isChecked = this.checked;
+                        
+                        // Alle ALT-Felder (mehrsprachig und einsprachig) finden und entsprechend aktivieren/deaktivieren
+                        const altFields = form.querySelectorAll('[data-field="med_alt"]');
+                        
+                        altFields.forEach(field => {
+                            if (isChecked) {
+                                field.disabled = true;
+                                field.value = '';
+                                field.removeAttribute('required');
+                            } else {
+                                field.disabled = false;
+                                field.setAttribute('required', 'required');
+                            }
+                        });
+                    });
+                }
+                
+                // Alte individuelle Checkbox-Handler entfernt - nutze nur noch globale Checkbox
+            };
+            
+            // Sammelt Daten aus erweitertem Formular
+            const collectEnhancedFormData = (form, fields) => {
+                const metadata = {};
+                const inputs = form.querySelectorAll('input, textarea');
+                
+                inputs.forEach(input => {
+                    const fieldName = input.getAttribute('data-field');
+                    const langCode = input.getAttribute('data-lang');
+                    
+                    if (fieldName) {
+                        if (langCode) {
+                            // Mehrsprachiges Feld
+                            if (!metadata[fieldName]) metadata[fieldName] = {};
+                            metadata[fieldName][langCode] = input.value;
+                        } else {
+                            // Standard-Feld
+                            metadata[fieldName] = input.value;
+                        }
+                    }
+                });
+                
+                return metadata;
+            };
+            
+            // Validiert erweiterte Metadaten
+            const validateEnhancedMetadata = (metadata, fields, form, currentInput) => {
+                let isValid = true;
+                let firstInvalidField = null;
+                
+                // Alle vorherigen Fehlermeldungen entfernen
+                form.querySelectorAll('.field-error, .field-error-message').forEach(el => el.remove());
+                form.querySelectorAll('.simple-modal-input').forEach(el => {
+                    el.classList.remove('error');
+                    el.style.borderColor = '';
+                });
+                
+                for (const field of fields) {
+                    let isFieldRequired = field.required;
+                    
+                    // ALT-Felder sind bei Bildern automatisch Pflicht (außer bei dekorativen Bildern)
+                    if (field.name === 'med_alt') {
+                        const isImage = currentFileType && currentFileType.startsWith('image/');
+                        if (!isImage) continue; // ALT-Feld nicht erforderlich bei Nicht-Bildern
+                        
+                        isFieldRequired = true; // ALT ist bei Bildern immer Pflicht
+                        
+                        // Prüfen ob die globale dekorative Checkbox aktiviert ist
+                        const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');
+                        let hasDecorativeOverride = false;
+                        
+                        if (globalDecorativeCheckbox && globalDecorativeCheckbox.checked) {
+                            hasDecorativeOverride = true;
+                        }
+                        
+                        if (hasDecorativeOverride) {
+                            continue; // ALT-Feld nicht erforderlich wenn dekorativ markiert
+                        }
+                    }
+                    
+                    // med_title_lang ist standardmäßig Pflicht (kann per Attribut überschrieben werden)
+                    if (field.name === 'med_title_lang') {
+                        // Mehrsprachige Titel-Felder sind immer required
+                        isFieldRequired = true;
+                    }
+                    
+                    // Einfaches title Feld - basierend auf data-Attribut
+                    if (field.name === 'title') {
+                        const titleRequiredAttr = currentInput?.getAttribute('data-filepond-title-required');
+                        isFieldRequired = titleRequiredAttr === 'true';
+                    }
+                    
+                    // Validierung für required Felder (inkl. ALT bei Bildern)
+                    if (isFieldRequired) {
+                        let fieldIsValid = true;
+                        
+                        if (field.multilingual && field.languages) {
+                            // Mehrsprachige Felder: mindestens eine Sprache muss ausgefüllt sein
+                            let hasAnyValue = false;
+                            let requiredLanguages = [...field.languages]; // Kopie für Manipulation
+                            
+                            // Bei ALT-Feldern: Sprachen mit dekorativen Checkboxen ausschließen
+                            if (field.name === 'med_alt') {
+                                requiredLanguages = field.languages.filter(lang => {
+                                    const decorativeCheckbox = form.querySelector(`.decorative-checkbox[data-lang="${lang.code}"]`);
+                                    const isDecorative = decorativeCheckbox && decorativeCheckbox.checked;
+                                    return !isDecorative;
+                                });
+                                
+                                // Wenn alle Sprachen als dekorativ markiert sind, ist das Feld gültig
+                                if (requiredLanguages.length === 0) {
+                                    hasAnyValue = true;
+                                }
+                            }
+                            
+                            // Prüfe nur die erforderlichen Sprachen
+                            for (const lang of requiredLanguages) {
+                                const value = metadata[field.name]?.[lang.code];
+                                if (value && value.toString().trim() !== '') {
+                                    hasAnyValue = true;
+                                    break;
+                                }
+                            }
+                            
+                            if (!hasAnyValue && requiredLanguages.length > 0) {
+                                fieldIsValid = false;
+                                // Erste erforderliche Sprache als Fehlerfeld markieren
+                                const firstLangInput = form.querySelector(`[data-field="${field.name}"][data-lang="${requiredLanguages[0].code}"]`);
+                                if (firstLangInput && !firstInvalidField) {
+                                    firstInvalidField = firstLangInput;
+                                }
+                                markFieldAsError(form, field.name, requiredLanguages[0].code);
+                            }
+                        } else {
+                            // Einsprachige Felder
+                            const value = metadata[field.name];
+                            if (!value || value.toString().trim() === '') {
+                                fieldIsValid = false;
+                                const input = form.querySelector(`[data-field="${field.name}"]:not([data-lang])`);
+                                if (input && !firstInvalidField) {
+                                    firstInvalidField = input;
+                                }
+                                markFieldAsError(form, field.name);
+                            }
+                        }
+                        
+                        if (!fieldIsValid) {
+                            isValid = false;
+                        }
+                    }
+                }
+                
+                // Erstes ungültiges Feld fokussieren
+                if (!isValid && firstInvalidField) {
+                    firstInvalidField.focus();
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                return isValid;
+            };
+            
+            // Hilfsfunktion zum Markieren von Feldern als fehlerhaft
+            const markFieldAsError = (form, fieldName, langCode = null) => {
+                const selector = langCode 
+                    ? `[data-field="${fieldName}"][data-lang="${langCode}"]`
+                    : `[data-field="${fieldName}"]:not([data-lang])`;
+                
+                const input = form.querySelector(selector);
+                if (input) {
+                    input.classList.add('error');
+                    input.style.borderColor = '#dc3545';
+                    
+                    // Fehlermeldung hinzufügen wenn noch nicht vorhanden
+                    const fieldGroup = input.closest('.simple-modal-form-group');
+                    if (fieldGroup && !fieldGroup.querySelector('.field-error-message')) {
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'field-error-message';
+                        errorMsg.style.color = '#dc3545';
+                        errorMsg.style.fontSize = '12px';
+                        errorMsg.style.marginTop = '4px';
+                        errorMsg.textContent = 'Dieses Feld ist erforderlich';
+                        fieldGroup.appendChild(errorMsg);
+                    }
+                }
+            };
+            
+            // Speichert erweiterte Metadaten über unsere API
+            const saveEnhancedMetadata = async (file, metadata, modal, resolve, reject) => {
+                try {
+                    // Wenn Datei bereits hochgeladen ist (serverId vorhanden)
+                    if (file.serverId) {
+                        const formData = new FormData();
+                        formData.append('file_id', file.serverId);
+                        formData.append('metadata', JSON.stringify(metadata));
+                        
+                        const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=save_metadata', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            modal.close();
+                            resolve(metadata);
+                        } else {
+                            throw new Error(result.error || 'Fehler beim Speichern');
+                        }
+                    } else {
+                        // Datei noch nicht hochgeladen - speichere Metadaten für späteren Upload
+                        file.metaInfo = metadata;
+                        modal.close();
+                        resolve(metadata);
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Speichern der erweiterten Metadaten:', error);
+                    alert('Fehler beim Speichern: ' + error.message);
+                }
             };
 
             // Prepare existing files
@@ -665,7 +1263,7 @@
                 instantUpload: function() {
                     const isDelayed = input.hasAttribute('data-filepond-delayed-upload') && 
                                      input.getAttribute('data-filepond-delayed-upload') === 'true';
-                    console.log('Delayed Upload Mode enabled:', isDelayed);
+                        //console.log('Delayed Upload Mode enabled:', isDelayed);
                     return !isDelayed; // instantUpload ist das Gegenteil von delayed
                 }(),
                 
@@ -767,7 +1365,7 @@
                                 console.error('Upload error:', err);
                                 error('Upload failed: ' + err.message);
                             } else {
-                                console.log('Metadata dialog cancelled');
+                                //console.log('Metadata dialog cancelled');
                                 
                                 // Statt direktem Abbruch: Zeige einen Status mit Retry-Button an
                                 file.abortProcessing = true;
@@ -790,7 +1388,7 @@
                                             file.abortProcessing = false;
                                             pond.processFile(retryFile.id).then(
                                                 successFile => {
-                                                    console.log('Retry successful:', successFile.filename || successFile.file.name);
+                                                    //console.log('Retry successful:', successFile.filename || successFile.file.name);
                                                 },
                                                 failureReason => {
                                                     console.error('Retry failed:', failureReason);
