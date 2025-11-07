@@ -53,8 +53,7 @@ class FilePondMediaWidget {
         if (this.resultsContainer) return this.resultsContainer;
         
         this.resultsContainer = document.createElement('div');
-        this.resultsContainer.className = 'panel panel-success';
-        this.resultsContainer.style.marginTop = '20px';
+        this.resultsContainer.className = 'panel panel-success fp-results-container';
         this.resultsContainer.innerHTML = `
             <div class="panel-heading">
                 <h4 class="panel-title">
@@ -83,7 +82,7 @@ class FilePondMediaWidget {
         
         if (filesList) {
             const listItem = document.createElement('li');
-            listItem.style.cssText = 'padding: 15px; border: 1px solid #d4edda; background-color: #f8fff9; margin-bottom: 10px; border-radius: 4px;';
+            listItem.className = 'fp-media-upload-result-extended';
             
             const buttonText = this.isMediaList ? 'In Medienliste übernehmen' : 'Übernehmen';
             
@@ -178,19 +177,17 @@ class FilePondMediaWidget {
         
         // Build DOM tree safely to avoid XSS
         const container = document.createElement('div');
-        container.className = 'filepond-preview-container';
+        container.className = 'fp-preview-container';
         
         const img = document.createElement('img');
         img.src = mediaUrl;
         img.alt = filename; // Safe: browser automatically escapes alt attribute
-        img.className = 'filepond-preview-image';
-        img.style.cssText = 'max-width: 80px; max-height: 80px; border-radius: 4px; border: 1px solid #ddd; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+        img.className = 'fp-preview-image';
         
         const fallbackDiv = document.createElement('div');
-        fallbackDiv.style.cssText = 'display: none; width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center;';
+        fallbackDiv.className = 'fp-image-preview-fallback';
         const fallbackIcon = document.createElement('i');
         fallbackIcon.className = 'fa fa-image text-muted';
-        fallbackIcon.style.fontSize = '24px';
         fallbackDiv.appendChild(fallbackIcon);
         
         img.onerror = function() {
@@ -256,20 +253,9 @@ class FilePondMediaWidget {
         }
         
         return `
-            <div class="filepond-file-icon" style="
-                width: 80px; 
-                height: 80px; 
-                background: #f8f9fa; 
-                border: 1px solid #ddd; 
-                border-radius: 4px; 
-                display: flex; 
-                flex-direction: column;
-                align-items: center; 
-                justify-content: center;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            ">
-                <i class="fa ${iconClass}" style="font-size: 32px; color: ${iconColor}; margin-bottom: 4px;"></i>
-                <small style="font-size: 10px; color: #6c757d; text-transform: uppercase; font-weight: bold;">${extension}</small>
+            <div class="fp-file-icon">
+                <i class="fa ${iconClass}" style="color: ${iconColor};"></i>
+                <small>${extension}</small>
             </div>
         `;
     }

@@ -725,7 +725,7 @@
                         html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${uniqueFieldId}">`;
                         html += `<i class="fa fa-globe"></i> Weitere Sprachen (${otherLangs.length})`;
                         html += `</button>`;
-                        html += `<div class="lang-fields" id="lang-fields-${uniqueFieldId}" style="display: none; margin-top: 8px;">`;
+                        html += `<div class="lang-fields fp-lang-fields" id="lang-fields-${uniqueFieldId}">`;
                         
                         for (const lang of otherLangs) {
                             const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
