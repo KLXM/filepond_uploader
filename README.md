@@ -51,6 +51,13 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Unterstützung für YCOM-Benutzerauthentifizierung
     *   Validierung von Dateitypen und -größen
 
+*   **Media Widget Integration:**
+    *   Nahtlose Integration mit REX_MEDIA und REX_MEDIALIST Widgets
+    *   Direkter Upload von Dateien in Formularfelder
+    *   Bildvorschau mit Thumbnails für bessere Übersicht
+    *   Bulk-Übernahme für Medienlisten
+    *   Mehrsprachige Benutzeroberfläche
+
 *   **Wartungswerkzeuge:**
     *   Einfache Bereinigung temporärer Dateien und Chunks
     *   Protokollierung aller Upload-Vorgänge
@@ -64,6 +71,59 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
 4.  **Fertig:** Der Uploader ist nun einsatzbereit!
 
 ## Schnellstart
+
+### Media Widget Integration
+
+Das FilePond AddOn bietet eine nahtlose Integration mit REDAXO's Standard Media Widgets (REX_MEDIA und REX_MEDIALIST). Nach dem Upload können Dateien direkt in Formularfelder übernommen werden.
+
+#### Verwendung
+
+1. **Öffne ein Media Widget:** Klicke in einem beliebigen Formular auf das "Öffnen" Icon neben einem REX_MEDIA oder REX_MEDIALIST Feld
+2. **Upload-Modus aktiviert:** FilePond erkennt automatisch den Widget-Kontext und zeigt einen Info-Banner
+3. **Dateien hochladen:** Nutze die gewohnte Drag&Drop oder Auswahl-Funktionalität
+4. **Direktübernahme:** Nach erfolgreichem Upload erscheinen Buttons zur direkten Übernahme
+
+#### Features der Media Widget Integration
+
+**Für REX_MEDIA (Einzelmedien):**
+- Upload → Übernahme → Fenster schließt sich automatisch
+- Bildvorschau mit 80x80px Thumbnails
+- Dateitypspezifische Icons für Nicht-Bild-Dateien
+
+**Für REX_MEDIALIST (Medienlisten):**
+- Upload → Fenster bleibt offen für weitere Uploads
+- Einzelne Übernahme pro Datei möglich
+- "Alle übernehmen" Button bei mehreren Dateien
+- Duplikat-Schutz verhindert doppelte Einträge
+- Visuelles Feedback mit "Hinzugefügt" Status
+
+#### Bildvorschau-System
+
+Das AddOn zeigt automatische Vorschauen für hochgeladene Inhalte:
+
+**Bilder (jpg, png, gif, webp, etc.):**
+- 80x80px Thumbnail-Vorschau
+- Proportionale Skalierung mit object-fit
+- Fallback auf Dateitype-Icon bei Fehlern
+
+**Andere Dateitypen:**
+- Farbcodierte Icons nach Dateityp
+- PDF (rot), Word (blau), Excel (grün), etc.
+- Dateiendung als Label unter dem Icon
+
+#### Mehrsprachige Benutzeroberfläche
+
+Die Media Widget Integration unterstützt vollständige Mehrsprachigkeit:
+
+**Deutsch:**
+- "Upload-Auswahl"
+- "Die ausgewählten Elemente können in die Liste übernommen werden."
+
+**English:**
+- "Upload Selection"
+- "The selected items can be added to the list."
+
+> **Hinweis:** Die Media Widget Integration ist ein Add-On Feature und erfordert keine zusätzliche Konfiguration. Sie funktioniert automatisch mit allen bestehenden REX_MEDIA und REX_MEDIALIST Feldern.
 
 ### Verwendung als YForm-Feldtyp
 

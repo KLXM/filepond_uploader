@@ -88,3 +88,11 @@ filepond_save = Save
 
 # Multilingual Display
 filepond_no_description = No description
+
+# Media Widget Integration
+filepond_uploaded_files_media = Uploaded Files - Ready for Selection
+filepond_uploaded_files_medialist = Uploaded Files - Ready for Media List
+filepond_select_for_media = Select for Media Field
+filepond_select_for_medialist = Add to Media List
+filepond_uploader_media_widget_mode = Upload Selection
+filepond_uploader_media_widget_info = The selected items can be added to the list.

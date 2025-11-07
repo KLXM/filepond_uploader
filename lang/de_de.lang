@@ -124,3 +124,11 @@ filepond_upload_button = Dateien hochladen
 
 # Multilingual Display
 filepond_no_description = Keine Beschreibung
+
+# Media Widget Integration
+filepond_uploaded_files_media = Hochgeladene Dateien - Bereit zur Übernahme
+filepond_uploaded_files_medialist = Hochgeladene Dateien - Bereit für Medienliste
+filepond_select_for_media = In Media-Feld übernehmen
+filepond_select_for_medialist = In Medienliste übernehmen
+filepond_uploader_media_widget_mode = Upload-Auswahl
+filepond_uploader_media_widget_info = Die ausgewählten Elemente können in die Liste übernommen werden.

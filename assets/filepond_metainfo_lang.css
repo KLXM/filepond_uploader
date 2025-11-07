@@ -123,3 +123,47 @@
 .rex-theme-dark .simple-modal .field-error-message {
     color: #ff6b6b;
 }
+
+/* Media Widget Integration Styles */
+.media-upload-result {
+    transition: background-color 0.3s ease;
+}
+
+.media-upload-result:hover {
+    background-color: #e8f5e8 !important;
+}
+
+.filepond-select-media {
+    transition: all 0.3s ease;
+}
+
+.filepond-select-media:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#filepond-media-results {
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark Theme Support für Media Widget */
+[data-theme="dark"] .media-upload-result {
+    background-color: #2d3f2f !important;
+    border-color: #4a5d4a !important;
+    color: #e0e0e0;
+}
+
+[data-theme="dark"] .media-upload-result:hover {
+    background-color: #3a4d3a !important;
+}
