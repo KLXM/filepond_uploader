@@ -6,7 +6,6 @@
     let currentFileType = null;
 
     const initFilePond = () => {
-        console.log('initFilePond function called');
 
         // Translations
         const translations = {
@@ -207,17 +206,11 @@
 
             // Wiederverwendbare Funktion für File Preview
             const createFilePreview = (file, container) => {
-                console.log('=== PREVIEW FUNCTION DEBUG ===');
-                console.log('File:', file);
-                console.log('File type:', file.type || 'unknown');
-                console.log('File name:', file.name || file.filename);
-                
                 // Clear container
                 container.innerHTML = '';
                 
                 if (file instanceof File) {
                     if (file.type.startsWith('image/')) {
-                        console.log('Creating image preview');
                         const img = document.createElement('img');
                         img.alt = '';
                         img.style.maxWidth = '100%';
@@ -228,7 +221,6 @@
                         img.onload = () => URL.revokeObjectURL(objectURL);
                         container.appendChild(img);
                     } else if (file.type.startsWith('video/')) {
-                        console.log('Creating video preview');
                         const video = document.createElement('video');
                         video.controls = true;
                         video.muted = true;
@@ -242,11 +234,9 @@
                         // Safari hat Probleme mit Blob URLs für Videos
                         // Verwende FileReader als Alternative für Safari
                         if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
-                            console.log('Safari detected, using FileReader for video');
                             const reader = new FileReader();
                             reader.onload = function(e) {
                                 video.src = e.target.result;
-                                console.log('Video source set via FileReader');
                             };
                             reader.onerror = function(e) {
                                 console.error('FileReader error:', e);
@@ -259,51 +249,35 @@
                             video.src = objectURL;
                             
                             video.onloadedmetadata = () => {
-                                console.log('Video metadata loaded successfully');
-                                console.log('Video duration:', video.duration);
-                                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
                                 URL.revokeObjectURL(objectURL);
                             };
                         }
                         
-                        video.oncanplay = () => {
-                            console.log('Video can start playing');
-                        };
-                        
                         video.onerror = (e) => {
-                            console.error('Video loading error:', e, video.error);
+                            console.error('Video loading error:', e);
                             if (video.src.startsWith('blob:')) {
                                 URL.revokeObjectURL(video.src);
                             }
                             createFileIcon(container, 'fa-file-video-o');
                         };
                         
-                        video.onloadstart = () => {
-                            console.log('Video load started');
-                        };
-                        
-                        // Füge das Video zum Container hinzu
                         container.appendChild(video);
                         
                         // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
                         setTimeout(() => {
                             if (video.readyState === 0) {
-                                console.log('Video not loading automatically, trying to trigger load');
                                 video.load();
                             }
                         }, 1000);
                     } else {
                         // Icon für andere Dateitypen basierend auf MIME-Type
-                        console.log('Creating file icon for type:', file.type);
                         createFileIconFromMimeType(container, file.type, file.name);
                     }
                 } else if (typeof file.source === 'string') {
                     // Bereits hochgeladene Datei
                     const fileName = file.source || file.filename || 'unknown';
-                    console.log('Creating preview for uploaded file:', fileName);
                     
                     if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
-                        console.log('Creating uploaded image preview');
                         const img = document.createElement('img');
                         img.alt = '';
                         img.style.maxWidth = '100%';
@@ -312,7 +286,6 @@
                         img.src = '/media/' + fileName;
                         container.appendChild(img);
                     } else if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName)) {
-                        console.log('Creating uploaded video preview');
                         const video = document.createElement('video');
                         video.controls = true;
                         video.muted = true;
@@ -325,24 +298,9 @@
                         video.crossOrigin = 'anonymous'; // Für CORS falls nötig
                         video.src = '/media/' + fileName;
                         
-                        video.onloadedmetadata = () => {
-                            console.log('Uploaded video metadata loaded successfully');
-                            console.log('Video duration:', video.duration);
-                            console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-                        };
-                        
-                        video.oncanplay = () => {
-                            console.log('Uploaded video can start playing');
-                        };
-                        
                         video.onerror = (e) => {
-                            console.error('Uploaded video loading error:', e, video.error);
-                            console.error('Video src:', video.src);
+                            console.error('Uploaded video loading error:', e);
                             createFileIcon(container, 'fa-file-video-o');
-                        };
-                        
-                        video.onloadstart = () => {
-                            console.log('Uploaded video load started');
                         };
                         
                         container.appendChild(video);
@@ -350,17 +308,14 @@
                         // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
                         setTimeout(() => {
                             if (video.readyState === 0) {
-                                console.log('Uploaded video not loading automatically, trying to trigger load');
                                 video.load();
                             }
                         }, 1000);
                     } else {
                         // Icon für andere Dateitypen basierend auf Dateiendung
-                        console.log('Creating file icon for extension');
                         createFileIconFromExtension(container, fileName);
                     }
                 } else {
-                    console.log('Unknown file type, creating generic icon');
                     createFileIcon(container, 'fa-file');
                 }
             };
@@ -887,8 +842,6 @@
                                 field.setAttribute('required', 'required');
                             }
                         });
-                        
-                        console.log(`Globale dekorative Checkbox: ${isChecked ? 'aktiviert' : 'deaktiviert'} - ${altFields.length} ALT-Felder betroffen`);
                     });
                 }
                 
@@ -947,13 +900,9 @@
                         
                         if (globalDecorativeCheckbox && globalDecorativeCheckbox.checked) {
                             hasDecorativeOverride = true;
-                            console.log('Globale dekorative Checkbox aktiviert - ALT-Feld wird übersprungen');
                         }
                         
-                        console.log('hasDecorativeOverride:', hasDecorativeOverride);
-                        
                         if (hasDecorativeOverride) {
-                            console.log('ALT-Feld übersprungen - ist dekorativ markiert');
                             continue; // ALT-Feld nicht erforderlich wenn dekorativ markiert
                         }
                     }
@@ -962,16 +911,12 @@
                     if (field.name === 'med_title_lang') {
                         // Mehrsprachige Titel-Felder sind immer required
                         isFieldRequired = true;
-                        
-                        console.log('med_title_lang required:', isFieldRequired, '(hardcoded)');
                     }
                     
                     // Einfaches title Feld - basierend auf data-Attribut
                     if (field.name === 'title') {
                         const titleRequiredAttr = currentInput?.getAttribute('data-filepond-title-required');
                         isFieldRequired = titleRequiredAttr === 'true';
-                        
-                        console.log('title required:', isFieldRequired, 'via attribute:', titleRequiredAttr);
                     }
                     
                     // Validierung für required Felder (inkl. ALT bei Bildern)
@@ -988,16 +933,12 @@
                                 requiredLanguages = field.languages.filter(lang => {
                                     const decorativeCheckbox = form.querySelector(`.decorative-checkbox[data-lang="${lang.code}"]`);
                                     const isDecorative = decorativeCheckbox && decorativeCheckbox.checked;
-                                    console.log(`Sprache ${lang.code}: dekorativ = ${isDecorative}`);
                                     return !isDecorative;
                                 });
-                                
-                                console.log('Erforderliche Sprachen nach Filterung:', requiredLanguages.map(l => l.code));
                                 
                                 // Wenn alle Sprachen als dekorativ markiert sind, ist das Feld gültig
                                 if (requiredLanguages.length === 0) {
                                     hasAnyValue = true;
-                                    console.log('Alle Sprachen sind dekorativ - Feld ist gültig');
                                 }
                             }
                             
@@ -1006,16 +947,12 @@
                                 const value = metadata[field.name]?.[lang.code];
                                 if (value && value.toString().trim() !== '') {
                                     hasAnyValue = true;
-                                    console.log(`Sprache ${lang.code} hat Wert:`, value);
                                     break;
                                 }
                             }
                             
-                            console.log('hasAnyValue:', hasAnyValue, 'requiredLanguages.length:', requiredLanguages.length);
-                            
                             if (!hasAnyValue && requiredLanguages.length > 0) {
                                 fieldIsValid = false;
-                                console.log('Fehler: Mindestens eine nicht-dekorative Sprache muss ausgefüllt sein');
                                 // Erste erforderliche Sprache als Fehlerfeld markieren
                                 const firstLangInput = form.querySelector(`[data-field="${field.name}"][data-lang="${requiredLanguages[0].code}"]`);
                                 if (firstLangInput && !firstInvalidField) {
@@ -1319,7 +1256,7 @@
                 instantUpload: function() {
                     const isDelayed = input.hasAttribute('data-filepond-delayed-upload') && 
                                      input.getAttribute('data-filepond-delayed-upload') === 'true';
-                    console.log('Delayed Upload Mode enabled:', isDelayed);
+                        //console.log('Delayed Upload Mode enabled:', isDelayed);
                     return !isDelayed; // instantUpload ist das Gegenteil von delayed
                 }(),
                 
@@ -1421,7 +1358,7 @@
                                 console.error('Upload error:', err);
                                 error('Upload failed: ' + err.message);
                             } else {
-                                console.log('Metadata dialog cancelled');
+                                //console.log('Metadata dialog cancelled');
                                 
                                 // Statt direktem Abbruch: Zeige einen Status mit Retry-Button an
                                 file.abortProcessing = true;
@@ -1444,7 +1381,7 @@
                                             file.abortProcessing = false;
                                             pond.processFile(retryFile.id).then(
                                                 successFile => {
-                                                    console.log('Retry successful:', successFile.filename || successFile.file.name);
+                                                    //console.log('Retry successful:', successFile.filename || successFile.file.name);
                                                 },
                                                 failureReason => {
                                                     console.error('Retry failed:', failureReason);
