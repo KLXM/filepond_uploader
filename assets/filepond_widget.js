@@ -205,6 +205,233 @@
             // Standardwerte für die Chunk-Größe 
             const CHUNK_SIZE = parseInt(input.dataset.filepondChunkSize || '1') * 1024 * 1024; // Konfigurierbare Größe (Default: 1MB)
 
+            // Wiederverwendbare Funktion für File Preview
+            const createFilePreview = (file, container) => {
+                console.log('=== PREVIEW FUNCTION DEBUG ===');
+                console.log('File:', file);
+                console.log('File type:', file.type || 'unknown');
+                console.log('File name:', file.name || file.filename);
+                
+                // Clear container
+                container.innerHTML = '';
+                
+                if (file instanceof File) {
+                    if (file.type.startsWith('image/')) {
+                        console.log('Creating image preview');
+                        const img = document.createElement('img');
+                        img.alt = '';
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '300px';
+                        img.style.objectFit = 'contain';
+                        const objectURL = URL.createObjectURL(file);
+                        img.src = objectURL;
+                        img.onload = () => URL.revokeObjectURL(objectURL);
+                        container.appendChild(img);
+                    } else if (file.type.startsWith('video/')) {
+                        console.log('Creating video preview');
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.muted = true;
+                        video.preload = 'metadata';
+                        video.style.maxWidth = '100%';
+                        video.style.maxHeight = '300px';
+                        video.style.objectFit = 'contain';
+                        video.style.backgroundColor = '#000';
+                        video.style.borderRadius = '4px';
+                        
+                        // Safari hat Probleme mit Blob URLs für Videos
+                        // Verwende FileReader als Alternative für Safari
+                        if (navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')) {
+                            console.log('Safari detected, using FileReader for video');
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                video.src = e.target.result;
+                                console.log('Video source set via FileReader');
+                            };
+                            reader.onerror = function(e) {
+                                console.error('FileReader error:', e);
+                                createFileIcon(container, 'fa-file-video-o');
+                            };
+                            reader.readAsDataURL(file);
+                        } else {
+                            // Standard Blob URL für andere Browser
+                            const objectURL = URL.createObjectURL(file);
+                            video.src = objectURL;
+                            
+                            video.onloadedmetadata = () => {
+                                console.log('Video metadata loaded successfully');
+                                console.log('Video duration:', video.duration);
+                                console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                                URL.revokeObjectURL(objectURL);
+                            };
+                        }
+                        
+                        video.oncanplay = () => {
+                            console.log('Video can start playing');
+                        };
+                        
+                        video.onerror = (e) => {
+                            console.error('Video loading error:', e, video.error);
+                            if (video.src.startsWith('blob:')) {
+                                URL.revokeObjectURL(video.src);
+                            }
+                            createFileIcon(container, 'fa-file-video-o');
+                        };
+                        
+                        video.onloadstart = () => {
+                            console.log('Video load started');
+                        };
+                        
+                        // Füge das Video zum Container hinzu
+                        container.appendChild(video);
+                        
+                        // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
+                        setTimeout(() => {
+                            if (video.readyState === 0) {
+                                console.log('Video not loading automatically, trying to trigger load');
+                                video.load();
+                            }
+                        }, 1000);
+                    } else {
+                        // Icon für andere Dateitypen basierend auf MIME-Type
+                        console.log('Creating file icon for type:', file.type);
+                        createFileIconFromMimeType(container, file.type, file.name);
+                    }
+                } else if (typeof file.source === 'string') {
+                    // Bereits hochgeladene Datei
+                    const fileName = file.source || file.filename || 'unknown';
+                    console.log('Creating preview for uploaded file:', fileName);
+                    
+                    if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
+                        console.log('Creating uploaded image preview');
+                        const img = document.createElement('img');
+                        img.alt = '';
+                        img.style.maxWidth = '100%';
+                        img.style.maxHeight = '300px';
+                        img.style.objectFit = 'contain';
+                        img.src = '/media/' + fileName;
+                        container.appendChild(img);
+                    } else if (/\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName)) {
+                        console.log('Creating uploaded video preview');
+                        const video = document.createElement('video');
+                        video.controls = true;
+                        video.muted = true;
+                        video.preload = 'metadata';
+                        video.style.maxWidth = '100%';
+                        video.style.maxHeight = '300px';
+                        video.style.objectFit = 'contain';
+                        video.style.backgroundColor = '#000';
+                        video.style.borderRadius = '4px';
+                        video.crossOrigin = 'anonymous'; // Für CORS falls nötig
+                        video.src = '/media/' + fileName;
+                        
+                        video.onloadedmetadata = () => {
+                            console.log('Uploaded video metadata loaded successfully');
+                            console.log('Video duration:', video.duration);
+                            console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
+                        };
+                        
+                        video.oncanplay = () => {
+                            console.log('Uploaded video can start playing');
+                        };
+                        
+                        video.onerror = (e) => {
+                            console.error('Uploaded video loading error:', e, video.error);
+                            console.error('Video src:', video.src);
+                            createFileIcon(container, 'fa-file-video-o');
+                        };
+                        
+                        video.onloadstart = () => {
+                            console.log('Uploaded video load started');
+                        };
+                        
+                        container.appendChild(video);
+                        
+                        // Versuche das Video nach kurzer Zeit zu laden falls es nicht automatisch startet
+                        setTimeout(() => {
+                            if (video.readyState === 0) {
+                                console.log('Uploaded video not loading automatically, trying to trigger load');
+                                video.load();
+                            }
+                        }, 1000);
+                    } else {
+                        // Icon für andere Dateitypen basierend auf Dateiendung
+                        console.log('Creating file icon for extension');
+                        createFileIconFromExtension(container, fileName);
+                    }
+                } else {
+                    console.log('Unknown file type, creating generic icon');
+                    createFileIcon(container, 'fa-file');
+                }
+            };
+
+            // Hilfsfunktion für File Icons
+            const createFileIcon = (container, iconClass) => {
+                const icon = document.createElement('div');
+                icon.className = 'simple-modal-file-icon';
+                icon.style.cssText = 'width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
+                icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
+                container.appendChild(icon);
+            };
+
+            // Icon basierend auf MIME-Type
+            const createFileIconFromMimeType = (container, mimeType, fileName) => {
+                let iconClass = 'fa-file';
+                
+                if (mimeType) {
+                    if (mimeType.includes('pdf')) {
+                        iconClass = 'fa-file-pdf';
+                    } else if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('csv')) {
+                        iconClass = 'fa-file-excel';
+                    } else if (mimeType.includes('word') || mimeType.includes('document')) {
+                        iconClass = 'fa-file-word';
+                    } else if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) {
+                        iconClass = 'fa-file-powerpoint';
+                    } else if (mimeType.includes('zip') || mimeType.includes('archive') || mimeType.includes('compressed')) {
+                        iconClass = 'fa-file-archive';
+                    } else if (mimeType.includes('audio')) {
+                        iconClass = 'fa-file-audio';
+                    } else if (mimeType.includes('text') || mimeType.includes('plain')) {
+                        iconClass = 'fa-file-alt';
+                    } else if (mimeType.includes('code') || mimeType.includes('json') || mimeType.includes('javascript')) {
+                        iconClass = 'fa-file-code';
+                    }
+                }
+                
+                // Fallback auf Dateiendung wenn MIME-Type nicht hilfreich ist
+                if (iconClass === 'fa-file' && fileName) {
+                    return createFileIconFromExtension(container, fileName);
+                }
+                
+                createFileIcon(container, iconClass);
+            };
+
+            // Icon basierend auf Dateiendung
+            const createFileIconFromExtension = (container, fileName) => {
+                let iconClass = 'fa-file';
+                const name = fileName.toLowerCase();
+                
+                if (name.endsWith('.pdf')) {
+                    iconClass = 'fa-file-pdf';
+                } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
+                    iconClass = 'fa-file-excel';
+                } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                    iconClass = 'fa-file-word';
+                } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
+                    iconClass = 'fa-file-powerpoint';
+                } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
+                    iconClass = 'fa-file-archive';
+                } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
+                    iconClass = 'fa-file-audio';
+                } else if (name.endsWith('.txt')) {
+                    iconClass = 'fa-file-alt';
+                } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
+                    iconClass = 'fa-file-code';
+                }
+                
+                createFileIcon(container, iconClass);
+            };
+
             // Create metadata dialog with SimpleModal and MetaInfo integration
             const createMetadataDialog = async (file, existingMetadata = null) => {
                 try {
@@ -239,20 +466,15 @@
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
-                    // Preview Container (gleich wie Original)
+                    // Preview Container (verwendet neue Preview-Funktion)
                     const previewCol = document.createElement('div');
                     previewCol.className = 'simple-modal-col-4';
                     const previewContainer = document.createElement('div');
                     previewContainer.className = 'simple-modal-preview';
                     
-                    if (file instanceof File && file.type.startsWith('image/')) {
-                        const img = document.createElement('img');
-                        img.alt = '';
-                        const objectURL = URL.createObjectURL(file);
-                        img.src = objectURL;
-                        img.onload = () => URL.revokeObjectURL(objectURL);
-                        previewContainer.appendChild(img);
-                    }
+                    // Verwende die neue wiederverwendbare Preview-Funktion
+                    createFilePreview(file, previewContainer);
+                    
                     previewCol.appendChild(previewContainer);
 
                     // Form Container mit MetaInfo-Feldern
@@ -311,132 +533,14 @@
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
-                    // Preview Container
+                    // Preview Container (verwendet neue Preview-Funktion)
                     const previewCol = document.createElement('div');
                     previewCol.className = 'simple-modal-col-4';
                     const previewContainer = document.createElement('div');
                     previewContainer.className = 'simple-modal-preview';
                     
-                    // Hier fügen wir eine Vorschau basierend auf dem Dateityp ein
-                    if (file instanceof File) {
-                        if (file.type.startsWith('image/')) {
-                            // Bild-Vorschau
-                            const img = document.createElement('img');
-                            img.alt = '';
-                            const objectURL = URL.createObjectURL(file);
-                            img.src = objectURL;
-                            img.onload = () => {
-                                URL.revokeObjectURL(objectURL);
-                            };
-                            previewContainer.appendChild(img);
-                        } else if (file.type.startsWith('video/')) {
-                            // Video-Vorschau
-                            const video = document.createElement('video');
-                            video.controls = true;
-                            video.muted = true;
-                            const objectURL = URL.createObjectURL(file);
-                            video.src = objectURL;
-                            video.onload = () => {
-                                URL.revokeObjectURL(objectURL);
-                            };
-                            previewContainer.appendChild(video);
-                        } else {
-                            // Passende Font Awesome 6 Icons basierend auf dem Dateityp
-                            const icon = document.createElement('div');
-                            icon.className = 'simple-modal-file-icon';
-                            
-                            // Icon basierend auf dem Dateityp bestimmen
-                            let iconClass = 'fa-file'; // Standard-Icon
-                            if (file.type) {
-                                if (file.type.includes('pdf')) {
-                                    iconClass = 'fa-file-pdf';
-                                } else if (file.type.includes('excel') || file.type.includes('spreadsheet') || file.type.includes('csv') || file.name?.endsWith('.xlsx') || file.name?.endsWith('.xls')) {
-                                    iconClass = 'fa-file-excel';
-                                } else if (file.type.includes('word') || file.type.includes('document') || file.name?.endsWith('.docx') || file.name?.endsWith('.doc')) {
-                                    iconClass = 'fa-file-word';
-                                } else if (file.type.includes('powerpoint') || file.type.includes('presentation') || file.name?.endsWith('.pptx') || file.name?.endsWith('.ppt')) {
-                                    iconClass = 'fa-file-powerpoint';
-                                } else if (file.type.includes('zip') || file.type.includes('archive') || file.type.includes('compressed')) {
-                                    iconClass = 'fa-file-archive';
-                                } else if (file.type.includes('audio')) {
-                                    iconClass = 'fa-file-audio';
-                                } else if (file.type.includes('text') || file.type.includes('plain') || file.name?.endsWith('.txt')) {
-                                    iconClass = 'fa-file-alt';
-                                } else if (file.type.includes('code') || file.name?.endsWith('.json') || file.name?.endsWith('.js') || file.name?.endsWith('.html') || file.name?.endsWith('.css') || file.name?.endsWith('.php')) {
-                                    iconClass = 'fa-file-code';
-                                }
-                            } else if (file.name) {
-                                // Erkennung basierend auf dem Dateinamen als Fallback
-                                const name = file.name.toLowerCase();
-                                if (name.endsWith('.pdf')) {
-                                    iconClass = 'fa-file-pdf';
-                                } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
-                                    iconClass = 'fa-file-excel';
-                                } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
-                                    iconClass = 'fa-file-word';
-                                } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
-                                    iconClass = 'fa-file-powerpoint';
-                                } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
-                                    iconClass = 'fa-file-archive';
-                                } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
-                                    iconClass = 'fa-file-audio';
-                                } else if (name.endsWith('.txt')) {
-                                    iconClass = 'fa-file-alt';
-                                } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
-                                    iconClass = 'fa-file-code';
-                                }
-                            }
-                            
-                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
-                            previewContainer.appendChild(icon);
-                        }
-                    } else if (typeof file.source === 'string') {
-                        // Bereits hochgeladene Datei
-                        const fileName = file.source || file.filename || 'unknown';
-                        if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(fileName)) {
-                            // Bild-Vorschau für bereits hochgeladene Dateien
-                            const img = document.createElement('img');
-                            img.alt = '';
-                            img.src = '/media/' + fileName;
-                            previewContainer.appendChild(img);
-                        } else if (/\.(mp4|webm|ogg|mov)$/i.test(fileName)) {
-                            // Video-Vorschau für bereits hochgeladene Dateien
-                            const video = document.createElement('video');
-                            video.controls = true;
-                            video.muted = true;
-                            video.src = '/media/' + fileName;
-                            previewContainer.appendChild(video);
-                        } else {
-                            // Icon basierend auf Dateiendung
-                            const icon = document.createElement('div');
-                            icon.className = 'simple-modal-file-icon';
-                            
-                            // Icon basierend auf der Dateiendung bestimmen
-                            let iconClass = 'fa-file'; // Standard-Icon
-                            const name = fileName.toLowerCase();
-                            
-                            if (name.endsWith('.pdf')) {
-                                iconClass = 'fa-file-pdf';
-                            } else if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')) {
-                                iconClass = 'fa-file-excel';
-                            } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
-                                iconClass = 'fa-file-word';
-                            } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
-                                iconClass = 'fa-file-powerpoint';
-                            } else if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz')) {
-                                iconClass = 'fa-file-archive';
-                            } else if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.flac')) {
-                                iconClass = 'fa-file-audio';
-                            } else if (name.endsWith('.txt')) {
-                                iconClass = 'fa-file-alt';
-                            } else if (name.endsWith('.json') || name.endsWith('.js') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.php')) {
-                                iconClass = 'fa-file-code';
-                            }
-                            
-                            icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
-                            previewContainer.appendChild(icon);
-                        }
-                    }
+                    // Verwende die neue wiederverwendbare Preview-Funktion
+                    createFilePreview(file, previewContainer);
                     
                     previewCol.appendChild(previewContainer);
 
