@@ -56,9 +56,6 @@ class FilePondAutoMetaInfo {
      * Erweitert die createMetadataDialog Funktion im FilePond-System
      */
     patchFilePondFunction() {
-        // Finde alle Script-Tags und durchsuche sie nach createMetadataDialog
-        const scripts = Array.from(document.querySelectorAll('script'));
-        
         // Alternativ: Monkey-patch über globale Funktion
         if (!window.originalCreateMetadataDialog) {
             // Speichere eine Referenz auf unsere erweiterte Funktion

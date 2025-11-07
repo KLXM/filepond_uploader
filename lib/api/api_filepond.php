@@ -1398,13 +1398,38 @@ class rex_api_filepond_uploader extends rex_api_function
             if (isset($metadata[$fieldName])) {
                 if (is_array($metadata[$fieldName])) {
                     // Mehrsprachiges Feld
-                    $langData = $this->convertToMetaInfoLangFormat($metadata[$fieldName]);
+                    $sanitizedArray = $this->sanitizeMetaInfoValue($metadata[$fieldName]);
+                    $langData = $this->convertToMetaInfoLangFormat($sanitizedArray);
                     $sql->setValue($fieldName, json_encode($langData));
                 } else {
                     // Standard-Feld
-                    $sql->setValue($fieldName, $metadata[$fieldName]);
+                    $sanitizedValue = $this->sanitizeMetaInfoValue($metadata[$fieldName]);
+                    $sql->setValue($fieldName, $sanitizedValue);
                 }
             }
+        }
+    }
+
+    /**
+     * Sanitize a metadata value (string or array)
+     */
+    private function sanitizeMetaInfoValue($value)
+    {
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $k => $v) {
+                // Recursively sanitize for nested arrays (e.g., multilingual fields)
+                $sanitized[$k] = $this->sanitizeMetaInfoValue($v);
+            }
+            return $sanitized;
+        } else {
+            // Sanitize string: trim, remove dangerous chars but keep basic formatting
+            $sanitized = trim((string)$value);
+            // Remove potential script tags and other dangerous content
+            $sanitized = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $sanitized);
+            $sanitized = preg_replace('/javascript:/i', '', $sanitized);
+            $sanitized = preg_replace('/on\w+\s*=/i', '', $sanitized);
+            return $sanitized;
         }
     }
 }
