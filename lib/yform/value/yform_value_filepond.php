@@ -208,7 +208,11 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]|title_required[0,1]';
+        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]|title_required[0,1]
+        
+        Parameter-Details:
+        - title_required[0,1]: Wenn auf 1 gesetzt, muss der Benutzer für jede hochgeladene Datei einen Titel angeben. Bei 0 ist der Titel optional.
+        - delayed_upload[0,1,2]: 0=Sofortiger Upload, 1=Upload-Button, 2=Upload beim Formular-Submit';
     }
 
     public function getDefinitions(): array

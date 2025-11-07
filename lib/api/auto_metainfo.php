@@ -85,9 +85,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             ]);
             
         } catch (Exception $e) {
+            // Log the exception internally for debugging
+            rex_logger::logException($e);
+            
             $this->sendResponse([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Ein Fehler ist beim Laden der Metafelder aufgetreten'
             ], 500);
         }
     }
@@ -103,7 +106,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
         
         // Prüfe in MetaInfo
-        if (rex_addon::get('metainfo')->isAvailable()) {
+        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
             try {
                 $sql = rex_sql::factory();
                 $sql->setQuery('SELECT id FROM rex_metainfo_field WHERE name = ?', [$fieldName]);
@@ -155,7 +158,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         ];
         
         // Prüfe auch in MetaInfo für custom Labels
-        if (rex_addon::get('metainfo')->isAvailable()) {
+        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
             try {
                 $sql = rex_sql::factory();
                 $sql->setQuery('SELECT title FROM rex_metainfo_field WHERE name = ?', [$fieldName]);
@@ -198,12 +201,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     private function isMultilingual($fieldName)
     {
         // Prüfe MetaInfo Lang Fields AddOn
-        if (!rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+        if (!rex_addon::exists('metainfo_lang_fields') || !rex_addon::get('metainfo_lang_fields')->isAvailable()) {
             return false;
         }
         
         // Prüfe ob MetaInfo AddOn verfügbar ist
-        if (!rex_addon::get('metainfo')->isAvailable()) {
+        if (!rex_addon::exists('metainfo') || !rex_addon::get('metainfo')->isAvailable()) {
             return false;
         }
         
@@ -257,8 +260,18 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             $fileId = rex_request('file_id', 'string');
             $metadata = rex_request('metadata', 'array');
             
+            // Input validation
             if (!$fileId) {
                 throw new Exception('Keine Datei-ID angegeben');
+            }
+            
+            // Validate file_id format (filename pattern)
+            if (!preg_match('/^[a-zA-Z0-9._-]+$/', $fileId)) {
+                throw new Exception('Ungültige Datei-ID');
+            }
+            
+            if (!is_array($metadata) || empty($metadata)) {
+                throw new Exception('Ungültige Metadaten');
             }
             
             // Prüfe ob Datei existiert
@@ -284,7 +297,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 }
             }
             
-            $sql->update();
+            // SQL error handling
+            try {
+                $sql->update();
+            } catch (rex_sql_exception $e) {
+                throw new Exception('Fehler beim Speichern der Metadaten: ' . $e->getMessage());
+            }
             
             $this->sendResponse([
                 'success' => true,
@@ -292,9 +310,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             ]);
             
         } catch (Exception $e) {
+            // Log the exception internally for debugging
+            rex_logger::logException($e);
+            
             $this->sendResponse([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Ein Fehler ist beim Speichern der Metadaten aufgetreten'
             ], 500);
         }
     }
@@ -337,8 +358,14 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         try {
             $fileId = rex_request('file_id', 'string');
             
+            // Input validation
             if (!$fileId) {
                 throw new Exception('Keine Datei-ID angegeben');
+            }
+            
+            // Validate file_id format (filename pattern)
+            if (!preg_match('/^[a-zA-Z0-9._-]+$/', $fileId)) {
+                throw new Exception('Ungültige Datei-ID');
             }
             
             $media = rex_media::get($fileId);
@@ -383,9 +410,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             ]);
             
         } catch (Exception $e) {
+            // Log the exception internally for debugging
+            rex_logger::logException($e);
+            
             $this->sendResponse([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => 'Ein Fehler ist beim Laden der Metadaten aufgetreten'
             ], 500);
         }
     }

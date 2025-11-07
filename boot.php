@@ -15,7 +15,7 @@ if (rex::isBackend() && rex::getUser()) {
 
 // Register extension point to format MetaInfo Lang Fields in media pool
 rex_extension::register('PACKAGES_INCLUDED', function() {
-    if (rex::isBackend() && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+    if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
         
         rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
             $content = $ep->getSubject();

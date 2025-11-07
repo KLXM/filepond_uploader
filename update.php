@@ -3,7 +3,7 @@
 // Standardwerte für neue Konfigurationsoptionen setzen, falls sie noch nicht existieren
 $configDefaults = [
     'delayed_upload_mode' => false,
-    'title_required_default' => false // Einfaches title-Feld ist standardmäßig optional
+    'title_required_default' => false // Einfaches Title-Feld ist standardmäßig optional
 ];
 
 foreach ($configDefaults as $key => $defaultValue) {
