@@ -14,139 +14,76 @@ if (rex::isBackend() && rex::getUser()) {
 }
 
 // Register extension point to format MetaInfo Lang Fields in media pool
-rex_extension::register('PACKAGES_INCLUDED', function() {
-    if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+    
+    // Hook in OUTPUT_FILTER um die Beschreibungen zu formatieren
+    rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
+        $content = $ep->getSubject();
         
-        rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
-            $content = $ep->getSubject();
+        // Nur auf MediaPool Seiten
+        if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false) {
             
-            // Only on mediapool pages or media-related pages
-            if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false || 
-                strpos(rex_be_controller::getCurrentPage(), 'media') !== false ||
-                strpos($content, 'rex-page-mediapool') !== false) {
-                $currentLang = rex_clang::getCurrentId();
-                $noDescMsg = rex_i18n::msg('filepond_no_description');
-                
-                $script = "
-                <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    console.log('FilePond: Multilingual formatter loaded');
-                    
-                    function formatMultilingualJson(jsonString) {
-                        try {
-                            const data = JSON.parse(jsonString);
-                            if (!Array.isArray(data)) return jsonString;
-                            
-                            const currentLang = <?= json_encode($currentLang) ?>;
-                            let descriptions = [];
-                            
-                            // Zeige aktuelle Sprache zuerst
-                            for (let entry of data) {
-                                if (entry.clang_id == currentLang && entry.value && entry.value.trim()) {
-                                    return '<strong>' + getLangCode(entry.clang_id) + ':</strong> ' + entry.value.trim();
-                                }
-                            }
-                            
-                            // Dann alle anderen Sprachen
-                            for (let entry of data) {
-                                if (entry.value && entry.value.trim()) {
-                                    let langCode = getLangCode(entry.clang_id);
-                                    descriptions.push('<strong>' + langCode + ':</strong> ' + entry.value.trim());
-                                }
-                            }
-                            
-                            return descriptions.length > 0 ? descriptions.join(' &nbsp;&nbsp; ') : <?= json_encode($noDescMsg) ?>;
-                        } catch (e) {
-                            console.log('FilePond: JSON parse error:', e);
-                            return jsonString;
+            // Verschiedene Patterns für escaped/unescaped JSON
+            $patterns = [
+                '/<p>\[(\{&quot;clang_id&quot;[^<]+)\]<\/p>/', // HTML-escaped
+                '/<p>\[(\{"clang_id"[^<]+)\]<\/p>/', // Nicht escaped
+                '/<p>(\[.*?clang_id.*?\])<\/p>/', // Allgemeiner
+                '/<p>([^<]*clang_id[^<]*)<\/p>/' // Noch allgemeiner
+            ];
+            
+            foreach ($patterns as $pattern) {
+                $matches = [];
+                if (preg_match_all($pattern, $content, $matches)) {
+                    // Verwende das erste funktionierende Pattern
+                    $content = preg_replace_callback($pattern, function($match) {
+                        $jsonString = $match[1];
+                        
+                        // HTML-Entities dekodieren falls nötig
+                        if (strpos($jsonString, '&quot;') !== false) {
+                            $jsonString = html_entity_decode($jsonString);
                         }
-                    }
-                    
-                    function getLangCode(clangId) {
-                        // Map common language IDs to codes
-                        const langMap = {
-                            1: 'DE',
-                            2: 'EN', 
-                            3: 'FR',
-                            4: 'IT',
-                            5: 'ES'
-                        };
-                        return langMap[clangId] || 'L' + clangId;
-                    }
-                    
-                    function processDescriptions() {
-                        // Versuche verschiedene Selektoren
-                        const selectors = [
-                            'td p',           // Original
-                            '.rex-table td p', // Mit Rex-Table-Klasse
-                            'table td p',     // Allgemeine Tabelle
-                            '.media-list td p', // Media-spezifisch
-                            'td.rex-table-data-1 p', // Rex spezifische Spalte
-                        ];
                         
-                        let found = 0;
+                        // Sicherstellen dass es mit [ beginnt
+                        if (!str_starts_with($jsonString, '[')) {
+                            $jsonString = '[' . $jsonString . ']';
+                        }
                         
-                        for (const selector of selectors) {
-                            const paragraphs = document.querySelectorAll(selector);
-                            console.log('FilePond: Found', paragraphs.length, 'paragraphs with selector:', selector);
-                            
-                            paragraphs.forEach(function(p) {
-                                const text = p.textContent.trim();
-                                if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
-                                    console.log('FilePond: Processing multilingual text:', text.substring(0, 50) + '...');
-                                    const formatted = formatMultilingualJson(text);
-                                    if (formatted !== text) {
-                                        p.innerHTML = '';
-                                        const tempDiv = document.createElement('div');
-                                        tempDiv.innerHTML = formatted;
-                                        while (tempDiv.firstChild) {
-                                            p.appendChild(tempDiv.firstChild);
-                                        }
-                                        p.style.color = '#666';
-                                        p.title = 'Mehrsprachige Beschreibung';
-                                        found++;
-                                        console.log('FilePond: Converted to:', formatted);
+                        try {
+                            $langData = json_decode($jsonString, true);
+                            if (is_array($langData)) {
+                                $currentLang = rex_clang::getCurrentId();
+                                $langCodes = [1 => 'DE', 2 => 'EN', 3 => 'FR', 4 => 'IT', 5 => 'ES'];
+                                
+                                // Suche aktuelle Sprache
+                                foreach ($langData as $entry) {
+                                    if ($entry['clang_id'] == $currentLang && !empty($entry['value'])) {
+                                        $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                        return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
                                     }
                                 }
-                            });
-                        }
-                        
-                        console.log('FilePond: Processed', found, 'multilingual descriptions');
-                        return found;
-                    }
-                    
-                    
-                    // Initiale Verarbeitung
-                    processDescriptions();
-                    
-                    // Überwache DOM-Änderungen für dynamisch geladene Inhalte
-                    const observer = new MutationObserver(function(mutations) {
-                        let shouldProcess = false;
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                                shouldProcess = true;
+                                
+                                // Fallback: erste verfügbare Sprache
+                                foreach ($langData as $entry) {
+                                    if (!empty($entry['value'])) {
+                                        $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
+                                        return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
+                                    }
+                                }
                             }
-                        });
-                        
-                        if (shouldProcess) {
-                            setTimeout(() => processDescriptions(), 100);
+                        } catch (Exception $e) {
+                            // Bei Fehlern das Original zurückgeben
                         }
-                    });
+                        return $match[0];
+                    }, $content);
                     
-                    observer.observe(document.body, {
-                        childList: true,
-                        subtree: true
-                    });
-                });
-                </script>";
-                
-                $content = str_replace('</body>', $script . '</body>', $content);
+                    break; // Verwende nur das erste funktionierende Pattern
+                }
             }
-            
-            return $content;
-        });
-    }
-});
+        }
+        
+        return $content;
+    });
+}
 
 if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
 {    
@@ -164,3 +101,4 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
         }
     });
 }
+
