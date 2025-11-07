@@ -206,6 +206,12 @@ $field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
 $field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
 
+// Neue Einstellung: Einfaches Titel-Feld als Pflichtfeld
+$field = $form->addCheckboxField('title_required_default');
+$field->setLabel($addon->i18n('filepond_settings_title_required'));
+$field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 

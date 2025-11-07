@@ -113,8 +113,14 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
     data-filepond-lang="de_de"
     data-filepond-chunk-enabled="true"
     data-filepond-chunk-size="5242880"
+    data-filepond-title-required="true"
+    data-filepond-metainfo-lang="true"
 >
 ```
+
+**Hinweis zu den neuen Attributen:**
+- `data-filepond-title-required="true"`: Macht das title Feld im Metadaten-Dialog zu einem Pflichtfeld
+- `data-filepond-metainfo-lang="true"`: Aktiviert die automatische Erkennung mehrsprachiger MetaInfo-Felder
 
 **Hinweis zu `data-filepond-types`:**
 - MIME-Types werden bevorzugt: `image/*`, `video/*`, `application/pdf`
@@ -128,11 +134,32 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
 $files = explode(',', 'REX_VALUE[1]');
 foreach($files as $file) {
     if($media = rex_media::get($file)) {
+        // Standard-Metadaten
         echo '<img
             src="'.$media->getUrl().'"
             alt="'.$media->getValue('med_alt').'"
             title="'.$media->getValue('title').'"
         >';
+        
+        // Mehrsprachige Metadaten (falls MetaInfo Lang Fields verwendet wird)
+        if (class_exists('\FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper')) {
+            $titles = \FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper::getFieldValues(
+                $media, 
+                'med_title_lang'
+            );
+            
+            // Titel für aktuelle Sprache
+            $currentTitle = $titles[rex_clang::getCurrentId()] ?? '';
+            echo '<p>Titel: ' . rex_escape($currentTitle) . '</p>';
+            
+            // Beschreibung für aktuelle Sprache
+            $descriptions = \FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper::getFieldValues(
+                $media, 
+                'med_description_lang'
+            );
+            $currentDescription = $descriptions[rex_clang::getCurrentId()] ?? '';
+            echo '<p>Beschreibung: ' . rex_escape($currentDescription) . '</p>';
+        }
     }
 }
 ?>
@@ -210,6 +237,30 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-chunk-size`   | Chunk-Größe in MB                       | `5`          |
 | `data-filepond-delayed-upload` | Verzögerter Upload-Modus              | `false`      |
 | `data-filepond-delayed-type` | Upload-Modus-Typ (1=Button, 2=Submit) | `1` wenn delayed-upload aktiv |
+| `data-filepond-title-required` | Titel-Feld als Pflichtfeld           | `false`      |
+| `data-filepond-title-lang-required` | Mehrsprachiger Titel als Pflichtfeld (deprecated) | `true` |
+| `data-filepond-metainfo-lang` | MetaInfo Lang Fields Integration aktivieren | `false` |
+
+#### Spezielle Attribute für Metadaten
+
+**`data-filepond-title-required`**
+Steuert, ob das einfache `title` Feld (für interne Verwaltung) als Pflichtfeld behandelt wird:
+```html
+<!-- Titel als Pflichtfeld -->
+<input data-filepond-title-required="true" data-widget="filepond" ...>
+
+<!-- Titel optional (Standard) -->
+<input data-filepond-title-required="false" data-widget="filepond" ...>
+```
+
+**`data-filepond-metainfo-lang`**
+Aktiviert die automatische Erkennung und Integration von MetaInfo Lang Fields:
+```html
+<!-- MetaInfo Lang Fields aktivieren -->
+<input data-filepond-metainfo-lang="true" data-widget="filepond" ...>
+```
+
+> **Hinweis:** Das Attribut `data-filepond-title-lang-required` ist deprecated. Mehrsprachige Titel (`med_title_lang`) sind automatisch Pflichtfelder und können nicht deaktiviert werden. Verwenden Sie stattdessen `data-filepond-title-required` für das einfache Titel-Feld.
 
 ### Erlaubte Dateitypen (MIME-Types)
 
@@ -327,6 +378,22 @@ rex_set_session('filepond_no_meta', true);
 
 Dadurch lässt sich die Meta-Abfrage (Titel, Alt-Text, Copyright) deaktivieren (boolescher Wert: `true` / `false`).
 
+### Titel-Pflichtfeld konfigurieren
+
+```php
+rex_set_session('filepond_title_required', true);
+```
+
+Dadurch wird das einfache title Feld als Pflichtfeld markiert (boolescher Wert: `true` / `false`).
+
+### MetaInfo Lang Fields aktivieren
+
+```php
+rex_set_session('filepond_metainfo_lang', true);
+```
+
+Dadurch wird die automatische Erkennung mehrsprachiger MetaInfo-Felder aktiviert (boolescher Wert: `true` / `false`).
+
 ### Modulbeispiel
 
 ```php
@@ -337,6 +404,12 @@ rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_toke
 
 // Optional: Meta-Eingabe deaktivieren
 rex_set_session('filepond_no_meta', true);
+
+// Optional: Titel als Pflichtfeld
+rex_set_session('filepond_title_required', true);
+
+// Optional: MetaInfo Lang Fields aktivieren
+rex_set_session('filepond_metainfo_lang', true);
 
 // Filepond Assets einbinden (besser im Template ablegen)
 if (rex::isFrontend()) {
@@ -357,6 +430,8 @@ if (rex::isFrontend()) {
         data-filepond-maxsize="10"
         data-filepond-lang="de_de"
         data-filepond-skip-meta="<?= rex_session('filepond_no_meta', 'boolean', false) ? 'true' : 'false' ?>"
+        data-filepond-title-required="<?= rex_session('filepond_title_required', 'boolean', false) ? 'true' : 'false' ?>"
+        data-filepond-metainfo-lang="<?= rex_session('filepond_metainfo_lang', 'boolean', false) ? 'true' : 'false' ?>"
         data-filepond-chunk-enabled="true"
         data-filepond-chunk-size="5242880"
     >
@@ -624,14 +699,302 @@ Die EXIF-Orientierungskorrektur ist standardmäßig deaktiviert und kann in den 
 *   Nur JPEG-Bilder werden verarbeitet, da andere Formate selten EXIF-Daten enthalten
 *   Die Korrektur erfolgt vor allen anderen Bildoptimierungen
 
+## Mehrsprachigkeit und MetaInfo Lang Fields Integration
+
+Das FilePond AddOn bietet umfassende Unterstützung für mehrsprachige Metadaten durch die Integration mit dem **MetaInfo Lang Fields** AddOn von Friends of REDAXO.
+
+### Voraussetzungen
+
+Für die Verwendung mehrsprachiger Metafelder sind folgende AddOns erforderlich:
+
+1. **MetaInfo AddOn** (Standard REDAXO AddOn)
+2. **MetaInfo Lang Fields AddOn** von Friends of REDAXO
+
+> **Hinweis:** Das System funktioniert automatisch mit allen in REDAXO konfigurierten Sprachen (rex_clang).
+
+### Installation und Einrichtung
+
+#### 1. MetaInfo Lang Fields AddOn installieren
+
+```bash
+# Via Composer (empfohlen)
+composer require friendsofredaxo/metainfo_lang_fields
+
+# Oder über den REDAXO Installer
+```
+
+#### 2. Mehrsprachige Metafelder anlegen
+
+Erstelle in **REDAXO > AddOns > MetaInfo > Medien** neue Felder mit mehrsprachigen Feldtypen:
+
+**Beispiel: Mehrsprachiger Titel**
+- **Feldname:** `med_title_lang`
+- **Feldtyp:** `lang_text` oder `lang_text_all`
+- **Bezeichnung:** `Titel (mehrsprachig)`
+
+**Beispiel: Mehrsprachige Beschreibung**
+- **Feldname:** `med_description_lang` 
+- **Feldtyp:** `lang_textarea` oder `lang_textarea_all`
+- **Bezeichnung:** `Beschreibung (mehrsprachig)`
+
+#### 3. Automatische Erkennung
+
+Das FilePond AddOn erkennt automatisch:
+- Alle verfügbaren MetaInfo-Felder
+- Welche Felder mehrsprachig konfiguriert sind
+- Alle konfigurierten Sprachen in REDAXO
+
+### Verfügbare mehrsprachige Feldtypen
+
+| Feldtyp | Beschreibung | Verwendung |
+|---------|-------------|------------|
+| `lang_text` | Einzeiliges Textfeld für die aktuelle Sprache | Titel, Keywords |
+| `lang_text_all` | Einzeiliges Textfeld für alle Sprachen | Titel, Alt-Texte |
+| `lang_textarea` | Mehrzeiliges Textfeld für die aktuelle Sprache | Beschreibungen |
+| `lang_textarea_all` | Mehrzeiliges Textfeld für alle Sprachen | Beschreibungen |
+
+### Empfohlene Metafelder
+
+#### Standard-Felder (einsprachig)
+Diese Felder bleiben einsprachig und werden automatisch erkannt:
+- `title` - Titel für interne Verwaltung
+- `med_alt` - Alt-Text für Barrierefreiheit  
+- `med_copyright` - Copyright-Informationen
+
+#### Mehrsprachige Felder
+Erstelle diese Felder als mehrsprachige Varianten:
+
+**Mehrsprachiger Titel (`med_title_lang`):**
+```
+Feldname: med_title_lang
+Feldtyp: lang_text_all
+Bezeichnung: Titel (mehrsprachig)
+Priorität: 1
+```
+
+**Mehrsprachige Beschreibung (`med_description_lang`):**
+```
+Feldname: med_description_lang  
+Feldtyp: lang_textarea_all
+Bezeichnung: Beschreibung (mehrsprachig)
+Priorität: 4
+```
+
+**Mehrsprachige Keywords (`med_keywords_lang`):**
+```
+Feldname: med_keywords_lang
+Feldtyp: lang_text_all
+Bezeichnung: Schlüsselwörter (mehrsprachig)
+Priorität: 5
+```
+
+### Benutzeroberfläche
+
+#### Upload-Dialog
+Bei mehrsprachigen Feldern wird eine benutzerfreundliche Oberfläche angezeigt:
+
+1. **Hauptsprache sichtbar:** Die erste/Standard-Sprache wird immer angezeigt
+2. **Weitere Sprachen über Globus-Icon:** Klick auf das Globus-Symbol öffnet weitere Sprachen
+3. **Sprachspezifische Validierung:** Verschiedene Validierungsregeln pro Sprache
+4. **Alt-Text mit Dekorativ-Option:** Checkbox für dekorative Bilder pro Sprache
+
+#### Feld-Hierarchie im Dialog
+Die Felder werden in folgender Reihenfolge angezeigt:
+1. `title` (einfacher Titel für interne Verwaltung)
+2. `med_title_lang` (mehrsprachiger Titel) - **Pflichtfeld**
+3. `med_alt` (Alt-Text für Bilder) - **Pflichtfeld bei Bildern**
+4. `med_copyright` (Copyright-Information)
+5. `med_description` oder `med_description_lang` (Beschreibung)
+6. Weitere Felder alphabetisch sortiert
+
+### Validierung und Pflichtfelder
+
+#### Automatische Validierung
+- **`med_title_lang`:** Immer Pflichtfeld bei mehrsprachigen Titeln
+- **`med_alt`:** Pflichtfeld bei Bildern (kann per "dekorativ" deaktiviert werden)
+- **`title`:** Optional (kann in Settings/YForm als Pflichtfeld konfiguriert werden)
+
+#### Dekorative Bilder
+Für Alt-Texte gibt es eine "Dekoratives Bild" Checkbox:
+- Deaktiviert die Alt-Text-Pflicht für das jeweilige Sprachfeld
+- Funktioniert sprachspezifisch
+- Orientiert sich an Accessibility-Standards
+
+### Konfiguration
+
+#### In YForm-Feldern
+Mehrsprachige Metafelder werden automatisch erkannt und angezeigt. Keine zusätzliche Konfiguration erforderlich.
+
+#### Titel-Feld als Pflichtfeld
+Das einfache `title` Feld kann optional als Pflichtfeld konfiguriert werden:
+
+**Global (Upload-Seite):**
+In den AddOn-Einstellungen unter "Titel-Feld auf Upload-Seite als Pflichtfeld"
+
+**Pro YForm-Feld:**
+```php
+$yform->setValueField('filepond', [
+    'name' => 'upload',
+    'label' => 'Dateien',
+    'title_required' => 1  // Titel als Pflichtfeld
+]);
+```
+
+**In Modulen/Templates:**
+```html
+<input 
+    data-widget="filepond" 
+    data-filepond-title-required="true"
+    ...
+>
+```
+
+### Datenformat und Speicherung
+
+#### Mehrsprachige Daten
+Mehrsprachige Felder werden im MetaInfo Lang Fields Format gespeichert:
+
+```json
+[
+    {"clang_id": 1, "value": "Deutscher Titel"},
+    {"clang_id": 2, "value": "English Title"}
+]
+```
+
+#### Abrufen mehrsprachiger Daten
+
+**In Templates/Modulen:**
+```php
+<?php
+$media = rex_media::get('dateiname.jpg');
+
+// MetaInfo Lang Fields Helper verwenden
+if (class_exists('\FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper')) {
+    $titles = \FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper::getFieldValues(
+        $media, 
+        'med_title_lang'
+    );
+    
+    // Titel für aktuelle Sprache
+    $currentTitle = $titles[rex_clang::getCurrentId()] ?? '';
+    
+    // Titel für spezifische Sprache (z.B. Deutsch)
+    $germanTitle = $titles[1] ?? '';
+}
+
+// Traditionelles Abrufen über getValue
+$titleData = $media->getValue('med_title_lang');
+// $titleData enthält JSON-String mit allen Sprachen
+?>
+```
+
+**In YForm/YOrm:**
+```php
+// Bei YOrm-Models werden mehrsprachige Felder automatisch aufgelöst
+$dataset = \rex_yform_manager_dataset::get(1, 'my_table');
+$files = explode(',', $dataset->getValue('upload_field'));
+
+foreach ($files as $filename) {
+    if ($media = rex_media::get($filename)) {
+        $titleData = $media->getValue('med_title_lang');
+        
+        if ($titleData) {
+            $titles = json_decode($titleData, true);
+            foreach ($titles as $langData) {
+                echo "Sprache {$langData['clang_id']}: {$langData['value']}<br>";
+            }
+        }
+    }
+}
+```
+
+### API und JavaScript
+
+#### Automatische Felderkennung
+Das AddOn stellt eine API bereit, die automatisch alle verfügbaren Metafelder erkennt:
+
+```javascript
+// API-Aufruf für Felderkennung
+fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields')
+  .then(response => response.json())
+  .then(data => {
+      data.fields.forEach(field => {
+          console.log(`Feld: ${field.name}, Mehrsprachig: ${field.multilingual}`);
+          if (field.multilingual) {
+              console.log('Verfügbare Sprachen:', field.languages);
+          }
+      });
+  });
+```
+
+#### Erweiterte Metadaten speichern
+```javascript
+// Mehrsprachige Metadaten speichern
+const metadata = {
+    'title': 'Einfacher Titel',
+    'med_title_lang': {
+        'de': 'Deutscher Titel',
+        'en': 'English Title'
+    },
+    'med_description_lang': {
+        'de': 'Deutsche Beschreibung',
+        'en': 'English Description'  
+    }
+};
+
+fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=save_metadata', {
+    method: 'POST',
+    body: new FormData()
+});
+```
+
+### Troubleshooting
+
+#### Felder werden nicht erkannt
+1. Prüfe ob MetaInfo Lang Fields AddOn installiert und aktiviert ist
+2. Stelle sicher, dass die Felder mit `lang_*` Feldtypen angelegt sind
+3. Cache leeren: REDAXO > System > Cache löschen
+
+#### Mehrsprachige Eingabe funktioniert nicht
+1. Prüfe die Browser-Konsole auf JavaScript-Fehler
+2. Stelle sicher, dass mehrere Sprachen in REDAXO konfiguriert sind
+3. Prüfe die AJAX-Antworten der MetaInfo-API
+
+#### Daten werden nicht gespeichert
+1. Prüfe die Berechtigung für Medienpool-Zugriff
+2. Kontrolliere die API-Token-Konfiguration
+3. Prüfe die PHP-Error-Logs
+
+### Compatibility
+
+Das AddOn ist kompatibel mit:
+- **MetaInfo Lang Fields v1.0+** von Friends of REDAXO
+- **REDAXO 5.15+** mit konfigurierten Sprachen
+- Alle gängigen FilePond-Konfigurationen
+
+Die Mehrsprachigkeit ist vollständig rückwärtskompatibel - bestehende einsprachige Installationen funktionieren weiterhin ohne Änderungen.
+
 ## Metadaten
 
 Folgende Metadaten können für jede hochgeladene Datei erfasst werden:
 
-1.  **Titel:** Wird im Medienpool zur Verwaltung der Datei verwendet.
+**Standard-Metadaten (einsprachig):**
+1.  **Titel:** Wird im Medienpool zur Verwaltung der Datei verwendet (gespeichert in `title`).
 2.  **Alt-Text:** Beschreibt den Bildinhalt für Screenreader (wichtig für Barrierefreiheit und SEO), gespeichert in `med_alt`.
 3.  **Copyright:** Information zu Bildrechten und Urhebern, gespeichert in `med_copyright`.
 4.  **Beschreibung:** Ausführlichere Beschreibung des Medieninhalts, gespeichert in `med_description`.
+
+**Mehrsprachige Metadaten (mit MetaInfo Lang Fields):**
+1.  **Mehrsprachiger Titel:** Titel in allen konfigurierten Sprachen, gespeichert in `med_title_lang` (Pflichtfeld).
+2.  **Mehrsprachige Beschreibung:** Beschreibung in allen Sprachen, gespeichert in `med_description_lang`.
+3.  **Mehrsprachige Keywords:** Schlüsselwörter pro Sprache, gespeichert in `med_keywords_lang`.
+
+**Konfigurierbare Pflichtfelder:**
+- `title` (einfacher Titel): Optional als Pflichtfeld konfigurierbar über Settings oder data-Attribut
+- `med_title_lang` (mehrsprachiger Titel): Immer Pflichtfeld, nicht deaktivierbar
+- `med_alt` (Alt-Text): Pflichtfeld bei Bildern, kann pro Sprache als "dekorativ" markiert werden
+
+> **Hinweis:** Die Felder werden automatisch in der Datenbank angelegt, falls sie noch nicht existieren. Bei mehrsprachigen Feldern muss das MetaInfo Lang Fields AddOn installiert sein.
 
 ## Events und JavaScript-API
 

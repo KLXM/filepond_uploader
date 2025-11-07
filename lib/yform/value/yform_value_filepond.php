@@ -208,7 +208,7 @@
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]';
+        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]|title_required[0,1]';
     }
 
     public function getDefinitions(): array
@@ -256,6 +256,13 @@
                     'choices' => ['0' => 'Deaktiviert', '1' => 'Upload-Button', '2' => 'Submit-Button'], 
                     'notice' => 'Dateien werden erst nach Klick auf den Upload-Button oder nach Formular Übermittlung hochgeladen',
                     'default' => '0', 
+                ],
+                'title_required' => [
+                    'type' => 'checkbox',  
+                    'label' => 'Titel-Feld als Pflichtfeld',
+                    'choices' => ['0' => 'Nein', '1' => 'Ja'], 
+                    'notice' => 'Wenn aktiviert, wird das title Feld im Metadaten-Dialog als Pflichtfeld markiert',
+                    'default' => '0'
                 ]
             ],
             'description' => 'Filepond Dateiupload mit Medienpool-Integration und Chunk-Upload',

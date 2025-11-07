@@ -1,6 +1,9 @@
 (function() {
     // Tracking für bereits initialisierte Elemente
     const initializedElements = new Set();
+    
+    // Globale Variable für den aktuellen Dateityp
+    let currentFileType = null;
 
     const initFilePond = () => {
         console.log('initFilePond function called');
@@ -13,9 +16,10 @@
                 titleLabel: 'Titel:',
                 altLabel: 'Alt-Text:',
                 altNotice: 'Alternativtext für Screenreader und SEO',
-                decorativeLabel: 'Dekoratives Bild',
+                decorativeLabel: 'Dekoratives Bild (kein Alt-Text erforderlich)',
                 decorativeNotice: 'Nur für Bilder - alt-Text wird nicht benötigt',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Beschreibung:',
                 fileInfo: 'Datei',
                 fileSize: 'Größe',
                 saveBtn: 'Speichern',
@@ -31,9 +35,10 @@
                 titleLabel: 'Title:',
                 altLabel: 'Alt Text:',
                 altNotice: 'Alternative text for screen readers and SEO',
-                decorativeLabel: 'Decorative image',
-                decorativeNotice: 'For images only - alt text not required',
+                decorativeLabel: 'Decorative Image (no alt text required)',
+                decorativeNotice: 'For images only - alt text not needed',
                 copyrightLabel: 'Copyright:',
+                descriptionLabel: 'Description:',
                 fileInfo: 'File',
                 fileSize: 'Size',
                 saveBtn: 'Save',
@@ -228,6 +233,9 @@
             // Erweiterte MetaInfo-Dialog
             const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
                 return new Promise((resolve, reject) => {
+                    // Aktuellen Dateityp für die Feldlogik setzen
+                    currentFileType = file.type || (file.file ? file.file.type : null);
+                    
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
 
@@ -257,7 +265,7 @@
                     const sortedFields = sortMetaInfoFields(fields);
                     
                     for (const field of sortedFields) {
-                        formHTML += createFieldHTML(field, existingMetadata);
+                        formHTML += createFieldHTML(field, existingMetadata, input);
                     }
                     
                     formCol.innerHTML = formHTML;
@@ -286,7 +294,7 @@
                             primary: true,
                             handler: () => {
                                 const metadata = collectEnhancedFormData(form, fields);
-                                if (validateEnhancedMetadata(metadata, fields, form)) {
+                                if (validateEnhancedMetadata(metadata, fields, form, input)) {
                                     // Erweiterte Metadaten - sende an unsere API
                                     saveEnhancedMetadata(file, metadata, modal, resolve, reject);
                                 }
@@ -572,10 +580,34 @@
                 return sorted;
             };
             
+            // Hilfsfunktion für Übersetzungen basierend auf aktueller Sprache
+            const getFieldTranslation = (fieldName, lang = 'de_de') => {
+                const translationMap = {
+                    'title': translations[lang]?.titleLabel || 'Titel:',
+                    'med_title_lang': 'Titel (Mehrsprachig):',
+                    'med_alt': translations[lang]?.altLabel || 'Alt-Text:',
+                    'med_copyright': translations[lang]?.copyrightLabel || 'Copyright:',
+                    'med_description': translations[lang]?.descriptionLabel || 'Beschreibung:'
+                };
+                return translationMap[fieldName] || fieldName;
+            };
+            
             // Erstellt HTML für ein MetaInfo-Feld
-            const createFieldHTML = (field, existingMetadata) => {
+            const createFieldHTML = (field, existingMetadata, currentInput) => {
                 const fieldId = `field_${field.name}`;
+                const isImage = currentFileType && currentFileType.startsWith('image/');
                 let html = '';
+                
+                // Widget-Referenz für data-Attribute (verwende das übergebene Element)
+                const widget = currentInput;
+                
+                // ALT-Felder nur bei Bildern anzeigen
+                if (field.name === 'med_alt' && !isImage) {
+                    return '';
+                }
+                
+                // Übersetztes Label verwenden
+                const translatedLabel = getFieldTranslation(field.name) || field.label;
                 
                 if (field.multilingual && field.languages && field.languages.length > 0) {
                     // Mehrsprachiges Feld - zeige erste Sprache sichtbar, andere über Globus
@@ -584,15 +616,37 @@
                     const firstLangValue = existingMetadata?.[field.name]?.[firstLang.code] || '';
                     
                     html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
-                    html += `<label for="${fieldId}">${field.label}</label>`;
+                    html += `<label for="${fieldId}" class="simple-modal-label">${translatedLabel}</label>`;
+                    
+                    // Globale dekorative Checkbox für ALT-Felder bei Bildern (gilt für alle Sprachen)
+                    if (field.name === 'med_alt' && isImage) {
+                        const decorativeCheckboxId = `decorative_global`;
+                        html += `<div class="decorative-checkbox-group">`;
+                        html += `<label for="${decorativeCheckboxId}" class="simple-modal-checkbox-label">`;
+                        html += `<input type="checkbox" id="${decorativeCheckboxId}" class="decorative-checkbox-global">`;
+                        html += `${translations.de_de.decorativeLabel}`;
+                        html += `</label>`;
+                        html += `</div>`;
+                    }
                     
                     // Erste Sprache (immer sichtbar)
+                    // Required-Attribut bestimmen
+                    let isRequired = '';
+                    if (field.name === 'med_alt' && isImage) {
+                        isRequired = 'required';
+                    } else if (field.name === 'med_title_lang') {
+                        // Mehrsprachige Titel-Felder sind immer required
+                        isRequired = 'required';
+                    }
+                    
+                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                    
                     if (field.type === 'textarea') {
                         html += `<textarea id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" data-lang="${firstLang.code}" rows="3" ${field.required ? 'required' : ''}>${firstLangValue}</textarea>`;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" rows="3" ${isRequired} ${isDisabled}>${firstLangValue}</textarea>`;
                     } else {
                         html += `<input type="text" id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" data-lang="${firstLang.code}" value="${firstLangValue}" ${field.required ? 'required' : ''}>`;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" value="${firstLangValue}" ${isRequired} ${isDisabled}>`;
                     }
                     
                     // Weitere Sprachen (über Globus einblendbar)
@@ -608,12 +662,23 @@
                             html += `<div class="form-group">`;
                             html += `<label class="control-label">${lang.name}</label>`;
                             
+                            // Keine individuelle Checkbox mehr - nutze globale dekorative Checkbox
+                            
+                            // Required-Attribut für verschiedene Felder
+                            let langRequired = '';
+                            if (field.name === 'med_title_lang') {
+                                langRequired = 'required'; // Mehrsprachige Titel sind immer required
+                            } else if (field.name === 'med_alt' && isImage) {
+                                langRequired = 'required';
+                            }
+                            const langDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                            
                             if (field.type === 'textarea') {
                                 html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
-                                html += `data-field="${field.name}" data-lang="${lang.code}" rows="3">${langValue}</textarea>`;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" rows="3" ${langRequired} ${langDisabled}>${langValue}</textarea>`;
                             } else {
                                 html += `<input type="text" class="simple-modal-input" name="${field.name}[${lang.code}]" `;
-                                html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}">`;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}" ${langRequired} ${langDisabled}>`;
                             }
                             html += `</div>`;
                         }
@@ -625,7 +690,7 @@
                 } else {
                     // Standard-Feld
                     html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
-                    html += `<label for="${fieldId}">${field.label}`;
+                    html += `<label for="${fieldId}" class="simple-modal-label">${translatedLabel}`;
                     
                     if (field.name === 'title') {
                         html += ` <small class="text-muted">(nur für interne Verwaltung)</small>`;
@@ -633,14 +698,32 @@
                     
                     html += `</label>`;
                     
+                    // Globale dekorative Checkbox wird nur einmal angezeigt (bei mehrsprachigen Feldern)
+                    
                     const fieldValue = existingMetadata?.[field.name] || '';
+                    
+                    // Required-Attribut für verschiedene Felder
+                    let isRequired = '';
+                    if (field.name === 'med_title_lang') {
+                        isRequired = 'required'; // Mehrsprachige Titel sind immer required
+                    } else if (field.name === 'title') {
+                        // Einfaches title Feld - basierend auf data-Attribut
+                        const titleRequiredAttr = widget?.getAttribute('data-filepond-title-required');
+                        if (titleRequiredAttr === 'true') {
+                            isRequired = 'required';
+                        }
+                    } else if (field.name === 'med_alt' && isImage) {
+                        isRequired = 'required';
+                    }
+                    
+                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
                     
                     if (field.type === 'textarea') {
                         html += `<textarea id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" rows="3" ${field.required ? 'required' : ''}>${fieldValue}</textarea>`;
+                        html += `data-field="${field.name}" rows="3" ${isRequired} ${isDisabled}>${fieldValue}</textarea>`;
                     } else {
                         html += `<input type="text" id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" value="${fieldValue}" ${field.required ? 'required' : ''}>`;
+                        html += `data-field="${field.name}" value="${fieldValue}" ${isRequired} ${isDisabled}>`;
                     }
                     
                     html += `</div>`;
@@ -680,6 +763,32 @@
                         }
                     });
                 });
+                
+                // Globale dekorative Bild-Checkbox für ALT-Felder
+                const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');
+                if (globalDecorativeCheckbox) {
+                    globalDecorativeCheckbox.addEventListener('change', function() {
+                        const isChecked = this.checked;
+                        
+                        // Alle ALT-Felder (mehrsprachig und einsprachig) finden und entsprechend aktivieren/deaktivieren
+                        const altFields = form.querySelectorAll('[data-field="med_alt"]');
+                        
+                        altFields.forEach(field => {
+                            if (isChecked) {
+                                field.disabled = true;
+                                field.value = '';
+                                field.removeAttribute('required');
+                            } else {
+                                field.disabled = false;
+                                field.setAttribute('required', 'required');
+                            }
+                        });
+                        
+                        console.log(`Globale dekorative Checkbox: ${isChecked ? 'aktiviert' : 'deaktiviert'} - ${altFields.length} ALT-Felder betroffen`);
+                    });
+                }
+                
+                // Alte individuelle Checkbox-Handler entfernt - nutze nur noch globale Checkbox
             };
             
             // Sammelt Daten aus erweitertem Formular
@@ -707,18 +816,160 @@
             };
             
             // Validiert erweiterte Metadaten
-            const validateEnhancedMetadata = (metadata, fields, form) => {
+            const validateEnhancedMetadata = (metadata, fields, form, currentInput) => {
+                let isValid = true;
+                let firstInvalidField = null;
+                
+                // Alle vorherigen Fehlermeldungen entfernen
+                form.querySelectorAll('.field-error, .field-error-message').forEach(el => el.remove());
+                form.querySelectorAll('.simple-modal-input').forEach(el => {
+                    el.classList.remove('error');
+                    el.style.borderColor = '';
+                });
+                
                 for (const field of fields) {
-                    if (field.required && (!metadata[field.name] || metadata[field.name].toString().trim() === '')) {
-                        const input = form.querySelector(`[data-field="${field.name}"]`);
-                        if (input) {
-                            input.focus();
-                            input.reportValidity?.();
+                    let isFieldRequired = field.required;
+                    
+                    // ALT-Felder sind bei Bildern automatisch Pflicht (außer bei dekorativen Bildern)
+                    if (field.name === 'med_alt') {
+                        const isImage = currentFileType && currentFileType.startsWith('image/');
+                        if (!isImage) continue; // ALT-Feld nicht erforderlich bei Nicht-Bildern
+                        
+                        isFieldRequired = true; // ALT ist bei Bildern immer Pflicht
+                        
+                        // Prüfen ob die globale dekorative Checkbox aktiviert ist
+                        const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');
+                        let hasDecorativeOverride = false;
+                        
+                        if (globalDecorativeCheckbox && globalDecorativeCheckbox.checked) {
+                            hasDecorativeOverride = true;
+                            console.log('Globale dekorative Checkbox aktiviert - ALT-Feld wird übersprungen');
                         }
-                        return false;
+                        
+                        console.log('hasDecorativeOverride:', hasDecorativeOverride);
+                        
+                        if (hasDecorativeOverride) {
+                            console.log('ALT-Feld übersprungen - ist dekorativ markiert');
+                            continue; // ALT-Feld nicht erforderlich wenn dekorativ markiert
+                        }
+                    }
+                    
+                    // med_title_lang ist standardmäßig Pflicht (kann per Attribut überschrieben werden)
+                    if (field.name === 'med_title_lang') {
+                        // Mehrsprachige Titel-Felder sind immer required
+                        isFieldRequired = true;
+                        
+                        console.log('med_title_lang required:', isFieldRequired, '(hardcoded)');
+                    }
+                    
+                    // Einfaches title Feld - basierend auf data-Attribut
+                    if (field.name === 'title') {
+                        const titleRequiredAttr = currentInput?.getAttribute('data-filepond-title-required');
+                        isFieldRequired = titleRequiredAttr === 'true';
+                        
+                        console.log('title required:', isFieldRequired, 'via attribute:', titleRequiredAttr);
+                    }
+                    
+                    // Validierung für required Felder (inkl. ALT bei Bildern)
+                    if (isFieldRequired) {
+                        let fieldIsValid = true;
+                        
+                        if (field.multilingual && field.languages) {
+                            // Mehrsprachige Felder: mindestens eine Sprache muss ausgefüllt sein
+                            let hasAnyValue = false;
+                            let requiredLanguages = [...field.languages]; // Kopie für Manipulation
+                            
+                            // Bei ALT-Feldern: Sprachen mit dekorativen Checkboxen ausschließen
+                            if (field.name === 'med_alt') {
+                                requiredLanguages = field.languages.filter(lang => {
+                                    const decorativeCheckbox = form.querySelector(`.decorative-checkbox[data-lang="${lang.code}"]`);
+                                    const isDecorative = decorativeCheckbox && decorativeCheckbox.checked;
+                                    console.log(`Sprache ${lang.code}: dekorativ = ${isDecorative}`);
+                                    return !isDecorative;
+                                });
+                                
+                                console.log('Erforderliche Sprachen nach Filterung:', requiredLanguages.map(l => l.code));
+                                
+                                // Wenn alle Sprachen als dekorativ markiert sind, ist das Feld gültig
+                                if (requiredLanguages.length === 0) {
+                                    hasAnyValue = true;
+                                    console.log('Alle Sprachen sind dekorativ - Feld ist gültig');
+                                }
+                            }
+                            
+                            // Prüfe nur die erforderlichen Sprachen
+                            for (const lang of requiredLanguages) {
+                                const value = metadata[field.name]?.[lang.code];
+                                if (value && value.toString().trim() !== '') {
+                                    hasAnyValue = true;
+                                    console.log(`Sprache ${lang.code} hat Wert:`, value);
+                                    break;
+                                }
+                            }
+                            
+                            console.log('hasAnyValue:', hasAnyValue, 'requiredLanguages.length:', requiredLanguages.length);
+                            
+                            if (!hasAnyValue && requiredLanguages.length > 0) {
+                                fieldIsValid = false;
+                                console.log('Fehler: Mindestens eine nicht-dekorative Sprache muss ausgefüllt sein');
+                                // Erste erforderliche Sprache als Fehlerfeld markieren
+                                const firstLangInput = form.querySelector(`[data-field="${field.name}"][data-lang="${requiredLanguages[0].code}"]`);
+                                if (firstLangInput && !firstInvalidField) {
+                                    firstInvalidField = firstLangInput;
+                                }
+                                markFieldAsError(form, field.name, requiredLanguages[0].code);
+                            }
+                        } else {
+                            // Einsprachige Felder
+                            const value = metadata[field.name];
+                            if (!value || value.toString().trim() === '') {
+                                fieldIsValid = false;
+                                const input = form.querySelector(`[data-field="${field.name}"]:not([data-lang])`);
+                                if (input && !firstInvalidField) {
+                                    firstInvalidField = input;
+                                }
+                                markFieldAsError(form, field.name);
+                            }
+                        }
+                        
+                        if (!fieldIsValid) {
+                            isValid = false;
+                        }
                     }
                 }
-                return true;
+                
+                // Erstes ungültiges Feld fokussieren
+                if (!isValid && firstInvalidField) {
+                    firstInvalidField.focus();
+                    firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                
+                return isValid;
+            };
+            
+            // Hilfsfunktion zum Markieren von Feldern als fehlerhaft
+            const markFieldAsError = (form, fieldName, langCode = null) => {
+                const selector = langCode 
+                    ? `[data-field="${fieldName}"][data-lang="${langCode}"]`
+                    : `[data-field="${fieldName}"]:not([data-lang])`;
+                
+                const input = form.querySelector(selector);
+                if (input) {
+                    input.classList.add('error');
+                    input.style.borderColor = '#dc3545';
+                    
+                    // Fehlermeldung hinzufügen wenn noch nicht vorhanden
+                    const fieldGroup = input.closest('.simple-modal-form-group');
+                    if (fieldGroup && !fieldGroup.querySelector('.field-error-message')) {
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'field-error-message';
+                        errorMsg.style.color = '#dc3545';
+                        errorMsg.style.fontSize = '12px';
+                        errorMsg.style.marginTop = '4px';
+                        errorMsg.textContent = 'Dieses Feld ist erforderlich';
+                        fieldGroup.appendChild(errorMsg);
+                    }
+                }
             };
             
             // Speichert erweiterte Metadaten über unsere API

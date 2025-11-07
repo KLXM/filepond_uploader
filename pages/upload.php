@@ -22,6 +22,9 @@ $skipMeta = rex_config::get('filepond_uploader', 'upload_skip_meta', false);
 // Prüfen, ob verzögerter Upload-Modus aktiviert ist
 $delayedUpload = rex_config::get('filepond_uploader', 'delayed_upload_mode', false);
 
+// Prüfen, ob das title-Feld required sein soll
+$titleRequired = rex_config::get('filepond_uploader', 'title_required_default', false);
+
 // Session-Wert setzen für die API
 if ($skipMeta) {
     rex_set_session('filepond_no_meta', true);
@@ -58,6 +61,7 @@ $content = '
                             data-filepond-lang="'.$langCode.'"
                             data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
                             data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
+                            data-filepond-title-required="'.($titleRequired ? 'true' : 'false').'"
                             value=""
                         >
                     </div>

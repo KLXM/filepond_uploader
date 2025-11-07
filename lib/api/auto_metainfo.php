@@ -127,7 +127,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             'label' => $this->getFieldLabel($fieldName),
             'type' => $this->getFieldType($fieldName),
             'multilingual' => $this->isMultilingual($fieldName),
-            'required' => $fieldName === 'title', // Nur Titel ist required
+            'required' => false, // Required wird nur auf Upload-Seite über PHP gesteuert
             'languages' => []
         ];
         

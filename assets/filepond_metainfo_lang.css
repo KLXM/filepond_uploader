@@ -56,3 +56,70 @@
     opacity: 0.7;
     font-size: 11px;
 }
+
+/* Dekorative Bild-Optionen */
+.simple-modal .decorative-checkbox-group {
+    margin-bottom: 12px;
+}
+
+.simple-modal .simple-modal-checkbox-label {
+    font-size: 13px;
+    font-weight: normal;
+    margin: 0 0 8px 0;
+    display: block;
+    cursor: pointer;
+    color: var(--modal-color-text);
+    padding: 8px 12px;
+    background: rgba(255, 193, 7, 0.08);
+    border: 1px solid rgba(255, 193, 7, 0.2);
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.simple-modal .simple-modal-checkbox-label:hover {
+    background: rgba(255, 193, 7, 0.12);
+}
+
+.simple-modal .simple-modal-checkbox-label input[type="checkbox"] {
+    margin-right: 8px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.simple-modal input[data-decorative-target="true"]:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    opacity: 0.5;
+}
+
+.rex-theme-dark .simple-modal input[data-decorative-target="true"]:disabled {
+    background-color: #333;
+    color: #666;
+    opacity: 0.5;
+}
+
+.rex-theme-dark .simple-modal .simple-modal-checkbox-label {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.3);
+}
+
+.rex-theme-dark .simple-modal .simple-modal-checkbox-label:hover {
+    background: rgba(255, 193, 7, 0.15);
+}
+
+/* Fehlervalidierung für Pflichtfelder */
+.simple-modal .simple-modal-input.error {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+.simple-modal .field-error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: normal;
+}
+
+.rex-theme-dark .simple-modal .field-error-message {
+    color: #ff6b6b;
+}
