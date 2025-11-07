@@ -5,7 +5,15 @@
 class FilePondAutoMetaInfo {
     constructor() {
         this.fieldsCache = null;
+        this.currentModalId = null; // Eindeutige Modal-ID pro Instanz
         this.init();
+    }
+
+    /**
+     * Generiert eine eindeutige Modal-ID
+     */
+    generateModalId() {
+        return 'modal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
     
     init() {
@@ -99,6 +107,9 @@ class FilePondAutoMetaInfo {
      */
     async showEnhancedModal(file, existingMetadata = {}) {
         try {
+            // Generiere eindeutige Modal-ID für diese Instanz
+            this.currentModalId = this.generateModalId();
+            
             // Lade MetaInfo-Felder
             const fields = await this.loadMetaInfoFields();
             
@@ -271,7 +282,8 @@ class FilePondAutoMetaInfo {
      * Erstellt HTML für ein Feld
      */
     createFieldHTML(field, existingMetadata) {
-        const fieldId = `field_${field.name}`;
+        const fieldId = `field_${field.name}_${this.currentModalId}`;
+        const uniqueFieldId = `${field.name}_${this.currentModalId}`;
         let html = '';
         
         if (field.multilingual) {
@@ -281,14 +293,14 @@ class FilePondAutoMetaInfo {
             html += `<i class="fa fa-globe"></i> ${field.label}`;
             html += `</label>`;
             
-            // "Alle Sprachen" Button
+            // "Alle Sprachen" Button mit eindeutiger ID
             html += `<div class="lang-field-container">`;
-            html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${field.name}">`;
+            html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${uniqueFieldId}">`;
             html += `<i class="fa fa-caret-right"></i> Alle Sprachen bearbeiten`;
             html += `</button>`;
             
-            // Sprachfelder (initial versteckt)
-            html += `<div class="lang-fields" id="lang-fields-${field.name}" style="display: none; margin-top: 10px;">`;
+            // Sprachfelder (initial versteckt) mit eindeutiger ID
+            html += `<div class="lang-fields" id="lang-fields-${uniqueFieldId}" style="display: none; margin-top: 10px;">`;
             
             for (const lang of field.languages) {
                 const langValue = existingMetadata[field.name] && existingMetadata[field.name][lang.code] 
@@ -353,12 +365,19 @@ class FilePondAutoMetaInfo {
             }
         }
         
-        // Toggle-Buttons für mehrsprachige Felder
+        // Toggle-Buttons für mehrsprachige Felder (nur in diesem Container)
         container.querySelectorAll('.lang-toggle').forEach(button => {
-            button.addEventListener('click', (e) => {
+            // Entferne eventuell vorhandene Event-Listener
+            button.removeEventListener('click', this.toggleLanguageFieldsHandler);
+            
+            // Erstelle gebundenen Handler für diesen spezifischen Container
+            this.toggleLanguageFieldsHandler = (e) => {
                 e.preventDefault();
+                e.stopPropagation(); // Verhindere Event-Bubbling
                 this.toggleLanguageFields(button);
-            });
+            };
+            
+            button.addEventListener('click', this.toggleLanguageFieldsHandler);
         });
     }
     
@@ -367,7 +386,13 @@ class FilePondAutoMetaInfo {
      */
     toggleLanguageFields(button) {
         const target = button.getAttribute('data-target');
-        const container = document.getElementById(`lang-fields-${target}`);
+        
+        // Suche nur innerhalb des gleichen Modal-Containers
+        const modalContainer = button.closest('.simple-modal-content') || button.closest('.simple-modal');
+        const container = modalContainer ? 
+            modalContainer.querySelector(`#lang-fields-${target}`) : 
+            document.getElementById(`lang-fields-${target}`);
+        
         const icon = button.querySelector('i');
         
         if (container) {
@@ -380,6 +405,8 @@ class FilePondAutoMetaInfo {
                 icon.className = 'fa fa-caret-right';
                 button.innerHTML = button.innerHTML.replace('ausblenden', 'bearbeiten');
             }
+        } else {
+            console.warn('Language fields container not found for target:', target);
         }
     }
     
