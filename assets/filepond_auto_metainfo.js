@@ -367,17 +367,21 @@ class FilePondAutoMetaInfo {
         
         // Toggle-Buttons für mehrsprachige Felder (nur in diesem Container)
         container.querySelectorAll('.lang-toggle').forEach(button => {
-            // Entferne eventuell vorhandene Event-Listener
-            button.removeEventListener('click', this.toggleLanguageFieldsHandler);
-            
-            // Erstelle gebundenen Handler für diesen spezifischen Container
-            this.toggleLanguageFieldsHandler = (e) => {
+            // Erstelle einen bound handler für jeden Button
+            const boundHandler = (e) => {
                 e.preventDefault();
                 e.stopPropagation(); // Verhindere Event-Bubbling
                 this.toggleLanguageFields(button);
             };
             
-            button.addEventListener('click', this.toggleLanguageFieldsHandler);
+            // Entferne eventuell vorhandene Event-Listener
+            if (button.boundToggleHandler) {
+                button.removeEventListener('click', button.boundToggleHandler);
+            }
+            
+            // Speichere den Handler am Button Element
+            button.boundToggleHandler = boundHandler;
+            button.addEventListener('click', boundHandler);
         });
     }
     
@@ -406,7 +410,7 @@ class FilePondAutoMetaInfo {
                 button.innerHTML = button.innerHTML.replace('ausblenden', 'bearbeiten');
             }
         } else {
-            console.warn('Language fields container not found for target:', target);
+            console.warn('Language fields container not found for target:', target, '(modalId:', this.currentModalId + ')');
         }
     }
     

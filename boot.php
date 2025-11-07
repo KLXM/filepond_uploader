@@ -56,7 +56,7 @@ if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::
                                 
                                 // Suche aktuelle Sprache
                                 foreach ($langData as $entry) {
-                                    if ($entry['clang_id'] == $currentLang && !empty($entry['value'])) {
+                                    if (isset($entry['clang_id']) && isset($entry['value']) && $entry['clang_id'] == $currentLang && !empty($entry['value'])) {
                                         $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
                                         return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
                                     }
@@ -64,7 +64,7 @@ if (rex::isBackend() && rex_addon::exists('metainfo_lang_fields') && rex_addon::
                                 
                                 // Fallback: erste verfügbare Sprache
                                 foreach ($langData as $entry) {
-                                    if (!empty($entry['value'])) {
+                                    if (isset($entry['clang_id']) && isset($entry['value']) && !empty($entry['value'])) {
                                         $langCode = $langCodes[$entry['clang_id']] ?? 'L' . $entry['clang_id'];
                                         return '<p><strong>' . $langCode . ':</strong> ' . htmlspecialchars($entry['value']) . '</p>';
                                     }
