@@ -837,7 +837,13 @@ class rex_api_filepond_uploader extends rex_api_function
             return;
         }
 
-        // Read EXIF data
+        // Check if imageflip function exists (requires PHP 5.5.0+)
+        if (!function_exists('imageflip')) {
+            $this->log('warning', 'imageflip() function not available, skipping EXIF orientation fix');
+            return;
+        }
+
+        // Read EXIF data with error handling
         $exif = @exif_read_data($tmpFile);
         if (!$exif || !isset($exif['Orientation'])) {
             // No orientation data found, nothing to fix
@@ -853,17 +859,27 @@ class rex_api_filepond_uploader extends rex_api_function
 
         $this->log('info', "Fixing EXIF orientation: $orientation for file: $tmpFile");
 
-        // Load the image
-        $image = imagecreatefromjpeg($tmpFile);
+        // Load the image with additional error checking
+        $image = @imagecreatefromjpeg($tmpFile);
         if (!$image) {
             $this->log('error', 'Failed to load image for EXIF orientation fix');
+            return;
+        }
+
+        // Check if we have a valid GD resource
+        if (!is_resource($image) && !($image instanceof \GdImage)) {
+            $this->log('error', 'Invalid image resource for EXIF orientation fix');
             return;
         }
 
         // Rotate/flip based on orientation value
         switch ($orientation) {
             case 2: // Horizontal flip
-                imageflip($image, IMG_FLIP_HORIZONTAL);
+                if (!imageflip($image, IMG_FLIP_HORIZONTAL)) {
+                    $this->log('error', 'Failed to flip image horizontally (orientation 2)');
+                    imagedestroy($image);
+                    return;
+                }
                 break;
             case 3: // 180 rotate
                 $rotated = imagerotate($image, 180, 0);
@@ -876,10 +892,18 @@ class rex_api_filepond_uploader extends rex_api_function
                 $image = $rotated;
                 break;
             case 4: // Vertical flip
-                imageflip($image, IMG_FLIP_VERTICAL);
+                if (!imageflip($image, IMG_FLIP_VERTICAL)) {
+                    $this->log('error', 'Failed to flip image vertically (orientation 4)');
+                    imagedestroy($image);
+                    return;
+                }
                 break;
             case 5: // Vertical flip + 90 rotate clockwise
-                imageflip($image, IMG_FLIP_VERTICAL);
+                if (!imageflip($image, IMG_FLIP_VERTICAL)) {
+                    $this->log('error', 'Failed to flip image vertically before rotation (orientation 5)');
+                    imagedestroy($image);
+                    return;
+                }
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
                     $this->log('error', 'Failed to rotate image -90 degrees after vertical flip');
@@ -900,7 +924,11 @@ class rex_api_filepond_uploader extends rex_api_function
                 $image = $rotated;
                 break;
             case 7: // Horizontal flip + 90 rotate clockwise
-                imageflip($image, IMG_FLIP_HORIZONTAL);
+                if (!imageflip($image, IMG_FLIP_HORIZONTAL)) {
+                    $this->log('error', 'Failed to flip image horizontally before rotation (orientation 7)');
+                    imagedestroy($image);
+                    return;
+                }
                 $rotated = imagerotate($image, -90, 0);
                 if ($rotated === false) {
                     $this->log('error', 'Failed to rotate image -90 degrees after horizontal flip');
@@ -925,8 +953,13 @@ class rex_api_filepond_uploader extends rex_api_function
         // Get image quality setting
         $quality = rex_config::get('filepond_uploader', 'image_quality', 90);
 
-        // Save the corrected image
-        imagejpeg($image, $tmpFile, $quality);
+        // Save the corrected image with error handling
+        if (!@imagejpeg($image, $tmpFile, $quality)) {
+            $this->log('error', 'Failed to save EXIF-corrected image to file: ' . $tmpFile);
+            imagedestroy($image);
+            return;
+        }
+        
         imagedestroy($image);
 
         $this->log('info', 'EXIF orientation corrected successfully');
