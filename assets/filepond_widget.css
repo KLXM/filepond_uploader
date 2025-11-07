@@ -318,6 +318,12 @@
     background: #f8f9fa;
     border: 1px solid #ddd;
     border-radius: 4px;
+}
+
+/* When shown, the fallback should be flex to center the icon */
+.fp-image-preview-fallback[style*="display: flex"],
+.fp-image-preview-fallback.show {
+    display: flex;
     align-items: center;
     justify-content: center;
 }
