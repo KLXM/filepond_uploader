@@ -38,14 +38,14 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                             
                             for (let entry of data) {
                                 if (entry.clang_id == currentLang && entry.value && entry.value.trim()) {
-                                    return '<i class=\"fa fa-globe\"></i> <strong>' + getLangCode(entry.clang_id) + ':</strong> ' + entry.value.trim();
+                                    return '<strong>' + getLangCode(entry.clang_id) + ':</strong> ' + entry.value.trim();
                                 }
                             }
                             
                             for (let entry of data) {
                                 if (entry.value && entry.value.trim()) {
                                     let langCode = getLangCode(entry.clang_id);
-                                    descriptions.push('<i class=\"fa fa-globe\"></i> <strong>' + langCode + ':</strong> ' + entry.value.trim());
+                                    descriptions.push('<strong>' + langCode + ':</strong> ' + entry.value.trim());
                                 }
                             }
                             
@@ -74,7 +74,6 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                             const formatted = formatMultilingualJson(text);
                             if (formatted !== text) {
                                 p.innerHTML = formatted;
-                                p.style.fontStyle = 'italic';
                                 p.style.color = '#666';
                                 p.title = 'Mehrsprachige Beschreibung';
                             }
