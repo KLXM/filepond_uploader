@@ -51,6 +51,13 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Unterstützung für YCOM-Benutzerauthentifizierung
     *   Validierung von Dateitypen und -größen
 
+*   **Info Center Integration:**
+    *   Upload-Widget direkt im REDAXO Info Center Dashboard
+    *   Schneller Zugriff ohne Medienpool zu öffnen
+    *   Kategorie-Auswahl mit rex_media_category_select
+    *   Automatische Positionierung nach TimeTracker Widget
+    *   Respektiert alle FilePond-Konfigurationen und Benutzerberechtigungen
+
 *   **Media Widget Integration:**
     *   Nahtlose Integration mit REX_MEDIA und REX_MEDIALIST Widgets
     *   Direkter Upload von Dateien in Formularfelder
@@ -71,6 +78,67 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
 4.  **Fertig:** Der Uploader ist nun einsatzbereit!
 
 ## Schnellstart
+
+### Info Center Upload Widget
+
+Das FilePond AddOn bietet ein praktisches Upload-Widget im Info Center des REDAXO-Backends. Dieses Widget ermöglicht das schnelle Hochladen von Dateien direkt aus dem Dashboard heraus, ohne den Medienpool öffnen zu müssen.
+
+#### Features des Info Center Widgets
+
+**Schneller Zugriff:**
+- Upload-Funktionalität direkt im Info Center verfügbar
+- Kein Wechsel zum Medienpool erforderlich
+- Kompakte Darstellung ohne Dashboard zu verlassen
+
+**Vollständige FilePond-Integration:**
+- Alle konfigurierten FilePond-Einstellungen werden übernommen
+- Drag & Drop Upload direkt im Info Center
+- Chunk-Upload für große Dateien
+- Bildoptimierung und Metadaten-Eingabe
+
+**Kategorie-Auswahl:**
+- Dropdown zur Auswahl der Zielkategorie
+- Verwendet den Standard rex_media_category_select
+- Respektiert Benutzerberechtigungen für Kategorien
+
+**Intelligente Positionierung:**
+- Erscheint automatisch nach dem TimeTracker Widget
+- Nur für angemeldete Benutzer sichtbar
+- Robuste Erkennung verfügbarer AddOns
+
+#### Aktivierung
+
+Das Info Center Widget wird automatisch aktiviert, wenn folgende Bedingungen erfüllt sind:
+
+1. **Info Center AddOn installiert:** Das REDAXO Info Center AddOn muss aktiviert sein
+2. **FilePond Uploader aktiv:** Dieses AddOn muss aktiviert sein
+3. **Benutzer angemeldet:** Widget erscheint nur für angemeldete Backend-Benutzer
+
+> **Hinweis:** Das Widget wird automatisch zwischen TimeTracker und anderen Widgets positioniert (Priorität 0.5). Es sind keine weiteren Konfigurationen erforderlich.
+
+#### Widget-Funktionalität
+
+**Upload-Formular:**
+- Identische Struktur wie die Medienpool-Upload-Seite
+- Kategorie-Auswahl mit allen verfügbaren Medienpool-Kategorien
+- Automatische Aktualisierung bei Kategorie-Wechsel
+- Respektiert alle FilePond-Konfigurationen (Dateitypen, Größenlimits, etc.)
+
+**Metadaten-Eingabe:**
+- Vollständige Integration der Metadaten-Dialoge
+- Unterstützung für mehrsprachige Felder (MetaInfo Lang Fields)
+- Validierung nach konfigurierten Regeln
+- Alt-Text und Copyright-Abfrage wie gewohnt
+
+**Benutzerfreundlichkeit:**
+- Drag & Drop direkt im Widget
+- Live-Vorschau hochgeladener Dateien
+- Fortschrittsanzeige und Chunk-Upload
+- Nahtlose Integration in die REDAXO-Oberfläche
+
+#### Deaktivierung
+
+Falls das Info Center Widget nicht gewünscht ist, kann es durch Deaktivierung des Info Center AddOns oder durch Customizing in der `boot.php` entfernt werden.
 
 ### Media Widget Integration
 
