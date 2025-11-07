@@ -1,0 +1,58 @@
+/* MetaInfo Lang Fields Styles für FilePond Modal */
+.simple-modal .lang-field-container {
+    margin-top: 5px;
+}
+
+.simple-modal .lang-toggle {
+    font-size: 12px;
+    padding: 4px 8px;
+    margin-bottom: 8px;
+    border: 1px solid var(--modal-color-border);
+    background: var(--modal-color-input);
+    color: var(--modal-color-text);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.simple-modal .lang-toggle:hover {
+    background: var(--modal-color-primary);
+    color: white;
+}
+
+.simple-modal .lang-fields {
+    border: 1px solid var(--modal-color-border);
+    border-radius: 4px;
+    padding: 12px;
+    background: rgba(0,0,0,0.02);
+    margin-top: 8px;
+}
+
+.rex-theme-dark .simple-modal .lang-fields {
+    background: rgba(255,255,255,0.02);
+}
+
+.simple-modal .lang-fields .form-group {
+    margin-bottom: 12px;
+}
+
+.simple-modal .lang-fields .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.simple-modal .lang-fields label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+    color: var(--modal-color-text);
+}
+
+.simple-modal .control-label .fa-globe {
+    color: var(--modal-color-primary);
+    margin-right: 5px;
+}
+
+.simple-modal .text-muted {
+    opacity: 0.7;
+    font-size: 11px;
+}

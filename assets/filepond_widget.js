@@ -200,8 +200,105 @@
             // Standardwerte für die Chunk-Größe 
             const CHUNK_SIZE = parseInt(input.dataset.filepondChunkSize || '1') * 1024 * 1024; // Konfigurierbare Größe (Default: 1MB)
 
-            // Create metadata dialog with SimpleModal
-            const createMetadataDialog = (file, existingMetadata = null) => {
+            // Create metadata dialog with SimpleModal and MetaInfo integration
+            const createMetadataDialog = async (file, existingMetadata = null) => {
+                try {
+                    // Lade MetaInfo-Felder über API
+                    const metaInfoFields = await loadMetaInfoFields();
+                    return createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
+                } catch (error) {
+                    console.warn('MetaInfo integration failed, using standard modal:', error);
+                    return createStandardMetadataDialog(file, existingMetadata);
+                }
+            };
+            
+            // Lädt MetaInfo-Felder über API
+            const loadMetaInfoFields = async () => {
+                const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Fehler beim Laden der MetaInfo-Felder');
+                }
+                return data.fields;
+            };
+            
+            // Erweiterte MetaInfo-Dialog
+            const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
+                return new Promise((resolve, reject) => {
+                    const form = document.createElement('div');
+                    form.className = 'simple-modal-grid';
+
+                    // Preview Container (gleich wie Original)
+                    const previewCol = document.createElement('div');
+                    previewCol.className = 'simple-modal-col-4';
+                    const previewContainer = document.createElement('div');
+                    previewContainer.className = 'simple-modal-preview';
+                    
+                    if (file instanceof File && file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.alt = '';
+                        const objectURL = URL.createObjectURL(file);
+                        img.src = objectURL;
+                        img.onload = () => URL.revokeObjectURL(objectURL);
+                        previewContainer.appendChild(img);
+                    }
+                    previewCol.appendChild(previewContainer);
+
+                    // Form Container mit MetaInfo-Feldern
+                    const formCol = document.createElement('div');
+                    formCol.className = 'simple-modal-col-8';
+                    
+                    let formHTML = '';
+                    
+                    // Sortiere Felder: title, med_title_lang, med_alt, med_copyright, rest
+                    const sortedFields = sortMetaInfoFields(fields);
+                    
+                    for (const field of sortedFields) {
+                        formHTML += createFieldHTML(field, existingMetadata);
+                    }
+                    
+                    formCol.innerHTML = formHTML;
+                    
+                    form.appendChild(previewCol);
+                    form.appendChild(formCol);
+
+                    const modal = new SimpleModal();
+                    
+                    // Setup nach DOM-Einfügung
+                    setTimeout(() => {
+                        setupEnhancedFieldEvents(form, fields, file);
+                    }, 100);
+
+                    modal.show({
+                        title: `${t.metaTitle} ${file.filename || file.name}`,
+                        content: form,
+                        buttons: [
+                            {
+                                text: t.cancelBtn,
+                                closeModal: true,
+                                handler: () => reject(new Error('Metadata input cancelled'))
+                            },
+                            {
+                            text: t.saveBtn,
+                            primary: true,
+                            handler: () => {
+                                const metadata = collectEnhancedFormData(form, fields);
+                                if (validateEnhancedMetadata(metadata, fields, form)) {
+                                    // Erweiterte Metadaten - sende an unsere API
+                                    saveEnhancedMetadata(file, metadata, modal, resolve, reject);
+                                }
+                            }
+                        }
+                        ]
+                    });
+                });
+            };
+            
+            // Standard-Dialog (Fallback)
+            const createStandardMetadataDialog = (file, existingMetadata = null) => {
                 return new Promise((resolve, reject) => {
                     const form = document.createElement('div');
                     form.className = 'simple-modal-grid';
@@ -454,6 +551,208 @@
                         ]
                     });
                 });
+            };
+            
+            // MetaInfo-Integration Hilfsfunktionen
+            
+            // Sortiert Felder in gewünschter Reihenfolge
+            const sortMetaInfoFields = (fields) => {
+                const order = ['title', 'med_title_lang', 'med_alt', 'med_copyright', 'med_description'];
+                const sorted = [];
+                
+                for (const fieldName of order) {
+                    const field = fields.find(f => f.name === fieldName);
+                    if (field) sorted.push(field);
+                }
+                
+                for (const field of fields) {
+                    if (!order.includes(field.name)) sorted.push(field);
+                }
+                
+                return sorted;
+            };
+            
+            // Erstellt HTML für ein MetaInfo-Feld
+            const createFieldHTML = (field, existingMetadata) => {
+                const fieldId = `field_${field.name}`;
+                let html = '';
+                
+                if (field.multilingual && field.languages && field.languages.length > 0) {
+                    // Mehrsprachiges Feld - zeige erste Sprache sichtbar, andere über Globus
+                    const firstLang = field.languages[0];
+                    const otherLangs = field.languages.slice(1);
+                    const firstLangValue = existingMetadata?.[field.name]?.[firstLang.code] || '';
+                    
+                    html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
+                    html += `<label for="${fieldId}">${field.label}</label>`;
+                    
+                    // Erste Sprache (immer sichtbar)
+                    if (field.type === 'textarea') {
+                        html += `<textarea id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" rows="3" ${field.required ? 'required' : ''}>${firstLangValue}</textarea>`;
+                    } else {
+                        html += `<input type="text" id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" data-lang="${firstLang.code}" value="${firstLangValue}" ${field.required ? 'required' : ''}>`;
+                    }
+                    
+                    // Weitere Sprachen (über Globus einblendbar)
+                    if (otherLangs.length > 0) {
+                        html += `<div class="lang-field-container">`;
+                        html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${field.name}">`;
+                        html += `<i class="fa fa-globe"></i> Weitere Sprachen (${otherLangs.length})`;
+                        html += `</button>`;
+                        html += `<div class="lang-fields" id="lang-fields-${field.name}" style="display: none; margin-top: 8px;">`;
+                        
+                        for (const lang of otherLangs) {
+                            const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
+                            html += `<div class="form-group">`;
+                            html += `<label class="control-label">${lang.name}</label>`;
+                            
+                            if (field.type === 'textarea') {
+                                html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" rows="3">${langValue}</textarea>`;
+                            } else {
+                                html += `<input type="text" class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                                html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}">`;
+                            }
+                            html += `</div>`;
+                        }
+                        
+                        html += `</div></div>`;
+                    }
+                    
+                    html += `</div>`;
+                } else {
+                    // Standard-Feld
+                    html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
+                    html += `<label for="${fieldId}">${field.label}`;
+                    
+                    if (field.name === 'title') {
+                        html += ` <small class="text-muted">(nur für interne Verwaltung)</small>`;
+                    }
+                    
+                    html += `</label>`;
+                    
+                    const fieldValue = existingMetadata?.[field.name] || '';
+                    
+                    if (field.type === 'textarea') {
+                        html += `<textarea id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" rows="3" ${field.required ? 'required' : ''}>${fieldValue}</textarea>`;
+                    } else {
+                        html += `<input type="text" id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
+                        html += `data-field="${field.name}" value="${fieldValue}" ${field.required ? 'required' : ''}>`;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                return html;
+            };
+            
+            // Setup Events für erweiterte Felder
+            const setupEnhancedFieldEvents = (form, fields, file) => {
+                // Auto-Titel-Generierung
+                const titleField = form.querySelector('[data-field="title"]');
+                if (titleField && !titleField.value) {
+                    const filename = file.name || file.filename || '';
+                    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+                    titleField.value = nameWithoutExt;
+                }
+                
+                // Toggle-Buttons für mehrsprachige Felder
+                form.querySelectorAll('.lang-toggle').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const target = button.getAttribute('data-target');
+                        const container = document.getElementById(`lang-fields-${target}`);
+                        const icon = button.querySelector('i');
+                        
+                        if (container) {
+                            if (container.style.display === 'none') {
+                                container.style.display = 'block';
+                                icon.className = 'fa fa-globe';
+                                // Text bleibt gleich
+                            } else {
+                                container.style.display = 'none';
+                                icon.className = 'fa fa-globe';
+                                // Text bleibt gleich
+                            }
+                        }
+                    });
+                });
+            };
+            
+            // Sammelt Daten aus erweitertem Formular
+            const collectEnhancedFormData = (form, fields) => {
+                const metadata = {};
+                const inputs = form.querySelectorAll('input, textarea');
+                
+                inputs.forEach(input => {
+                    const fieldName = input.getAttribute('data-field');
+                    const langCode = input.getAttribute('data-lang');
+                    
+                    if (fieldName) {
+                        if (langCode) {
+                            // Mehrsprachiges Feld
+                            if (!metadata[fieldName]) metadata[fieldName] = {};
+                            metadata[fieldName][langCode] = input.value;
+                        } else {
+                            // Standard-Feld
+                            metadata[fieldName] = input.value;
+                        }
+                    }
+                });
+                
+                return metadata;
+            };
+            
+            // Validiert erweiterte Metadaten
+            const validateEnhancedMetadata = (metadata, fields, form) => {
+                for (const field of fields) {
+                    if (field.required && (!metadata[field.name] || metadata[field.name].toString().trim() === '')) {
+                        const input = form.querySelector(`[data-field="${field.name}"]`);
+                        if (input) {
+                            input.focus();
+                            input.reportValidity?.();
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            };
+            
+            // Speichert erweiterte Metadaten über unsere API
+            const saveEnhancedMetadata = async (file, metadata, modal, resolve, reject) => {
+                try {
+                    // Wenn Datei bereits hochgeladen ist (serverId vorhanden)
+                    if (file.serverId) {
+                        const formData = new FormData();
+                        formData.append('file_id', file.serverId);
+                        formData.append('metadata', JSON.stringify(metadata));
+                        
+                        const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=save_metadata', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            body: formData
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            modal.close();
+                            resolve(metadata);
+                        } else {
+                            throw new Error(result.error || 'Fehler beim Speichern');
+                        }
+                    } else {
+                        // Datei noch nicht hochgeladen - speichere Metadaten für späteren Upload
+                        file.metaInfo = metadata;
+                        modal.close();
+                        resolve(metadata);
+                    }
+                } catch (error) {
+                    console.error('Fehler beim Speichern der erweiterten Metadaten:', error);
+                    alert('Fehler beim Speichern: ' + error.message);
+                }
             };
 
             // Prepare existing files

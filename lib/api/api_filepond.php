@@ -663,6 +663,8 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql = rex_sql::factory();
                     $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
+                    
+                    // Standard-Felder verarbeiten
                     $sql->setValue('title', $metadata['title'] ?? '');
                     
                     // Prüfen, ob Bild als dekorativ markiert ist
@@ -670,8 +672,29 @@ class rex_api_filepond_uploader extends rex_api_function
                     
                     // Alt-Text und Copyright nur setzen, wenn nicht übersprungen und nicht dekorativ
                     if (!$skipMeta && !$isDecorative) {
-                        $sql->setValue('med_alt', $metadata['alt'] ?? '');
-                        $sql->setValue('med_copyright', $metadata['copyright'] ?? '');
+                        // Prüfe ob alt-Text mehrsprachig ist
+                        if (isset($metadata['med_alt']) && is_array($metadata['med_alt'])) {
+                            // Mehrsprachiges Alt-Text Feld - konvertiere zu MetaInfo Lang Fields Format
+                            $langData = $this->convertToMetaInfoLangFormat($metadata['med_alt']);
+                            $sql->setValue('med_alt', json_encode($langData));
+                        } else {
+                            // Standard Alt-Text
+                            $sql->setValue('med_alt', $metadata['alt'] ?? $metadata['med_alt'] ?? '');
+                        }
+                        
+                        // Prüfe ob Copyright mehrsprachig ist
+                        if (isset($metadata['med_copyright']) && is_array($metadata['med_copyright'])) {
+                            // Mehrsprachiges Copyright Feld
+                            $langData = $this->convertToMetaInfoLangFormat($metadata['med_copyright']);
+                            $sql->setValue('med_copyright', json_encode($langData));
+                        } else {
+                            // Standard Copyright
+                            $sql->setValue('med_copyright', $metadata['copyright'] ?? $metadata['med_copyright'] ?? '');
+                        }
+                        
+                        // Weitere MetaInfo-Felder verarbeiten
+                        $this->processAdditionalMetaInfoFields($sql, $metadata);
+                        
                     } elseif ($isDecorative) {
                         // Bei dekorativen Bildern leeren Alt-Text setzen
                         $sql->setValue('med_alt', '');
@@ -1112,8 +1135,8 @@ class rex_api_filepond_uploader extends rex_api_function
             }
         }
         
-        // Debug-Logging zurücksetzen
-        $this->debug = $originalDebug;
+        // Debug-Logging zurücksetzen (falls aktiviert)
+        $this->debug = false;
 
         // Antwort mit detaillierten Informationen
         $response = [
@@ -1330,6 +1353,58 @@ class rex_api_filepond_uploader extends rex_api_function
         } catch (Exception $e) {
             $this->log('error', 'Error removing file: ' . $e->getMessage());
             throw new rex_api_exception('Error removing file: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Konvertiert Frontend-Sprachdaten ins MetaInfo Lang Fields Format
+     * Frontend: {"de": "Text", "en": "Text"} 
+     * MetaInfo: [{"clang_id": 1, "value": "Text"}, {"clang_id": 2, "value": "Text"}]
+     */
+    private function convertToMetaInfoLangFormat($fieldValue)
+    {
+        if (!is_array($fieldValue)) {
+            return [];
+        }
+        
+        $result = [];
+        $languages = rex_clang::getAll();
+        
+        foreach ($fieldValue as $langCode => $value) {
+            // Finde Sprach-ID anhand des Codes
+            foreach ($languages as $clang) {
+                if ($clang->getCode() === $langCode) {
+                    $result[] = [
+                        'clang_id' => $clang->getId(),
+                        'value' => (string) $value
+                    ];
+                    break;
+                }
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Verarbeitet zusätzliche MetaInfo-Felder
+     */
+    private function processAdditionalMetaInfoFields($sql, $metadata)
+    {
+        // Zusätzliche Felder die verarbeitet werden sollen
+        $additionalFields = ['med_description', 'med_title_lang', 'med_keywords', 'med_source'];
+        
+        foreach ($additionalFields as $fieldName) {
+            if (isset($metadata[$fieldName])) {
+                if (is_array($metadata[$fieldName])) {
+                    // Mehrsprachiges Feld
+                    $langData = $this->convertToMetaInfoLangFormat($metadata[$fieldName]);
+                    $sql->setValue($fieldName, json_encode($langData));
+                } else {
+                    // Standard-Feld
+                    $sql->setValue($fieldName, $metadata[$fieldName]);
+                }
+            }
         }
     }
 }
