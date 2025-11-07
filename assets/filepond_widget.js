@@ -210,6 +210,10 @@
                 container.innerHTML = '';
                 
                 if (file instanceof File) {
+                    const fileName = file.name || '';
+                    const isVideo = file.type.startsWith('video/') || 
+                                  /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName);
+                    
                     if (file.type.startsWith('image/')) {
                         const img = document.createElement('img');
                         img.alt = '';
@@ -220,7 +224,7 @@
                         img.src = objectURL;
                         img.onload = () => URL.revokeObjectURL(objectURL);
                         container.appendChild(img);
-                    } else if (file.type.startsWith('video/')) {
+                    } else if (isVideo) {
                         const video = document.createElement('video');
                         video.controls = true;
                         video.muted = true;
@@ -322,6 +326,9 @@
 
             // Hilfsfunktion für File Icons
             const createFileIcon = (container, iconClass) => {
+                // Container leeren, falls schon andere Inhalte drin sind
+                container.innerHTML = '';
+                
                 const icon = document.createElement('div');
                 icon.className = 'simple-modal-file-icon';
                 icon.style.cssText = 'width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
