@@ -866,12 +866,6 @@ class rex_api_filepond_uploader extends rex_api_function
             return;
         }
 
-        // Check if we have a valid GD resource
-        if (!is_resource($image) && !($image instanceof \GdImage)) {
-            $this->log('error', 'Invalid image resource for EXIF orientation fix');
-            return;
-        }
-
         // Rotate/flip based on orientation value
         switch ($orientation) {
             case 2: // Horizontal flip
