@@ -20,8 +20,10 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
         rex_extension::register('OUTPUT_FILTER', function(rex_extension_point $ep) {
             $content = $ep->getSubject();
             
-            // Only on mediapool pages
-            if (rex_be_controller::getCurrentPage() === 'mediapool/media') {
+            // Only on mediapool pages or media-related pages
+            if (strpos(rex_be_controller::getCurrentPage(), 'mediapool') !== false || 
+                strpos(rex_be_controller::getCurrentPage(), 'media') !== false ||
+                strpos($content, 'rex-page-mediapool') !== false) {
                 $currentLang = rex_clang::getCurrentId();
                 $noDescMsg = rex_i18n::msg('filepond_no_description');
                 
@@ -86,6 +88,40 @@ rex_extension::register('PACKAGES_INCLUDED', function() {
                                 p.title = 'Mehrsprachige Beschreibung';
                             }
                         }
+                    });
+                    
+                    // Überwache DOM-Änderungen für dynamisch geladene Inhalte
+                    const observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList') {
+                                mutation.addedNodes.forEach(function(node) {
+                                    if (node.nodeType === Node.ELEMENT_NODE) {
+                                        const newParagraphs = node.querySelectorAll ? node.querySelectorAll('td p') : [];
+                                        newParagraphs.forEach(function(p) {
+                                            const text = p.textContent.trim();
+                                            if (text.startsWith('[{\"clang_id') || text.startsWith('{\"clang_id')) {
+                                                const formatted = formatMultilingualJson(text);
+                                                if (formatted !== text) {
+                                                    p.innerHTML = '';
+                                                    const tempDiv = document.createElement('div');
+                                                    tempDiv.innerHTML = formatted;
+                                                    while (tempDiv.firstChild) {
+                                                        p.appendChild(tempDiv.firstChild);
+                                                    }
+                                                    p.style.color = '#666';
+                                                    p.title = 'Mehrsprachige Beschreibung';
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    });
+                    
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true
                     });
                 });
                 </script>";
