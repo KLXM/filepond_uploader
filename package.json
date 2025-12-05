@@ -1,6 +1,6 @@
 {
     "name": "redaxo-filepond",
-    "version": "1.0.0",
+    "version": "1.13.4",
     "description": "FilePond integration for REDAXO",
     "private": true,
     "scripts": {
@@ -14,6 +14,6 @@
       "filepond-plugin-image-preview": "^4.6.11"
     },
     "devDependencies": {},
-    "author": "Your Name",
+    "author": "KLXM Crossmedia GmbH Thomas Skerbis",
     "license": "MIT"
   }

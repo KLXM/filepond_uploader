@@ -421,3 +421,27 @@ body.rex-theme-dark {
         width: 100%;
     }
 }
+
+/* Info Center Widget Styles */
+.info-center-widget .filepond-upload-widget .form-group {
+    margin-bottom: 1rem;
+}
+
+.info-center-widget .filepond-upload-widget .form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.info-center-widget .filepond--root {
+    margin-bottom: 0.5rem;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+/* Ensure FilePond panel fits nicely in narrow widget */
+.info-center-widget .filepond--panel-root {
+    min-height: 120px;
+}

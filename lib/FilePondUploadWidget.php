@@ -8,6 +8,7 @@ use rex_addon;
 use rex_i18n;
 use rex_csrf_token;
 use rex_request;
+use rex_response;
 use rex_view;
 
 class FilePondUploadWidget extends AbstractWidget
@@ -104,13 +105,7 @@ class FilePondUploadWidget extends AbstractWidget
                 </div>
             </div>
             
-            <style>
-                .filepond-upload-widget .form-select {
-                    max-width: 100%%;
-                }
-            </style>
-            
-            <script>
+            <script nonce="' . rex_response::getNonce() . '">
             document.addEventListener("DOMContentLoaded", function() {
                 // Update category when select changes
                 const categorySelect = document.getElementById("%s-category-select");
