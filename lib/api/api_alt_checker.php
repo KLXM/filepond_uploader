@@ -33,6 +33,15 @@ class rex_api_filepond_alt_checker extends rex_api_function
             case 'bulk_update':
                 $this->handleBulkUpdate();
                 break;
+            case 'ai_generate':
+                $this->handleAiGenerate();
+                break;
+            case 'ai_bulk_generate':
+                $this->handleAiBulkGenerate();
+                break;
+            case 'ai_test':
+                $this->handleAiTest();
+                break;
             default:
                 $this->sendJson(['error' => 'Unbekannte Aktion']);
         }
@@ -151,6 +160,79 @@ class rex_api_filepond_alt_checker extends rex_api_function
         }
 
         $result = filepond_alt_text_checker::bulkUpdateAltText($updates);
+        $this->sendJson($result);
+    }
+
+    /**
+     * AI Alt-Text für ein einzelnes Bild generieren
+     */
+    private function handleAiGenerate(): void
+    {
+        if (!filepond_ai_alt_generator::isEnabled()) {
+            $this->sendJson(['error' => 'AI Alt-Text-Generierung ist nicht aktiviert oder API-Key fehlt']);
+            return;
+        }
+        
+        $filename = rex_request('filename', 'string', '');
+        $language = rex_request('language', 'string', 'de');
+        
+        if (empty($filename)) {
+            $this->sendJson(['error' => 'Kein Dateiname angegeben']);
+            return;
+        }
+        
+        $generator = new filepond_ai_alt_generator();
+        $result = $generator->generateAltText($filename, $language);
+        
+        $this->sendJson($result);
+    }
+    
+    /**
+     * AI Alt-Texte für mehrere Bilder generieren
+     */
+    private function handleAiBulkGenerate(): void
+    {
+        if (!filepond_ai_alt_generator::isEnabled()) {
+            $this->sendJson(['error' => 'AI Alt-Text-Generierung ist nicht aktiviert oder API-Key fehlt']);
+            return;
+        }
+        
+        $filenamesRaw = rex_request('filenames', 'string', '');
+        $language = rex_request('language', 'string', 'de');
+        
+        if (!empty($filenamesRaw) && $filenamesRaw[0] === '[') {
+            $filenames = json_decode($filenamesRaw, true) ?: [];
+        } else {
+            $filenames = rex_request('filenames', 'array', []);
+        }
+        
+        if (empty($filenames)) {
+            $this->sendJson(['error' => 'Keine Dateinamen angegeben']);
+            return;
+        }
+        
+        $generator = new filepond_ai_alt_generator();
+        $results = $generator->generateBulk($filenames, $language);
+        
+        $this->sendJson([
+            'success' => true,
+            'results' => $results
+        ]);
+    }
+    
+    /**
+     * AI-Verbindung testen
+     */
+    private function handleAiTest(): void
+    {
+        if (!filepond_ai_alt_generator::isAvailable()) {
+            $this->sendJson(['success' => false, 'message' => 'API-Key nicht konfiguriert']);
+            return;
+        }
+        
+        $generator = new filepond_ai_alt_generator();
+        $result = $generator->testConnection();
+        
         $this->sendJson($result);
     }
 }

@@ -90,6 +90,7 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Inline-Bearbeitung direkt in der Tabelle
     *   Unterstützt mehrsprachige Alt-Texte (metainfo_lang_fields)
     *   Dekorative Bilder markieren (Negativ-Liste für Bilder ohne Alt-Text-Pflicht)
+    *   **AI Alt-Text-Generierung (Google Gemini)** - automatische Beschreibungen per Knopfdruck
     *   Schnelle Navigation mit Tab-Taste
     *   Bulk-Speichern aller Änderungen
     *   Filter nach Dateiname und Kategorie

@@ -38,6 +38,11 @@ alt_checker_decorative = [decorative]
 alt_checker_field_missing_title = MetaInfo field missing
 alt_checker_field_missing_text = The field "med_alt" does not exist in the media table. Please create it via MetaInfo (type: text, name: med_alt).
 alt_checker_create_field = Create MetaInfo Field
+alt_checker_ai_generate = Generate AI alt-text
+alt_checker_ai_generate_all = Generate AI for all
+alt_checker_ai_generating = Generating...
+alt_checker_ai_not_configured = AI not configured
+alt_checker_ai_error = AI error
 
 # Tabs
 filepond_uploader_upload = Upload
@@ -126,6 +131,17 @@ filepond_metadata_copyright = Copyright / Image Rights
 filepond_metadata_description = Description
 filepond_metadata_save = Save Metadata
 filepond_metadata_cancel = Cancel
+
+# AI Alt-Text Settings
+filepond_ai_settings = AI Alt-Text Generation (Gemini)
+filepond_settings_enable_ai_alt = Enable AI generation
+filepond_settings_enable_ai_alt_label = Enable AI alt-text generation
+filepond_settings_enable_ai_alt_notice = Uses Google Gemini Vision API for automatic alt-text generation. Free up to 1500 requests/day.
+filepond_settings_gemini_api_key = Gemini API Key
+filepond_settings_gemini_api_key_notice = Create API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> (free)
+filepond_settings_ai_prompt = Custom Prompt (optional)
+filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholder: {language} for language.
+filepond_settings_test_ai_connection = Test connection
 
 # Token Settings
 filepond_token_section = API Token Settings

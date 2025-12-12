@@ -135,6 +135,11 @@ $currentLangId = rex_clang::getCurrentId();
                 <span id="image-count" class="badge">0</span>
                 
                 <div class="pull-right">
+                    <?php if (filepond_ai_alt_generator::isEnabled()): ?>
+                    <button type="button" class="btn btn-info btn-xs" id="btn-ai-generate-all" disabled>
+                        <i class="fa fa-magic"></i> <?= $addon->i18n('alt_checker_ai_generate_all') ?>
+                    </button>
+                    <?php endif; ?>
                     <button type="button" class="btn btn-success btn-xs" id="btn-save-all" disabled>
                         <i class="fa fa-save"></i> <?= $addon->i18n('alt_checker_save_all') ?>
                     </button>
@@ -339,6 +344,7 @@ $(document).on('rex:ready', function() {
         isMultiLang: <?= json_encode($isMultiLang) ?>,
         languages: <?= json_encode($languages) ?>,
         currentLangId: <?= json_encode($currentLangId) ?>,
+        aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
         images: [],
         modifiedImages: new Set(),
         
@@ -415,6 +421,15 @@ $(document).on('rex:ready', function() {
                 const filename = $(e.currentTarget).data('filename');
                 this.ignoreImage(filename);
             });
+            
+            // AI: Einzelnes Bild generieren
+            $(document).on('click', '.btn-ai-generate', (e) => {
+                const filename = $(e.currentTarget).data('filename');
+                this.aiGenerateSingle(filename);
+            });
+            
+            // AI: Alle generieren
+            $('#btn-ai-generate-all').on('click', () => this.aiGenerateAll());
         },
         
         loadImages() {
@@ -454,6 +469,11 @@ $(document).on('rex:ready', function() {
                     this.modifiedImages.clear();
                     $('#image-count').text(this.images.length);
                     this.updateSaveAllButton();
+                    
+                    // AI-Button aktivieren wenn Bilder vorhanden
+                    if (this.aiEnabled) {
+                        $('#btn-ai-generate-all').prop('disabled', this.images.length === 0);
+                    }
                     
                     if (this.images.length === 0) {
                         $noImages.show();
@@ -556,6 +576,12 @@ $(document).on('rex:ready', function() {
                         </td>
                         <td><small>${this.escapeHtml(categoryName)}</small></td>
                         <td class="text-nowrap">
+                            ${this.aiEnabled ? `
+                            <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
+                                    data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
+                                <i class="fa fa-magic"></i>
+                            </button>
+                            ` : ''}
                             <button type="button" class="btn btn-success btn-xs btn-save-row" 
                                     data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_save') ?>">
                                 <i class="fa fa-check"></i>
@@ -766,7 +792,7 @@ $(document).on('rex:ready', function() {
                 if (response.success) {
                     $input.val('<?= $addon->i18n('alt_checker_decorative') ?>').addClass('decorative').prop('disabled', true);
                     $row.addClass('ignored');
-                    $row.find('.btn-save-row, .btn-ignore').hide();
+                    $row.find('.btn-save-row, .btn-ignore, .btn-ai-generate').hide();
                     
                     // Nach kurzer Zeit aus Tabelle entfernen
                     setTimeout(() => {
@@ -795,6 +821,95 @@ $(document).on('rex:ready', function() {
             .always(() => {
                 $row.removeClass('saving');
             });
+        },
+        
+        // AI: Alt-Text für einzelnes Bild generieren
+        aiGenerateSingle(filename) {
+            const $row = $(`tr.image-row[data-filename="${this.escapeHtml(filename)}"]`);
+            const $btn = $row.find('.btn-ai-generate');
+            const $input = $row.find('.alt-input').first(); // Erste Sprache
+            
+            // Button-Status ändern
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            $row.addClass('saving');
+            
+            // Sprache ermitteln
+            const clangId = $input.data('clang-id') || this.currentLangId;
+            const langCode = this.languages[clangId]?.code || 'de';
+            
+            $.getJSON(this.apiEndpoint, {
+                action: 'ai_generate',
+                filename: filename,
+                language: langCode
+            })
+            .done((response) => {
+                if (response.success && response.alt_text) {
+                    $input.val(response.alt_text).addClass('modified').focus();
+                    this.modifiedImages.add(filename);
+                    $row.find('.btn-save-row').addClass('visible');
+                    this.updateSaveAllButton();
+                } else {
+                    alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
+                }
+            })
+            .fail((xhr, status, error) => {
+                alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + error);
+            })
+            .always(() => {
+                $btn.prop('disabled', false).html(originalHtml);
+                $row.removeClass('saving');
+            });
+        },
+        
+        // AI: Alt-Texte für alle Bilder generieren
+        async aiGenerateAll() {
+            if (this.images.length === 0) return;
+            
+            const $btn = $('#btn-ai-generate-all');
+            const originalHtml = $btn.html();
+            $btn.prop('disabled', true);
+            
+            let processed = 0;
+            const total = this.images.length;
+            
+            for (const img of this.images) {
+                processed++;
+                $btn.html(`<i class="fa fa-spinner fa-spin"></i> ${processed}/${total}`);
+                
+                const $row = $(`tr.image-row[data-filename="${this.escapeHtml(img.filename)}"]`);
+                const $input = $row.find('.alt-input').first();
+                
+                // Überspringe wenn bereits ausgefüllt
+                if ($input.val() && $input.val().trim() !== '') {
+                    continue;
+                }
+                
+                const clangId = $input.data('clang-id') || this.currentLangId;
+                const langCode = this.languages[clangId]?.code || 'de';
+                
+                try {
+                    const response = await $.getJSON(this.apiEndpoint, {
+                        action: 'ai_generate',
+                        filename: img.filename,
+                        language: langCode
+                    });
+                    
+                    if (response.success && response.alt_text) {
+                        $input.val(response.alt_text).addClass('modified');
+                        this.modifiedImages.add(img.filename);
+                        $row.find('.btn-save-row').addClass('visible');
+                    }
+                } catch (e) {
+                    console.error('AI error for ' + img.filename, e);
+                }
+                
+                // Kleine Pause zwischen Requests
+                await new Promise(r => setTimeout(r, 200));
+            }
+            
+            this.updateSaveAllButton();
+            $btn.prop('disabled', false).html(originalHtml);
         },
         
         escapeHtml(text) {

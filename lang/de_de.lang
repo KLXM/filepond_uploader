@@ -43,6 +43,11 @@ alt_checker_decorative = [dekorativ]
 alt_checker_field_missing_title = MetaInfo-Feld fehlt
 alt_checker_field_missing_text = Das Feld "med_alt" existiert nicht in der Medientabelle. Bitte lege es über MetaInfo an (Typ: text, Name: med_alt).
 alt_checker_create_field = MetaInfo-Feld anlegen
+alt_checker_ai_generate = AI Alt-Text generieren
+alt_checker_ai_generate_all = AI für alle generieren
+alt_checker_ai_generating = Generiere...
+alt_checker_ai_not_configured = AI nicht konfiguriert
+alt_checker_ai_error = AI-Fehler
 
 # Tabs
 filepond_uploader_upload = Upload
@@ -140,6 +145,17 @@ filepond_metadata_copyright = Copyright / Bildrechte
 filepond_metadata_description = Beschreibung
 filepond_metadata_save = Metadaten speichern
 filepond_metadata_cancel = Abbrechen
+
+# AI Alt-Text Settings
+filepond_ai_settings = AI Alt-Text Generierung (Gemini)
+filepond_settings_enable_ai_alt = AI-Generierung aktivieren
+filepond_settings_enable_ai_alt_label = AI Alt-Text-Generierung aktivieren
+filepond_settings_enable_ai_alt_notice = Nutzt Google Gemini Vision API zur automatischen Generierung von Alt-Texten. Kostenlos bis 1500 Requests/Tag.
+filepond_settings_gemini_api_key = Gemini API-Key
+filepond_settings_gemini_api_key_notice = API-Key von <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> erstellen (kostenlos)
+filepond_settings_ai_prompt = Custom Prompt (optional)
+filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
+filepond_settings_test_ai_connection = Verbindung testen
 
 # Token Settings
 filepond_token_section = API Token Einstellungen

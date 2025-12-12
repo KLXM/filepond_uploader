@@ -260,7 +260,58 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
 // ============================================================================
-// 5. API & SICHERHEIT
+// 5. AI ALT-TEXT GENERIERUNG (GEMINI)
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_ai_settings'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte - Aktivierung und API-Key
+$form->addRawField('<div class="col-sm-6">');
+
+// AI Alt-Text aktivieren
+$field = $form->addCheckboxField('enable_ai_alt');
+$field->setLabel($addon->i18n('filepond_settings_enable_ai_alt'));
+$field->addOption($addon->i18n('filepond_settings_enable_ai_alt_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_enable_ai_alt_notice'));
+
+// Gemini API Key
+$field = $form->addInputField('text', 'gemini_api_key', null, [
+    'class' => 'form-control',
+    'autocomplete' => 'off'
+]);
+$field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
+$field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte - Custom Prompt
+$form->addRawField('<div class="col-sm-6">');
+
+// Custom AI Prompt
+$field = $form->addTextAreaField('ai_alt_prompt', null, [
+    'class' => 'form-control',
+    'rows' => '4',
+    'style' => 'font-family: monospace; font-size: 12px;'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_prompt'));
+$field->setNotice($addon->i18n('filepond_settings_ai_prompt_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// API-Verbindungstest Button
+$form->addRawField('
+    <div class="form-group">
+        <button type="button" class="btn btn-default" id="btn-test-ai-connection">
+            <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
+        </button>
+        <span id="ai-connection-result" style="margin-left: 10px;"></span>
+    </div>
+');
+
+// ============================================================================
+// 6. API & SICHERHEIT
 // ============================================================================
 $form->addFieldset($addon->i18n('filepond_token_section'));
 
@@ -418,11 +469,52 @@ echo $fragment->parse('core/page/section.php');
         toggleCombinedSettings();
     }
     
+    // AI-Verbindungstest
+    function initAiTest() {
+        const testBtn = document.getElementById('btn-test-ai-connection');
+        const resultSpan = document.getElementById('ai-connection-result');
+        
+        if (!testBtn || !resultSpan) return;
+        
+        testBtn.addEventListener('click', function() {
+            testBtn.disabled = true;
+            testBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Teste...';
+            resultSpan.innerHTML = '';
+            
+            const apiUrl = '<?= rex_url::backendController([
+                'rex-api-call' => 'filepond_alt_checker',
+                'action' => 'ai_test',
+                '_csrf_token' => rex_csrf_token::factory('filepond_alt_checker')->getValue()
+            ]) ?>';
+            
+            fetch(apiUrl)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        resultSpan.innerHTML = '<span class="text-success"><i class="fa fa-check"></i> ' + data.message + '</span>';
+                    } else {
+                        resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> ' + data.message + '</span>';
+                    }
+                })
+                .catch(err => {
+                    resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> Fehler: ' + err.message + '</span>';
+                })
+                .finally(() => {
+                    testBtn.disabled = false;
+                    testBtn.innerHTML = '<i class="fa fa-flask"></i> <?= $addon->i18n('filepond_settings_test_ai_connection') ?>';
+                });
+        });
+    }
+    
     // Warte auf DOM ready
     if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initCombinedSettings);
+        document.addEventListener("DOMContentLoaded", function() {
+            initCombinedSettings();
+            initAiTest();
+        });
     } else {
         initCombinedSettings();
+        initAiTest();
     }
 })();
 </script>
