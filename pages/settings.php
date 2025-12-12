@@ -1,6 +1,27 @@
 <?php
 $addon = rex_addon::get('filepond_uploader');
 
+// AI-Test Handler (AJAX)
+if (rex_request('ai_test', 'bool', false)) {
+    header('Content-Type: application/json');
+    
+    try {
+        // Prüfe CSRF Token
+        if (!rex_csrf_token::factory('filepond_ai_test')->isValid()) {
+            echo json_encode(['success' => false, 'message' => 'Ungültiges CSRF Token']);
+            exit;
+        }
+        
+        require_once rex_path::addon('filepond_uploader', 'lib/AIAltTextGenerator.php');
+        $generator = new AIAltTextGenerator();
+        $result = $generator->testConnection();
+        echo json_encode($result);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Fehler: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
 // Formular erstellen
 $form = rex_config_form::factory('filepond_uploader');
 
@@ -493,9 +514,9 @@ echo $fragment->parse('core/page/section.php');
             resultSpan.innerHTML = '';
             
             const apiUrl = '<?= rex_url::backendController([
-                'rex-api-call' => 'filepond_alt_checker',
-                'action' => 'ai_test',
-                '_csrf_token' => rex_csrf_token::factory('filepond_alt_checker')->getValue()
+                'page' => 'filepond_uploader/settings',
+                'ai_test' => 1,
+                '_csrf_token' => rex_csrf_token::factory('filepond_ai_test')->getValue()
             ]) ?>';
             
             fetch(apiUrl)
