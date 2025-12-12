@@ -1307,12 +1307,15 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 
 ## Changelog
 
-### Version 1.14.0-beta.1
+### Version 1.14.0-beta.2
 
+- **Neu:** Clientseitiges Resize großer Bilder vor dem Upload (FilePond Image Transform Plugin)
+- **Neu:** Automatische EXIF-Orientierungskorrektur im Browser
+- **Neu:** Einstellbare Kompressionsqualität für JPEG/PNG/WebP
 - **Entfernt:** WebP/AVIF-Konvertierungsfunktion – die Bildformatkonvertierung sollte besser vom MediaManager übernommen werden
 - **Vereinfacht:** Serverseitige Bildverarbeitung auf Größenanpassung und EXIF-Orientierungskorrektur reduziert
-- **Hinzugefügt:** FilePond Image Transform Plugin für clientseitige Bildverarbeitung
-- **Verbessert:** Schlankerer Code durch Entfernung der Konvertierungslogik
+- **Verbessert:** Schnellere Uploads durch reduzierte Dateigröße vor dem Upload
+- **Fix:** Update-Script entfernt nun alte `convert_format` Config-Option
 
 ### Version 1.13.3
 
