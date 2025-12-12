@@ -43,6 +43,8 @@ alt_checker_ai_generate_all = Generate AI for all
 alt_checker_ai_generating = Generating...
 alt_checker_ai_not_configured = AI not configured
 alt_checker_ai_error = AI error
+alt_checker_ai_tokens = Tokens
+alt_checker_ai_svg_not_supported = SVG not supported
 
 # Tabs
 filepond_uploader_upload = Upload

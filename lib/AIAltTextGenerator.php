@@ -86,6 +86,16 @@ class filepond_ai_alt_generator
             ];
         }
         
+        // SVG nicht unterstützt (Gemini kann SVG nicht analysieren)
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if ($extension === 'svg') {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => 'SVG-Dateien werden nicht unterstützt'
+            ];
+        }
+        
         $filePath = rex_path::media($filename);
         if (!file_exists($filePath)) {
             return [
@@ -105,16 +115,18 @@ class filepond_ai_alt_generator
         
         // API Request
         try {
-            $response = $this->callGeminiApi($base64Image, $mimeType, $prompt);
+            $result = $this->callGeminiApi($base64Image, $mimeType, $prompt);
             return [
                 'success' => true,
-                'alt_text' => $response,
+                'alt_text' => $result['text'],
+                'tokens' => $result['tokens'] ?? null,
                 'error' => null
             ];
         } catch (Exception $e) {
             return [
                 'success' => false,
                 'alt_text' => '',
+                'tokens' => null,
                 'error' => $e->getMessage()
             ];
         }
@@ -271,7 +283,20 @@ PROMPT;
         // Anführungszeichen am Anfang/Ende entfernen falls vorhanden
         $altText = trim($altText, '"\'');
         
-        return $altText;
+        // Token-Nutzung extrahieren
+        $tokens = null;
+        if (isset($result['usageMetadata'])) {
+            $tokens = [
+                'prompt' => $result['usageMetadata']['promptTokenCount'] ?? 0,
+                'response' => $result['usageMetadata']['candidatesTokenCount'] ?? 0,
+                'total' => $result['usageMetadata']['totalTokenCount'] ?? 0
+            ];
+        }
+        
+        return [
+            'text' => $altText,
+            'tokens' => $tokens
+        ];
     }
     
     /**

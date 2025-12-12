@@ -580,7 +580,7 @@ $(document).on('rex:ready', function() {
                         </td>
                         <td><small>${this.escapeHtml(categoryName)}</small></td>
                         <td class="text-nowrap">
-                            ${this.aiEnabled ? `
+                            ${(this.aiEnabled && !isSvg) ? `
                             <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
                                     data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
                                 <i class="fa fa-magic"></i>
@@ -897,6 +897,11 @@ $(document).on('rex:ready', function() {
                         this.modifiedImages.add(filename);
                         $row.find('.btn-save-row').addClass('visible');
                         this.updateSaveAllButton();
+                        
+                        // Token-Anzeige
+                        if (response.tokens) {
+                            this.showTokenInfo(response.tokens);
+                        }
                     } else {
                         alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
                     }
@@ -964,6 +969,33 @@ $(document).on('rex:ready', function() {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        },
+        
+        // Token-Info anzeigen
+        showTokenInfo(tokens) {
+            // Bestehende Token-Anzeige entfernen
+            $('#ai-token-info').remove();
+            
+            // Neue Token-Anzeige erstellen
+            const html = `
+                <div id="ai-token-info" class="alert alert-info alert-dismissible" style="margin-top: 15px;">
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    <i class="fa fa-info-circle"></i> 
+                    <strong><?= $addon->i18n('alt_checker_ai_tokens') ?>:</strong> 
+                    Prompt: ${tokens.prompt.toLocaleString()} | 
+                    Antwort: ${tokens.response.toLocaleString()} | 
+                    Gesamt: ${tokens.total.toLocaleString()}
+                </div>
+            `;
+            
+            $('#alt-checker-filter-form').after(html);
+            
+            // Nach 10 Sekunden ausblenden
+            setTimeout(() => {
+                $('#ai-token-info').fadeOut(500, function() {
+                    $(this).remove();
+                });
+            }, 10000);
         }
     };
     
