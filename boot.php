@@ -184,6 +184,34 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
     });
 }
 
+// Alt-Text-Checker als Medienpool-Unterseite registrieren
+if (rex_config::get('filepond_uploader', 'enable_alt_checker', true)) {
+    rex_extension::register('PAGES_PREPARED', function (rex_extension_point $ep) {
+        $user = rex::getUser();
+        if (!$user) return;
+        
+        // Nur für Admins oder Nutzer mit entsprechender Berechtigung
+        if (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[alt_checker]')) {
+            return;
+        }
+        
+        $pages = $ep->getSubject();
+        
+        if (isset($pages['mediapool'])) {
+            $mediapoolPage = $pages['mediapool'];
+            
+            // Neue Unterseite erstellen
+            $title = '<i class="fa-solid fa-universal-access"></i> ' . rex_i18n::msg('filepond_alt_checker_title');
+            $altCheckerPage = new rex_be_page('alt_checker', $title);
+            $altCheckerPage->setSubPath(rex_path::addon('filepond_uploader', 'pages/alt_checker.php'));
+            $altCheckerPage->setRequiredPermissions('filepond_uploader[alt_checker]');
+            
+            // Als Unterseite hinzufügen
+            $mediapoolPage->addSubpage($altCheckerPage);
+        }
+    });
+}
+
 // Info Center FilePond Upload Widget Integration
 if (rex_addon::exists('info_center') && rex_addon::get('info_center')->isAvailable()) {
     rex_extension::register('PACKAGES_INCLUDED', function() {

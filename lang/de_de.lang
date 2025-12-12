@@ -7,8 +7,41 @@ filepond_metadata_settings = Metadaten & Dialog
 filepond_mediapool_settings = Medienpool-Integration
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
+filepond_settings_alt_checker = Alt-Text-Checker aktivieren
+filepond_settings_alt_checker_label = Alt-Text-Checker im Medienpool anzeigen
+filepond_settings_alt_checker_notice = Zeigt eine Unterseite im Medienpool zum Prüfen und Bearbeiten fehlender Alt-Texte
 perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
 perm_general_filepond_uploader[bulk_resize] = Bulk Resize verwenden
+perm_general_filepond_uploader[alt_checker] = Alt-Text-Checker verwenden
+
+# Alt-Text-Checker
+filepond_alt_checker_title = Alt-Text-Checker
+alt_checker_statistics = Barrierefreiheits-Statistik
+alt_checker_stat_total = Bilder gesamt
+alt_checker_stat_with_alt = Mit Alt-Text
+alt_checker_stat_without_alt = Ohne Alt-Text
+alt_checker_stat_complete = Vollständigkeit
+alt_checker_images_without_alt = Bilder ohne Alt-Text
+alt_checker_preview = Vorschau
+alt_checker_filename = Dateiname
+alt_checker_alt_text = Alt-Text
+alt_checker_category = Kategorie
+alt_checker_actions = Aktionen
+alt_checker_all_categories = Alle Kategorien
+alt_checker_filter_filename = Dateiname filtern...
+alt_checker_search = Suchen
+alt_checker_loading = Bilder werden geladen...
+alt_checker_all_complete = Alle Bilder haben einen Alt-Text. Sehr gut für die Barrierefreiheit!
+alt_checker_enter_alt = Alt-Text eingeben...
+alt_checker_save = Speichern (Enter)
+alt_checker_save_all = Alle speichern
+alt_checker_show_preview = Vorschau anzeigen
+alt_checker_open_mediapool = Im Medienpool öffnen
+alt_checker_ignore_decorative = Als dekorativ markieren (kein Alt-Text nötig)
+alt_checker_decorative = [dekorativ]
+alt_checker_field_missing_title = MetaInfo-Feld fehlt
+alt_checker_field_missing_text = Das Feld "med_alt" existiert nicht in der Medientabelle. Bitte lege es über MetaInfo an (Typ: text, Name: med_alt).
+alt_checker_create_field = MetaInfo-Feld anlegen
 
 # Tabs
 filepond_uploader_upload = Upload

@@ -250,6 +250,12 @@ $field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
 $field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
 $field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
 
+// Alt-Text-Checker aktivieren
+$field = $form->addCheckboxField('enable_alt_checker');
+$field->setLabel($addon->i18n('filepond_settings_alt_checker'));
+$field->addOption($addon->i18n('filepond_settings_alt_checker_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_alt_checker_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 

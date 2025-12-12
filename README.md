@@ -83,6 +83,18 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Speicherplatz-Ersparnis wird angezeigt
     *   Eigene Berechtigung: `filepond_uploader[bulk_resize]`
 
+*   **Alt-Text-Checker für Barrierefreiheit:**
+    *   Findet alle Bilder ohne Alt-Text im Medienpool
+    *   Statistik-Dashboard mit Vollständigkeits-Prozent
+    *   Akkordeon-Vorschau: Große Bildansicht zum besseren Beschreiben
+    *   Inline-Bearbeitung direkt in der Tabelle
+    *   Dekorative Bilder markieren (Negativ-Liste für Bilder ohne Alt-Text-Pflicht)
+    *   Schnelle Navigation mit Tab-Taste
+    *   Bulk-Speichern aller Änderungen
+    *   Filter nach Dateiname und Kategorie
+    *   Als Unterseite im Medienpool integriert
+    *   Eigene Berechtigung: `filepond_uploader[alt_checker]`
+
 ## Installation
 
 1.  **AddOn installieren:** Installiere das AddOn "filepond_uploader" über den REDAXO-Installer.
@@ -1282,6 +1294,59 @@ Die Bulk Resize Funktion ist verfügbar unter **FilePond Uploader → Bulk Resiz
 5. Wähle die zu verarbeitenden Bilder aus (oder "Alle auswählen")
 6. Klicke auf **Resize starten**
 7. Warte auf die Fertigstellung und prüfe die Ersparnis
+
+## Alt-Text-Checker für Barrierefreiheit
+
+Der Alt-Text-Checker hilft dabei, die Barrierefreiheit der Website zu verbessern, indem er alle Bilder ohne Alt-Text auflistet und eine schnelle Bearbeitung ermöglicht.
+
+### Zugriff
+
+Die Funktion ist als Unterseite im **Medienpool → Alt-Text-Checker** verfügbar für:
+- Administratoren
+- Nutzer mit der Berechtigung `filepond_uploader[alt_checker]`
+
+### Funktionsumfang
+
+**Statistik-Dashboard:**
+- Gesamtanzahl der Bilder im Medienpool
+- Anzahl mit/ohne Alt-Text
+- Prozentuale Vollständigkeit mit Fortschrittsbalken
+
+**Inline-Bearbeitung:**
+- Alt-Text direkt in der Tabelle eingeben
+- Enter-Taste zum schnellen Speichern
+- Tab-Taste zur Navigation zum nächsten Bild
+- Visuelle Rückmeldung bei Änderungen (gelb) und Speicherung (grün)
+
+**Akkordeon-Vorschau:**
+- Klick auf Pfeil/Thumbnail öffnet große Bildansicht
+- Erleichtert das Beschreiben komplexer Bilder
+- Link zum Öffnen im Medienpool für weitere Details
+
+**Dekorative Bilder:**
+- Button zum Markieren als "dekorativ" (Auge-Symbol)
+- Für Bilder die keinen Alt-Text benötigen (z.B. reine Dekoration)
+- Werden in einer Negativ-Liste gespeichert (`med_alt` bleibt leer)
+- WCAG 2.1 konform: Dekorative Bilder dürfen leeren alt-Text haben
+- Zählen in der Statistik als "erledigt"
+
+**Filter & Suche:**
+- Filterung nach Dateiname
+- Filterung nach Medienkategorie
+- Vorschau-Thumbnails mit Klick zum Medienpool
+
+**Workflow:**
+1. Öffne **Medienpool → Alt-Text-Checker**
+2. Prüfe die Statistik - wie viele Bilder fehlen?
+3. Optional: Filtere nach Kategorie
+4. Klicke auf den Pfeil um die große Vorschau zu öffnen
+5. Gib Alt-Texte ein (Tab zum Wechseln, Enter zum Speichern)
+6. Oder: Markiere dekorative Bilder mit dem Auge-Button
+7. Oder: Bearbeite mehrere und klicke "Alle speichern"
+
+> **Hinweis:** Das MetaInfo-Feld `med_alt` muss existieren. Falls nicht, wird ein Hinweis mit Link zur MetaInfo-Konfiguration angezeigt.
+>
+> **Tipp:** Die Liste der dekorativen Bilder wird in der Addon-Konfiguration gespeichert und kann bei Bedarf zurückgesetzt werden.
 
 ## Hinweise
 

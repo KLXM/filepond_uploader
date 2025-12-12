@@ -7,6 +7,36 @@ filepond_metadata_settings = Metadata & Dialog
 filepond_mediapool_settings = Media Pool Integration
 perm_general_filepond_uploader[upload] = Use Filepond upload page
 perm_general_filepond_uploader[bulk_resize] = Use Bulk Resize
+perm_general_filepond_uploader[alt_checker] = Use Alt-Text-Checker
+
+# Alt-Text-Checker
+filepond_alt_checker_title = Alt-Text-Checker
+alt_checker_statistics = Accessibility Statistics
+alt_checker_stat_total = Total Images
+alt_checker_stat_with_alt = With Alt-Text
+alt_checker_stat_without_alt = Without Alt-Text
+alt_checker_stat_complete = Completeness
+alt_checker_images_without_alt = Images without Alt-Text
+alt_checker_preview = Preview
+alt_checker_filename = Filename
+alt_checker_alt_text = Alt-Text
+alt_checker_category = Category
+alt_checker_actions = Actions
+alt_checker_all_categories = All Categories
+alt_checker_filter_filename = Filter filename...
+alt_checker_search = Search
+alt_checker_loading = Loading images...
+alt_checker_all_complete = All images have alt text. Great for accessibility!
+alt_checker_enter_alt = Enter alt text...
+alt_checker_save = Save (Enter)
+alt_checker_save_all = Save all
+alt_checker_show_preview = Show preview
+alt_checker_open_mediapool = Open in media pool
+alt_checker_ignore_decorative = Mark as decorative (no alt text needed)
+alt_checker_decorative = [decorative]
+alt_checker_field_missing_title = MetaInfo field missing
+alt_checker_field_missing_text = The field "med_alt" does not exist in the media table. Please create it via MetaInfo (type: text, name: med_alt).
+alt_checker_create_field = Create MetaInfo Field
 
 # Tabs
 filepond_uploader_upload = Upload
@@ -63,6 +93,9 @@ filepond_settings_title_required_notice = When enabled, the title field on the u
 filepond_settings_fix_exif_orientation = Fix EXIF orientation
 filepond_settings_fix_exif_orientation_label = Automatically fix EXIF orientation
 filepond_settings_fix_exif_orientation_notice = Corrects image orientation based on EXIF data (e.g., for smartphone photos). Prevents images from appearing incorrectly rotated.
+filepond_settings_alt_checker = Enable Alt-Text-Checker
+filepond_settings_alt_checker_label = Show Alt-Text-Checker in media pool
+filepond_settings_alt_checker_notice = Shows a subpage in the media pool for checking and editing missing alt texts
 
 # YForm field
 filepond_empty_value_label = Error message if empty
