@@ -1307,7 +1307,7 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 
 ## Changelog
 
-### Version 1.14.0-beta.2
+### Version 1.15.0-beta.1
 
 - **Neu:** Clientseitiges Resize großer Bilder vor dem Upload (FilePond Image Transform Plugin)
 - **Neu:** Automatische EXIF-Orientierungskorrektur im Browser
