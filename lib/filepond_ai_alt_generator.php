@@ -263,6 +263,17 @@ PROMPT;
         if ($httpCode !== 200) {
             $errorData = json_decode($response, true);
             $errorMessage = $errorData['error']['message'] ?? 'HTTP Error ' . $httpCode;
+            
+            // Benutzerfreundliche Meldung bei Rate-Limit
+            if ($httpCode === 429 || stripos($errorMessage, 'quota') !== false || stripos($errorMessage, 'rate') !== false) {
+                $waitTime = '';
+                if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches)) {
+                    $seconds = ceil((float)$matches[1]);
+                    $waitTime = " Bitte in {$seconds} Sekunden erneut versuchen.";
+                }
+                throw new Exception('Rate-Limit erreicht! Kostenloses Kontingent aufgebraucht.' . $waitTime);
+            }
+            
             throw new Exception('API Error: ' . $errorMessage);
         }
         
@@ -413,6 +424,22 @@ PROMPT;
         
         $errorData = json_decode($response, true);
         $errorMessage = $errorData['error']['message'] ?? 'HTTP Error ' . $httpCode;
+        
+        // Benutzerfreundliche Meldung bei Rate-Limit
+        if ($httpCode === 429 || stripos($errorMessage, 'quota') !== false || stripos($errorMessage, 'rate') !== false) {
+            // Extrahiere Wartezeit falls vorhanden
+            $waitTime = '';
+            if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches)) {
+                $seconds = ceil((float)$matches[1]);
+                $waitTime = " (Wartezeit: ca. {$seconds} Sekunden)";
+            }
+            
+            return [
+                'success' => false,
+                'message' => 'Rate-Limit erreicht! Kostenloses Kontingent aufgebraucht.' . $waitTime . ' Bitte später erneut versuchen.',
+                'retryable' => true
+            ];
+        }
         
         return [
             'success' => false,
