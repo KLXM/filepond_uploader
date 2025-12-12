@@ -202,7 +202,7 @@ PROMPT;
             ],
             'generationConfig' => [
                 'temperature' => 0.4,
-                'maxOutputTokens' => 200,
+                'maxOutputTokens' => 500,
                 'topP' => 0.8,
                 'topK' => 40
             ],
@@ -256,8 +256,14 @@ PROMPT;
         
         $result = json_decode($response, true);
         
+        // Debug: finishReason prüfen
+        $finishReason = $result['candidates'][0]['finishReason'] ?? 'UNKNOWN';
+        if ($finishReason !== 'STOP' && $finishReason !== 'END_TURN') {
+            rex_logger::factory()->log('warning', 'Gemini finishReason: ' . $finishReason . ' - Response: ' . substr($response, 0, 500));
+        }
+        
         if (!isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-            throw new Exception('Unerwartete API-Antwort');
+            throw new Exception('Unerwartete API-Antwort (finishReason: ' . $finishReason . ')');
         }
         
         $altText = trim($result['candidates'][0]['content']['parts'][0]['text']);
