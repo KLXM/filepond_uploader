@@ -50,10 +50,14 @@
         };
 
         // Register FilePond plugins
+        // WICHTIG: EXIF-Orientierung muss zuerst registriert werden!
         FilePond.registerPlugin(
+            FilePondPluginImageExifOrientation,
             FilePondPluginFileValidateType,
             FilePondPluginFileValidateSize,
-            FilePondPluginImagePreview
+            FilePondPluginImagePreview,
+            FilePondPluginImageResize,
+            FilePondPluginImageTransform
         );
 
         // Funktion zum Konvertieren von Dateiendungen zu MIME-Types
@@ -209,12 +213,15 @@
                 // Clear container
                 container.innerHTML = '';
                 
-                if (file instanceof File) {
+                // Unterstütze sowohl File als auch Blob Objekte
+                // Das Image Transform Plugin kann Blobs zurückgeben
+                if (file instanceof File || file instanceof Blob) {
                     const fileName = file.name || '';
-                    const isVideo = file.type.startsWith('video/') || 
+                    const fileType = file.type || '';
+                    const isVideo = fileType.startsWith('video/') || 
                                   /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(fileName);
                     
-                    if (file.type.startsWith('image/')) {
+                    if (fileType.startsWith('image/')) {
                         const img = document.createElement('img');
                         img.alt = '';
                         img.style.maxWidth = '100%';
@@ -275,7 +282,7 @@
                         }, 1000);
                     } else {
                         // Icon für andere Dateitypen basierend auf MIME-Type
-                        createFileIconFromMimeType(container, file.type, file.name);
+                        createFileIconFromMimeType(container, fileType, fileName);
                     }
                 } else if (typeof file.source === 'string') {
                     // Bereits hochgeladene Datei
@@ -1458,7 +1465,24 @@
                 itemPanelAspectRatio: 1,
                 acceptedFileTypes: normalizeFileTypes(input.dataset.filepondTypes || 'image/*'),
                 maxFileSize: (input.dataset.filepondMaxsize || '10') + 'MB',
-                credits: false
+                credits: false,
+                
+                // Clientseitige Bildverkleinerung
+                // Kann über data-filepond-client-resize deaktiviert werden
+                allowImageResize: input.dataset.filepondClientResize !== 'false',
+                imageResizeTargetWidth: parseInt(input.dataset.filepondMaxPixel || '2100'),
+                imageResizeTargetHeight: parseInt(input.dataset.filepondMaxPixel || '2100'),
+                imageResizeMode: 'contain', // Bild wird in die Dimensionen eingepasst, behält Seitenverhältnis
+                imageResizeUpscale: false, // Kleine Bilder nicht vergrößern
+                
+                // Clientseitige Bildtransformation
+                allowImageTransform: input.dataset.filepondClientResize !== 'false',
+                imageTransformOutputQuality: parseInt(input.dataset.filepondImageQuality || '90'),
+                imageTransformOutputQualityMode: 'optional', // Nur komprimieren wenn auch resize nötig
+                imageTransformOutputStripImageHead: false, // EXIF-Daten behalten (Orientation wird separat gehandhabt)
+                
+                // EXIF-Orientierung
+                allowImageExifOrientation: true
             });
             
             // Speichere Referenz auf pond-Instanz im input-Element

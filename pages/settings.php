@@ -4,7 +4,258 @@ $addon = rex_addon::get('filepond_uploader');
 // Formular erstellen
 $form = rex_config_form::factory('filepond_uploader');
 
-// API Token Bereich
+// ============================================================================
+// 1. UPLOAD-EINSTELLUNGEN
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_upload_settings'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Maximale Anzahl Dateien
+$field = $form->addInputField('number', 'max_files', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_max_files'));
+
+// Maximale Dateigröße
+$field = $form->addInputField('number', 'max_filesize', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_maxsize'));
+$field->setNotice($addon->i18n('filepond_settings_maxsize_notice'));
+
+// Erlaubte Dateitypen
+$field = $form->addTextAreaField('allowed_types', null, [
+    'class' => 'form-control',
+    'rows' => '4',
+    'style' => 'font-family: monospace;'
+]);
+$field->setLabel($addon->i18n('filepond_settings_allowed_types'));
+$field->setNotice($addon->i18n('filepond_settings_allowed_types_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Chunk-Upload aktivieren/deaktivieren
+$field = $form->addCheckboxField('enable_chunks');
+$field->setLabel($addon->i18n('filepond_settings_enable_chunks'));
+$field->addOption($addon->i18n('filepond_settings_enable_chunks_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_enable_chunks_notice'));
+
+// Chunk-Größe
+$field = $form->addInputField('number', 'chunk_size', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_chunk_size'));
+$field->setNotice($addon->i18n('filepond_settings_chunk_size_notice'));
+
+// Verzögerter Upload-Modus
+$field = $form->addCheckboxField('delayed_upload_mode');
+$field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
+$field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// ============================================================================
+// 2. BILDVERARBEITUNG
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_image_processing'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte - Grundeinstellungen
+$form->addRawField('<div class="col-sm-6">');
+
+// Maximale Pixelgröße
+$field = $form->addInputField('number', 'max_pixel', null, [
+    'class' => 'form-control',
+    'min' => '50',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_max_pixel'));
+$field->setNotice($addon->i18n('filepond_settings_max_pixel_notice'));
+
+// Bildqualität
+$field = $form->addInputField('number', 'image_quality', null, [
+    'class' => 'form-control',
+    'min' => '10',
+    'max' => '100',
+    'required' => 'required'
+]);
+$field->setLabel($addon->i18n('filepond_settings_image_quality'));
+$field->setNotice($addon->i18n('filepond_settings_image_quality_notice'));
+
+// EXIF-Orientierung korrigieren
+$field = $form->addCheckboxField('fix_exif_orientation');
+$field->setLabel($addon->i18n('filepond_settings_fix_exif_orientation'));
+$field->addOption($addon->i18n('filepond_settings_fix_exif_orientation_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_fix_exif_orientation_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte - Verarbeitungsmethoden
+$form->addRawField('<div class="col-sm-6">');
+
+// Clientseitige Bildverkleinerung
+$field = $form->addCheckboxField('create_thumbnails');
+$field->setLabel($addon->i18n('filepond_settings_create_thumbnails'));
+$field->addOption($addon->i18n('filepond_settings_create_thumbnails_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_create_thumbnails_notice'));
+
+// Serverseitige Bildverarbeitung aktivieren
+$field = $form->addCheckboxField('server_image_processing');
+$field->setLabel($addon->i18n('filepond_settings_server_image_processing'));
+$field->addOption($addon->i18n('filepond_settings_server_image_processing_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_server_image_processing_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// Erweiterte Einstellungen für kombinierte Verarbeitung (nur sichtbar wenn beide aktiv)
+$form->addRawField('
+<div id="combined-processing-settings" class="panel panel-default" style="margin-top: 15px; display: none;">
+    <div class="panel-heading"><strong>' . $addon->i18n('filepond_settings_combined_processing') . '</strong></div>
+    <div class="panel-body">
+        <p class="help-block">' . $addon->i18n('filepond_settings_combined_processing_notice') . '</p>
+        <div class="row">
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="control-label">' . $addon->i18n('filepond_settings_client_max_pixel') . '</label>
+                    <input type="number" class="form-control" name="rex_config[filepond_uploader][client_max_pixel]" 
+                           value="' . rex_config::get('filepond_uploader', 'client_max_pixel', '') . '" 
+                           min="50" placeholder="' . $addon->i18n('filepond_settings_use_global') . '">
+                    <p class="help-block small">' . $addon->i18n('filepond_settings_client_max_pixel_notice') . '</p>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="form-group">
+                    <label class="control-label">' . $addon->i18n('filepond_settings_client_image_quality') . '</label>
+                    <input type="number" class="form-control" name="rex_config[filepond_uploader][client_image_quality]" 
+                           value="' . rex_config::get('filepond_uploader', 'client_image_quality', '') . '" 
+                           min="10" max="100" placeholder="' . $addon->i18n('filepond_settings_use_global') . '">
+                    <p class="help-block small">' . $addon->i18n('filepond_settings_client_image_quality_notice') . '</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+');
+
+// ============================================================================
+// 3. METADATEN & DIALOG-EINSTELLUNGEN
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_metadata_settings'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Meta-Dialog immer anzeigen
+$field = $form->addCheckboxField('always_show_meta');
+$field->setLabel($addon->i18n('filepond_settings_always_show_meta'));
+$field->addOption($addon->i18n('filepond_settings_always_show_meta_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_always_show_meta_notice'));
+
+// Meta-Dialoge bei Upload deaktivieren
+$field = $form->addCheckboxField('upload_skip_meta');
+$field->setLabel($addon->i18n('filepond_settings_upload_skip_meta'));
+$field->addOption($addon->i18n('filepond_settings_upload_skip_meta_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_upload_skip_meta_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Titel-Feld als Pflichtfeld
+$field = $form->addCheckboxField('title_required_default');
+$field->setLabel($addon->i18n('filepond_settings_title_required'));
+$field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// ============================================================================
+// 4. MEDIENPOOL-INTEGRATION
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_mediapool_settings'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Fallback Medienkategorie
+$field = $form->addSelectField('category_id', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_fallback_category'));
+$field->setNotice($addon->i18n('filepond_settings_fallback_category_notice'));
+
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_upload_no_category'), 0);
+
+// Alle Medienkategorien laden und zum Select hinzufügen
+$mediaCategories = rex_media_category::getRootCategories();
+if (!empty($mediaCategories)) {
+    $addCategories = function($categories, $level = 0) use (&$addCategories, $select) {
+        foreach ($categories as $category) {
+            if ($level > 0) {
+                $prefix = str_repeat('· ', $level - 1) . '└─ ';
+            } else {
+                $prefix = '';
+            }
+            $select->addOption($prefix . $category->getName(), $category->getId());
+            if ($children = $category->getChildren()) {
+                $addCategories($children, $level + 1);
+            }
+        }
+    };
+    $addCategories($mediaCategories);
+}
+
+// Sprache
+$field = $form->addSelectField('lang', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_lang'));
+$select = $field->getSelect();
+$select->addOption('Deutsch', 'de_de');
+$select->addOption('English', 'en_gb');
+$field->setNotice($addon->i18n('filepond_settings_lang_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Medienpool ersetzen
+$field = $form->addCheckboxField('replace_mediapool');
+$field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
+$field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
+$field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// ============================================================================
+// 5. API & SICHERHEIT
+// ============================================================================
 $form->addFieldset($addon->i18n('filepond_token_section'));
 
 $form->addRawField('
@@ -33,189 +284,9 @@ $form->addRawField('
     </div>
 ');
 
-// Einstellungen für Uploads
-$form->addFieldset($addon->i18n('filepond_upload_settings'));
-
-$form->addRawField('<div class="row">');
-
-// Linke Spalte
-$form->addRawField('<div class="col-sm-6">');
-
-// Maximale Anzahl Dateien
-$field = $form->addInputField('number', 'max_files', null, [
-    'class' => 'form-control',
-    'min' => '1',
-    'required' => 'required'
-]);
-$field->setLabel($addon->i18n('filepond_settings_max_files'));
-
-// Maximale Dateigröße
-$field = $form->addInputField('number', 'max_filesize', null, [
-    'class' => 'form-control',
-    'min' => '1',
-    'required' => 'required'
-]);
-$field->setLabel($addon->i18n('filepond_settings_maxsize'));
-$field->setNotice($addon->i18n('filepond_settings_maxsize_notice'));
-
-// Chunk-Größe
-$field = $form->addInputField('number', 'chunk_size', null, [
-    'class' => 'form-control',
-    'min' => '1',
-    'required' => 'required'
-]);
-$field->setLabel($addon->i18n('filepond_settings_chunk_size'));
-$field->setNotice($addon->i18n('filepond_settings_chunk_size_notice'));
-
-// Chunk-Upload aktivieren/deaktivieren
-$field = $form->addCheckboxField('enable_chunks');
-$field->setLabel($addon->i18n('filepond_settings_enable_chunks'));
-$field->addOption($addon->i18n('filepond_settings_enable_chunks_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_enable_chunks_notice'));
-
-$form->addRawField('</div>');
-
-// Rechte Spalte
-$form->addRawField('<div class="col-sm-6">');
-
-// Maximale Pixelgröße
-$field = $form->addInputField('number', 'max_pixel', null, [
-    'class' => 'form-control',
-    'min' => '50',
-    'required' => 'required'
-]);
-$field->setLabel($addon->i18n('filepond_settings_max_pixel'));
-$field->setNotice($addon->i18n('filepond_settings_max_pixel_notice'));
-
-// Bildqualität
-$field = $form->addInputField('number', 'image_quality', null, [
-    'class' => 'form-control',
-    'min' => '10',
-    'max' => '100',
-    'required' => 'required'
-]);
-$field->setLabel($addon->i18n('filepond_settings_image_quality'));
-$field->setNotice($addon->i18n('filepond_settings_image_quality_notice'));
-
-// EXIF-Orientierung korrigieren
-$field = $form->addCheckboxField('fix_exif_orientation');
-$field->setLabel($addon->i18n('filepond_settings_fix_exif_orientation'));
-$field->addOption($addon->i18n('filepond_settings_fix_exif_orientation_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_fix_exif_orientation_notice'));
-
-// Thumbnail erstellen
-$field = $form->addCheckboxField('create_thumbnails');
-$field->setLabel($addon->i18n('filepond_settings_create_thumbnails'));
-$field->addOption($addon->i18n('filepond_settings_create_thumbnails_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_create_thumbnails_notice'));
-
-$form->addRawField('</div>');
-$form->addRawField('</div>'); // Ende row
-
-// Allgemeine Einstellungen
-$form->addFieldset($addon->i18n('filepond_general_settings'));
-$form->addRawField('<div class="row">');
-
-// Linke Spalte
-$form->addRawField('<div class="col-sm-6">');
-
-// Sprache
-$field = $form->addSelectField('lang', null, [
-    'class' => 'form-control selectpicker'
-]);
-$field->setLabel($addon->i18n('filepond_settings_lang'));
-$select = $field->getSelect();
-$select->addOption('Deutsch', 'de_de');
-$select->addOption('English', 'en_gb');
-$field->setNotice($addon->i18n('filepond_settings_lang_notice'));
-
-// Erlaubte Dateitypen
-$field = $form->addTextAreaField('allowed_types', null, [
-    'class' => 'form-control',
-    'rows' => '5',
-    'style' => 'font-family: monospace;'
-]);
-$field->setLabel($addon->i18n('filepond_settings_allowed_types'));
-$field->setNotice($addon->i18n('filepond_settings_allowed_types_notice'));
-
-$form->addRawField('</div>');
-
-// Rechte Spalte
-$form->addRawField('<div class="col-sm-6">');
-
-// Lösung für das Medienkategorie-Problem:
-// 1. Ein normales Select-Feld erstellen, das in der Konfiguration gespeichert wird
-$field = $form->addSelectField('category_id', null, [
-    'class' => 'form-control selectpicker'
-]);
-$field->setLabel($addon->i18n('filepond_settings_fallback_category'));
-$field->setNotice($addon->i18n('filepond_settings_fallback_category_notice'));
-
-// 2. Select-Optionen manuell hinzufügen
-$select = $field->getSelect();
-$select->addOption($addon->i18n('filepond_upload_no_category'), 0); // Option "Keine Kategorie"
-
-// 3. Alle Medienkategorien laden und zum Select hinzufügen
-$mediaCategories = rex_media_category::getRootCategories();
-if (!empty($mediaCategories)) {
-    // Rekursive Funktion zum Hinzufügen von Kategorien mit Einrückung
-    $addCategories = function($categories, $level = 0) use (&$addCategories, $select) {
-        foreach ($categories as $category) {
-            // Verbesserte Einrückung für die Hierarchieebene mit klarer Darstellung
-            if ($level > 0) {
-                $prefix = str_repeat('· ', $level - 1) . '└─ ';
-            } else {
-                $prefix = '';
-            }
-            
-            // Option zum Select hinzufügen
-            $select->addOption($prefix . $category->getName(), $category->getId());
-            
-            // Rekursiv für Unterkategorien
-            if ($children = $category->getChildren()) {
-                $addCategories($children, $level + 1);
-            }
-        }
-    };
-    
-    // Alle Kategorien hinzufügen, beginnend mit den Root-Kategorien
-    $addCategories($mediaCategories);
-}
-
-// Meta-Dialog immer anzeigen
-$field = $form->addCheckboxField('always_show_meta');
-$field->setLabel($addon->i18n('filepond_settings_always_show_meta'));
-$field->addOption($addon->i18n('filepond_settings_always_show_meta_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_always_show_meta_notice'));
-
-// Medienpool ersetzen
-$field = $form->addCheckboxField('replace_mediapool');
-$field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
-$field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
-$field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
-
-// Neue Einstellung: Meta-Dialoge bei Upload deaktivieren
-$field = $form->addCheckboxField('upload_skip_meta');
-$field->setLabel($addon->i18n('filepond_settings_upload_skip_meta'));
-$field->addOption($addon->i18n('filepond_settings_upload_skip_meta_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_upload_skip_meta_notice'));
-
-// Neue Einstellung: Verzögerter Upload-Modus
-$field = $form->addCheckboxField('delayed_upload_mode');
-$field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
-$field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
-
-// Neue Einstellung: Einfaches Titel-Feld als Pflichtfeld
-$field = $form->addCheckboxField('title_required_default');
-$field->setLabel($addon->i18n('filepond_settings_title_required'));
-$field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
-
-$form->addRawField('</div>');
-$form->addRawField('</div>'); // Ende row
-
-// Wartungsbereich
+// ============================================================================
+// 6. WARTUNG
+// ============================================================================
 $form->addFieldset($addon->i18n('filepond_maintenance_section'));
 
 // Button zum Aufräumen temporärer Dateien
@@ -231,7 +302,7 @@ $form->addRawField('
         <p class="help-block">' . $addon->i18n('filepond_maintenance_cleanup_notice') . '</p>
     </div>
     
-    <script>
+    <script nonce="' . rex_response::getNonce() . '">
     document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("cleanup-temp-files").addEventListener("click", function() {
             const statusEl = document.getElementById("cleanup-status");
@@ -301,3 +372,52 @@ $fragment->setVar('class', 'edit', false);
 $fragment->setVar('title', $addon->i18n('filepond_settings_title'));
 $fragment->setVar('body', $form->get(), false);
 echo $fragment->parse('core/page/section.php');
+
+// JavaScript für kombinierte Verarbeitungseinstellungen (nach Formularausgabe)
+?>
+<script nonce="<?= rex_response::getNonce() ?>">
+(function() {
+    function initCombinedSettings() {
+        const combinedSettings = document.getElementById("combined-processing-settings");
+        if (!combinedSettings) {
+            return;
+        }
+        
+        // Finde Checkboxen über ID-Teilstring
+        let clientCheckbox = null;
+        let serverCheckbox = null;
+        
+        document.querySelectorAll("input[type=checkbox]").forEach(function(cb) {
+            const cbId = cb.id || "";
+            const cbName = cb.name || "";
+            if (cbId.includes("create-thumbnails") || cbName.includes("create_thumbnails")) {
+                clientCheckbox = cb;
+            }
+            if (cbId.includes("server-image-processing") || cbName.includes("server_image_processing")) {
+                serverCheckbox = cb;
+            }
+        });
+        
+        function toggleCombinedSettings() {
+            if (clientCheckbox && serverCheckbox && combinedSettings) {
+                const bothActive = clientCheckbox.checked && serverCheckbox.checked;
+                combinedSettings.style.display = bothActive ? "block" : "none";
+            }
+        }
+        
+        if (clientCheckbox) clientCheckbox.addEventListener("change", toggleCombinedSettings);
+        if (serverCheckbox) serverCheckbox.addEventListener("change", toggleCombinedSettings);
+        
+        // Initial check
+        toggleCombinedSettings();
+    }
+    
+    // Warte auf DOM ready
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initCombinedSettings);
+    } else {
+        initCombinedSettings();
+    }
+})();
+</script>
+<?php

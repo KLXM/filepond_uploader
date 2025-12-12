@@ -1,6 +1,10 @@
 # General
 filepond_uploader_title = FilePond Uploader
 filepond_description = Modern file upload field with media pool integration
+filepond_general_settings = General Settings
+filepond_image_processing = Image Processing
+filepond_metadata_settings = Metadata & Dialog
+filepond_mediapool_settings = Media Pool Integration
 perm_general_filepond_uploader[upload] = Use Filepond upload page
 
 # Tabs
@@ -29,7 +33,22 @@ filepond_settings_fallback_category_notice = This category will be used when no 
 filepond_settings_lang = Default language
 filepond_settings_lang_notice = Example: en_gb, de_de
 filepond_settings_max_pixel = Maximum image size
-filepond_settings_max_pixel_notice = Maximum width/height in pixels to which large images will be resized. GIF files will remain unchanged.
+filepond_settings_max_pixel_notice = Maximum width/height in pixels to which large images will be resized. Applies to client-side and server-side processing. GIF files will remain unchanged.
+filepond_settings_image_quality = Image quality
+filepond_settings_image_quality_notice = Quality for JPEG/WebP/PNG compression (10-100). Applies to client-side and server-side processing.
+filepond_settings_create_thumbnails = Client-side image resizing
+filepond_settings_create_thumbnails_label = Enable client-side image resizing
+filepond_settings_create_thumbnails_notice = Images are resized in the browser before upload. Ideal for shared hosting with limited server resources.
+filepond_settings_server_image_processing = Server-side image processing
+filepond_settings_server_image_processing_label = Enable server-side image processing
+filepond_settings_server_image_processing_notice = Images are resized on the server after upload. Useful when you have sufficient server resources or as additional optimization.
+filepond_settings_combined_processing = Advanced settings for combined processing
+filepond_settings_combined_processing_notice = When both processing methods are active, you can set separate values for client-side pre-processing here. The server will continue to use the global settings above.
+filepond_settings_client_max_pixel = Client-side max. image size
+filepond_settings_client_max_pixel_notice = Maximum size for client-side pre-resizing (empty = use global setting)
+filepond_settings_client_image_quality = Client-side image quality
+filepond_settings_client_image_quality_notice = Quality for client-side compression (empty = use global setting)
+filepond_settings_use_global = Use global setting
 filepond_settings_upload_skip_meta = Disable meta dialog on upload page
 filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
 filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)

@@ -67,6 +67,9 @@ $content = '
                             data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
                             data-filepond-title-required="'.($titleRequired ? 'true' : 'false').'"
                             data-filepond-opener-field="'.rex_escape($openerInputField).'"
+                            data-filepond-max-pixel="'.(rex_config::get('filepond_uploader', 'client_max_pixel', '') ?: rex_config::get('filepond_uploader', 'max_pixel', 2100)).'"
+                            data-filepond-image-quality="'.(rex_config::get('filepond_uploader', 'client_image_quality', '') ?: rex_config::get('filepond_uploader', 'image_quality', 90)).'"
+                            data-filepond-client-resize="'.(rex_config::get('filepond_uploader', 'create_thumbnails', true) ? 'true' : 'false').'"
                             value=""
                         >
                     </div>

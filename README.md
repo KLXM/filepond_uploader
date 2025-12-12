@@ -27,10 +27,13 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Responsives Design für alle Bildschirmgrößen
 
 *   **Automatische Bildoptimierung:**
-    *   Verkleinerung großer Bilder auf konfigurierbare Maximalgröße
+    *   **Clientseitige Verkleinerung** großer Bilder vor dem Upload (Standard)
+    *   Schnellerer Upload durch reduzierte Dateigröße
+    *   Weniger Serverlast – ideal für Shared Hosting
+    *   Automatische EXIF-Orientierungskorrektur (wichtig für Smartphone-Fotos)
     *   Einstellbare Kompressionsqualität für JPEG/PNG/WebP
     *   Beibehaltung der Originaldimensionen für GIF-Dateien
-    *   Optionale Erstellung von Thumbnails
+    *   **Optional:** Zusätzliche serverseitige Bildverarbeitung aktivierbar
 
 *   **Barrierefreiheit & rechtliche Sicherheit:**
     *   Erzwingt das Setzen von Alt-Texten für Bilder
@@ -793,29 +796,89 @@ Für umfassende Änderungen können die originalen Stile komplett überschrieben
 
 ## Bildoptimierung
 
-Bilder werden automatisch optimiert, wenn sie eine konfigurierte maximale Pixelgröße überschreiten:
+Bilder können automatisch optimiert werden – entweder **clientseitig im Browser**, **serverseitig nach dem Upload** oder **beides kombiniert**. Beide Optionen sind unabhängig voneinander aktivierbar.
 
-*   Große Bilder werden proportional verkleinert.
-*   Die Qualität ist konfigurierbar (10-100).
-*   GIF-Dateien werden nicht verändert.
-*   Die Originaldatei wird durch die optimierte Version ersetzt.
+### Clientseitige Bildverarbeitung (Standard: aktiviert)
 
-Standardmäßig ist die maximale Größe 1200 Pixel (Breite oder Höhe). Dieser Wert und die Kompressionsqualität können in den Einstellungen angepasst werden.
+Die clientseitige Verarbeitung nutzt FilePond-Plugins, um Bilder direkt im Browser zu optimieren:
+
+*   **Automatische Verkleinerung** großer Bilder auf die konfigurierte Maximalgröße
+*   **EXIF-Orientierungskorrektur** für Smartphone-Fotos
+*   **Qualitätskompression** für JPEG/PNG/WebP
+*   **Kein Upscaling** – kleine Bilder bleiben unverändert
+*   **GIF-Dateien** werden nicht verändert
+
+**Vorteile:**
+*   ✅ Schnellerer Upload durch kleinere Dateien
+*   ✅ Weniger Serverlast und Speicherverbrauch
+*   ✅ **Ideal für Shared Hosting** mit limitierten Server-Ressourcen
+*   ✅ Sofortige Vorschau der optimierten Bilder
+
+**Deaktivierung:**
+1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
+2. Deaktiviere die Option **"Clientseitige Bildverkleinerung aktivieren"**
+
+### Serverseitige Bildverarbeitung (Standard: deaktiviert)
+
+Die serverseitige Verarbeitung optimiert Bilder nach dem Upload auf dem Server.
+
+**Vorteile:**
+*   ✅ Funktioniert auch bei älteren Browsern ohne Canvas-Unterstützung
+*   ✅ Zusätzliche Sicherheitsstufe für Bildvalidierung
+*   ✅ Einheitliche Verarbeitung unabhängig vom Client
+*   ✅ **Ideal bei ausreichenden Server-Ressourcen**
+
+**Aktivierung:**
+1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
+2. Aktiviere die Option **"Serverseitige Bildverarbeitung aktivieren"**
+
+### Kombinationsmöglichkeiten
+
+| Clientseitig | Serverseitig | Anwendungsfall |
+|:------------:|:------------:|----------------|
+| ✅ | ❌ | **Standard** – Ideal für Shared Hosting |
+| ❌ | ✅ | Server mit guten Ressourcen, ältere Browser |
+| ✅ | ✅ | Kaskadierende Optimierung (siehe unten) |
+| ❌ | ❌ | Keine Bildoptimierung (Originalbilder behalten) |
+
+### Konfiguration
+
+Die folgenden **globalen Einstellungen** gelten standardmäßig für beide Verarbeitungsmethoden:
+
+| Einstellung | Standard | Beschreibung |
+|-------------|----------|--------------|
+| **Maximale Bildgröße** | 2100 px | Maximale Breite/Höhe in Pixeln |
+| **Bildqualität** | 90 | JPEG/WebP/PNG-Kompression (10-100) |
+
+### Erweiterte Einstellungen für kombinierte Verarbeitung
+
+Wenn **beide Verarbeitungsmethoden aktiviert** sind, erscheinen zusätzliche Einstellungen, um die clientseitige Vorverarbeitung separat zu konfigurieren:
+
+| Einstellung | Beschreibung |
+|-------------|--------------|
+| **Clientseitige max. Bildgröße** | Maximale Größe für die Vorverkleinerung im Browser |
+| **Clientseitige Bildqualität** | Qualität für die clientseitige Kompression |
+
+**Typischer Workflow:**
+1. **Client:** Verkleinert z.B. von 6000px auf 3000px mit 95% Qualität → schnellerer Upload
+2. **Server:** Optimiert auf finale 1600px mit 85% Qualität via ImageMagick → beste Qualität
+
+Wenn die clientseitigen Werte leer gelassen werden, werden die globalen Einstellungen verwendet.
 
 ### EXIF-Orientierung korrigieren
 
-Das AddOn kann automatisch die Bildausrichtung basierend auf EXIF-Daten korrigieren. Dies ist besonders nützlich für Fotos, die mit Smartphones aufgenommen wurden, da diese oft EXIF-Orientierungsinformationen enthalten, die anzeigen, wie das Bild gedreht werden sollte.
+Die EXIF-Orientierungskorrektur erfolgt **automatisch clientseitig** durch das FilePond EXIF-Orientation Plugin (wenn clientseitige Verarbeitung aktiviert ist). Dies ist besonders wichtig für Fotos von Smartphones.
 
 **Funktionsweise:**
 
 *   Erkennt EXIF-Orientierungsinformationen in JPEG-Bildern
 *   Dreht und spiegelt Bilder automatisch in die korrekte Ausrichtung
 *   Verhindert, dass Hochformat-Bilder als Querformat erscheinen
-*   Entfernt die EXIF-Orientierungsinformation nach der Korrektur
+*   Die Korrektur erfolgt **vor dem Upload** im Browser
 
-**Aktivierung:**
+**Serverseitige EXIF-Korrektur (optional):**
 
-Die EXIF-Orientierungskorrektur ist standardmäßig deaktiviert und kann in den Einstellungen aktiviert werden:
+Falls die serverseitige Bildverarbeitung aktiviert ist, kann zusätzlich eine serverseitige EXIF-Korrektur erfolgen:
 
 1. Navigiere zu **REDAXO > AddOns > FilePond Uploader > Einstellungen**
 2. Aktiviere die Option **"EXIF-Orientierung automatisch korrigieren"**
@@ -823,9 +886,9 @@ Die EXIF-Orientierungskorrektur ist standardmäßig deaktiviert und kann in den 
 
 **Hinweise:**
 
-*   Die Funktion benötigt die PHP-EXIF-Erweiterung (normalerweise standardmäßig verfügbar)
+*   Die clientseitige Korrektur ist immer aktiv und benötigt keine Konfiguration
+*   Die serverseitige Funktion benötigt die PHP-EXIF-Erweiterung
 *   Nur JPEG-Bilder werden verarbeitet, da andere Formate selten EXIF-Daten enthalten
-*   Die Korrektur erfolgt vor allen anderen Bildoptimierungen
 
 ## Mehrsprachigkeit und MetaInfo Lang Fields Integration
 
@@ -1241,6 +1304,20 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 ```
 
 > **Hinweis:** Bei aktiviertem verzögerten Upload-Modus können Benutzer die Dateien vor dem Upload neu anordnen, löschen und in Ruhe auswählen. Die tatsächliche Upload-Verarbeitung beginnt erst nach dem Klick auf den Button.
+
+## Changelog
+
+### Version 1.14.0-beta.1
+
+- **Entfernt:** WebP/AVIF-Konvertierungsfunktion – die Bildformatkonvertierung sollte besser vom MediaManager übernommen werden
+- **Vereinfacht:** Serverseitige Bildverarbeitung auf Größenanpassung und EXIF-Orientierungskorrektur reduziert
+- **Hinzugefügt:** FilePond Image Transform Plugin für clientseitige Bildverarbeitung
+- **Verbessert:** Schlankerer Code durch Entfernung der Konvertierungslogik
+
+### Version 1.13.3
+
+- Bugfixes und Verbesserungen
+- Verbesserte Chunk-Upload-Stabilität
 
 ## Credits
 

@@ -2,6 +2,9 @@
 filepond_uploader_title = FilePond Uploader
 filepond_description = Modernes Upload-Feld mit Medienpool-Integration und Chunk-Upload
 filepond_general_settings = Allgemeine Einstellungen
+filepond_image_processing = Bildverarbeitung
+filepond_metadata_settings = Metadaten & Dialog
+filepond_mediapool_settings = Medienpool-Integration
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
 perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
@@ -38,12 +41,22 @@ filepond_settings_fallback_category_notice = Diese Kategorie wird verwendet, wen
 filepond_settings_lang = Standardsprache
 filepond_settings_lang_notice = Beispiel: en_gb, de_de
 filepond_settings_max_pixel = Maximale Bildgröße
-filepond_settings_max_pixel_notice = Maximale Breite/Höhe in Pixeln, auf die große Bilder verkleinert werden. GIF-Dateien werden nicht verändert.
+filepond_settings_max_pixel_notice = Maximale Breite/Höhe in Pixeln, auf die große Bilder verkleinert werden. Gilt für clientseitige und serverseitige Verarbeitung. GIF-Dateien werden nicht verändert.
 filepond_settings_image_quality = Bildqualität
-filepond_settings_image_quality_notice = Qualität für JPEG/WebP/PNG-Kompression (10-100)
-filepond_settings_create_thumbnails = Bildverkleinerung
-filepond_settings_create_thumbnails_label = Bildverkleinerung aktivieren
-filepond_settings_create_thumbnails_notice = Erstellt automatisch kleinere Bilder
+filepond_settings_image_quality_notice = Qualität für JPEG/WebP/PNG-Kompression (10-100). Gilt für clientseitige und serverseitige Verarbeitung.
+filepond_settings_create_thumbnails = Clientseitige Bildverkleinerung
+filepond_settings_create_thumbnails_label = Clientseitige Bildverkleinerung aktivieren
+filepond_settings_create_thumbnails_notice = Bilder werden vor dem Upload im Browser verkleinert. Ideal für Shared Hosting mit limitierten Server-Ressourcen.
+filepond_settings_server_image_processing = Serverseitige Bildverarbeitung
+filepond_settings_server_image_processing_label = Serverseitige Bildverarbeitung aktivieren
+filepond_settings_server_image_processing_notice = Bilder werden nach dem Upload auf dem Server verkleinert. Sinnvoll bei ausreichenden Server-Ressourcen oder als zusätzliche Optimierung.
+filepond_settings_combined_processing = Erweiterte Einstellungen für kombinierte Verarbeitung
+filepond_settings_combined_processing_notice = Wenn beide Verarbeitungsmethoden aktiv sind, können hier separate Werte für die clientseitige Vorverarbeitung festgelegt werden. Der Server nutzt weiterhin die globalen Einstellungen oben.
+filepond_settings_client_max_pixel = Clientseitige max. Bildgröße
+filepond_settings_client_max_pixel_notice = Maximale Größe für die clientseitige Vorverkleinerung (leer = globale Einstellung)
+filepond_settings_client_image_quality = Clientseitige Bildqualität
+filepond_settings_client_image_quality_notice = Qualität für clientseitige Kompression (leer = globale Einstellung)
+filepond_settings_use_global = Globale Einstellung verwenden
 filepond_settings_always_show_meta = Meta-Dialog immer anzeigen
 filepond_settings_always_show_meta_label = Metadaten-Dialog immer anzeigen
 filepond_settings_always_show_meta_notice = Zeigt den Metadaten-Dialog auch an, wenn er über data-Attribute deaktiviert wurde

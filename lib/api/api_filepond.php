@@ -621,11 +621,14 @@ class rex_api_filepond_uploader extends rex_api_function
         }
 
         // Bildoptimierung für unterstützte Formate (keine GIFs)
-        if (strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
+        // Nur wenn serverseitige Bildverarbeitung aktiviert ist
+        $serverImageProcessing = rex_config::get('filepond_uploader', 'server_image_processing', false);
+        if ($serverImageProcessing && strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
             $this->processImage($file['tmp_name']);
         }
 
         $originalName = $file['name'];
+        
         $metadata = $file['metadata'] ?? [];
         $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
         
@@ -717,6 +720,12 @@ class rex_api_filepond_uploader extends rex_api_function
         }
     }
 
+    /**
+     * Process and optimize an image (resize and EXIF orientation fix)
+     * 
+     * @param string $tmpFile Path to the temporary image file
+     * @return void
+     */
     protected function processImage($tmpFile)
     {
         $maxPixel = rex_config::get('filepond_uploader', 'max_pixel', 1200);
@@ -730,10 +739,114 @@ class rex_api_filepond_uploader extends rex_api_function
 
         list($width, $height, $type) = $imageInfo;
 
+        // Nur unterstützte Bildformate verarbeiten
+        if (!in_array($type, [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP])) {
+            return;
+        }
+
+        // Prüfen ob Resize nötig ist
+        $needsResize = ($width > $maxPixel || $height > $maxPixel);
+
+        // Wenn kein Resize nötig und keine EXIF-Korrektur, abbrechen
+        if (!$needsResize && !$fixExifOrientation) {
+            return;
+        }
+
+        // Prüfen ob ImageMagick verfügbar ist
+        $convertBin = $this->findImageMagickBinary();
+        if ($convertBin) {
+            $this->processImageWithImageMagick($tmpFile, $convertBin, $maxPixel, $quality, $fixExifOrientation, $needsResize, $type);
+            return;
+        }
+        
+        // Fallback auf GD
+        $this->processImageWithGD($tmpFile, $maxPixel, $quality, $fixExifOrientation, $needsResize, $type, $width, $height);
+    }
+
+    /**
+     * Find ImageMagick convert binary
+     * 
+     * @return string|null Path to convert binary or null if not found
+     */
+    protected function findImageMagickBinary()
+    {
+        // Versuche verschiedene mögliche Pfade
+        $possiblePaths = [
+            '/usr/bin/convert',
+            '/usr/local/bin/convert',
+            '/opt/homebrew/bin/convert',
+            'convert' // PATH
+        ];
+        
+        foreach ($possiblePaths as $path) {
+            $output = [];
+            $returnCode = 0;
+            @exec($path . ' -version 2>&1', $output, $returnCode);
+            if ($returnCode === 0 && !empty($output)) {
+                $versionString = implode(' ', $output);
+                if (strpos($versionString, 'ImageMagick') !== false) {
+                    $this->log('info', "Found ImageMagick at: $path");
+                    return $path;
+                }
+            }
+        }
+        
+        $this->log('warning', 'ImageMagick not found, falling back to GD');
+        return null;
+    }
+
+    /**
+     * Process image with ImageMagick CLI (resize and EXIF orientation fix)
+     * 
+     * @return void
+     */
+    protected function processImageWithImageMagick($tmpFile, $convertBin, $maxPixel, $quality, $fixExifOrientation, $needsResize, $type)
+    {
+        // ImageMagick Befehl zusammenbauen
+        $cmd = escapeshellcmd($convertBin);
+        $cmd .= ' ' . escapeshellarg($tmpFile);
+        
+        // EXIF-Orientierung korrigieren
+        if ($fixExifOrientation) {
+            $cmd .= ' -auto-orient';
+        }
+        
+        // Resize wenn nötig (mit Seitenverhältnis beibehalten)
+        if ($needsResize) {
+            $cmd .= ' -resize ' . escapeshellarg($maxPixel . 'x' . $maxPixel . '>');
+        }
+        
+        // Qualität setzen
+        $cmd .= ' -quality ' . intval($quality);
+        
+        // Strip metadata für kleinere Dateien
+        $cmd .= ' -strip';
+        
+        // Ausgabedatei (überschreibt Original)
+        $cmd .= ' ' . escapeshellarg($tmpFile);
+        
+        $this->log('info', "Executing ImageMagick: $cmd");
+        
+        $output = [];
+        $returnCode = 0;
+        exec($cmd . ' 2>&1', $output, $returnCode);
+        
+        if ($returnCode !== 0) {
+            $this->log('error', 'ImageMagick error: ' . implode(' ', $output));
+        }
+    }
+
+    /**
+     * Process image with GD (Fallback, resize and EXIF orientation fix)
+     * 
+     * @return void
+     */
+    protected function processImageWithGD($tmpFile, $maxPixel, $quality, $fixExifOrientation, $needsResize, $type, $width, $height)
+    {
         // Fix EXIF orientation first, before any other processing
         if ($fixExifOrientation) {
             $this->fixExifOrientation($tmpFile, $type);
-            // Re-read image info after orientation fix, as dimensions may have changed
+            // Re-read image info after orientation fix
             $imageInfo = getimagesize($tmpFile);
             if (!$imageInfo) {
                 $this->log('error', 'Failed to read image info after EXIF orientation fix');
@@ -742,12 +855,14 @@ class rex_api_filepond_uploader extends rex_api_function
             list($width, $height, $type) = $imageInfo;
         }
 
-        // Return if image is smaller than max dimensions
-        if ($width <= $maxPixel && $height <= $maxPixel) {
+        // Wenn kein Resize nötig, sind wir fertig (EXIF wurde bereits korrigiert)
+        if (!$needsResize) {
             return;
         }
 
-        // Calculate new dimensions
+        // Neue Dimensionen berechnen
+        $newWidth = $width;
+        $newHeight = $height;
         $ratio = $width / $height;
         if ($width > $height) {
             $newWidth = min($width, $maxPixel);
@@ -757,7 +872,7 @@ class rex_api_filepond_uploader extends rex_api_function
             $newWidth = floor($newHeight * $ratio);
         }
 
-        // Create new image based on type
+        // Create source image based on type
         $srcImage = null;
         switch ($type) {
             case IMAGETYPE_JPEG:
@@ -767,7 +882,9 @@ class rex_api_filepond_uploader extends rex_api_function
                 $srcImage = imagecreatefrompng($tmpFile);
                 break;
             case IMAGETYPE_WEBP:
-                $srcImage = imagecreatefromwebp($tmpFile);
+                if (function_exists('imagecreatefromwebp')) {
+                    $srcImage = imagecreatefromwebp($tmpFile);
+                }
                 break;
             default:
                 return;
@@ -801,11 +918,10 @@ class rex_api_filepond_uploader extends rex_api_function
             $height
         );
 
-        // Save image
+        // Save image in original format
         if ($type === IMAGETYPE_JPEG) {
             imagejpeg($dstImage, $tmpFile, $quality);
         } elseif ($type === IMAGETYPE_PNG) {
-            // PNG-Qualität ist 0-9, umrechnen auf 0-9 Skala
             $pngQuality = min(9, floor($quality / 10));
             imagepng($dstImage, $tmpFile, $pngQuality);
         } elseif ($type === IMAGETYPE_WEBP) {
