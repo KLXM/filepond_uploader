@@ -13,13 +13,16 @@ class filepond_ai_alt_generator
     private string $model;
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
     
-    // Verfügbare Modelle
+    // Verfügbare Modelle (Stand: Dezember 2025)
     public const MODELS = [
-        'gemini-2.5-flash-preview-05-20' => 'Gemini 2.5 Flash (Preview) - Kostenlos',
+        // Kostenlose Modelle (Free Tier)
+        'gemini-2.5-flash' => 'Gemini 2.5 Flash - Kostenlos ⭐',
+        'gemini-2.5-flash-lite' => 'Gemini 2.5 Flash-Lite - Kostenlos (schneller)',
         'gemini-2.0-flash' => 'Gemini 2.0 Flash - Kostenlos',
-        'gemini-1.5-flash' => 'Gemini 1.5 Flash - Kostenlos',
-        'gemini-1.5-pro' => 'Gemini 1.5 Pro - Bezahlt',
-        'gemini-2.5-pro-preview-05-06' => 'Gemini 2.5 Pro (Preview) - Bezahlt',
+        'gemini-2.0-flash-lite' => 'Gemini 2.0 Flash-Lite - Kostenlos (schneller)',
+        // Bezahlte Modelle
+        'gemini-3-pro-preview' => 'Gemini 3 Pro (Preview) - Bezahlt 💎',
+        'gemini-2.5-pro' => 'Gemini 2.5 Pro - Bezahlt 💎',
     ];
     
     /**
@@ -28,7 +31,7 @@ class filepond_ai_alt_generator
     public function __construct()
     {
         $this->apiKey = rex_config::get('filepond_uploader', 'gemini_api_key', '');
-        $this->model = rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash-preview-05-20');
+        $this->model = rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash');
     }
     
     /**
