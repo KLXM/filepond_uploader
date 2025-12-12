@@ -90,7 +90,8 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Inline-Bearbeitung direkt in der Tabelle
     *   Unterstützt mehrsprachige Alt-Texte (metainfo_lang_fields)
     *   Dekorative Bilder markieren (Negativ-Liste für Bilder ohne Alt-Text-Pflicht)
-    *   **AI Alt-Text-Generierung (Google Gemini)** - automatische Beschreibungen per Knopfdruck
+    *   **AI Alt-Text-Generierung** - automatische Beschreibungen per Knopfdruck
+    *   Unterstützt **Google Gemini** und **Cloudflare Workers AI** als Provider
     *   Schnelle Navigation mit Tab-Taste
     *   Bulk-Speichern aller Änderungen
     *   Filter nach Dateiname und Kategorie
@@ -1344,11 +1345,84 @@ Die Funktion ist als Unterseite im **Medienpool → Alt-Text-Checker** verfügba
 4. Klicke auf den Pfeil um die große Vorschau zu öffnen
 5. Gib Alt-Texte ein (Tab zum Wechseln, Enter zum Speichern)
 6. Oder: Markiere dekorative Bilder mit dem Auge-Button
-7. Oder: Bearbeite mehrere und klicke "Alle speichern"
+7. Oder: Nutze den AI-Button (Zauberstab) für automatische Generierung
+8. Oder: Bearbeite mehrere und klicke "Alle speichern"
 
 > **Hinweis:** Das MetaInfo-Feld `med_alt` muss existieren. Falls nicht, wird ein Hinweis mit Link zur MetaInfo-Konfiguration angezeigt.
 >
 > **Tipp:** Die Liste der dekorativen Bilder wird in der Addon-Konfiguration gespeichert und kann bei Bedarf zurückgesetzt werden.
+
+## AI Alt-Text-Generierung
+
+Das AddOn unterstützt die automatische Generierung von Alt-Texten mittels KI. Zwei Provider stehen zur Auswahl:
+
+### Google Gemini (empfohlen)
+
+Google Gemini bietet exzellente Bildanalyse mit hervorragender Mehrsprachigkeit.
+
+**Kostenlos:** Bis zu 1500 Requests pro Tag (Free Tier)
+
+**Einrichtung:**
+1. Gehe zu [Google AI Studio](https://aistudio.google.com/apikey)
+2. Erstelle einen neuen API-Key (kostenlos mit Google-Account)
+3. In REDAXO: **FilePond Uploader → Einstellungen → AI Alt-Text**
+4. Wähle Provider: **Google Gemini**
+5. Füge den API-Key ein
+6. Wähle ein Modell (empfohlen: **Gemini 2.5 Flash**)
+7. Aktiviere "AI-Generierung aktivieren"
+8. Teste die Verbindung
+
+**Verfügbare Modelle:**
+| Modell | Kosten | Beschreibung |
+|--------|--------|--------------|
+| Gemini 2.5 Flash | Kostenlos | Beste Balance aus Qualität und Geschwindigkeit ⭐ |
+| Gemini 2.5 Flash-Lite | Kostenlos | Schneller, etwas kürzer |
+| Gemini 2.0 Flash | Kostenlos | Älteres Modell |
+| Gemini 2.5 Pro | Bezahlt | Höchste Qualität |
+
+**Rate Limits (Free Tier):**
+- 20 Requests pro Minute (RPM)
+- 1500 Requests pro Tag (RPD)
+- 250.000 Tokens pro Minute
+- Reset: Täglich um 9:00 Uhr MEZ
+
+### Cloudflare Workers AI
+
+Cloudflare bietet eine Alternative mit großzügigem kostenlosen Kontingent.
+
+**Kostenlos:** 10.000 Neurons pro Tag (~100-200 Bildanalysen)
+
+**Einrichtung:**
+1. Erstelle einen [Cloudflare-Account](https://dash.cloudflare.com/) (kostenlos)
+2. Gehe zu **Profil → API Tokens → Create Token**
+3. Wähle **Custom Token → Get Started**
+4. Konfiguriere:
+   - **Token name:** `FilePond AI` (oder beliebig)
+   - **Permissions:** Account → Workers AI → Read
+   - **Account Resources:** Deinen Account auswählen
+5. Klicke **Continue to summary → Create Token**
+6. Kopiere den Token (wird nur einmal angezeigt!)
+7. Hole deine **Account ID:**
+   - Gehe zu [Cloudflare Dashboard](https://dash.cloudflare.com/)
+   - Wähle **Workers & Pages**
+   - Account ID steht in der rechten Sidebar
+8. In REDAXO: **FilePond Uploader → Einstellungen → AI Alt-Text**
+9. Wähle Provider: **Cloudflare Workers AI**
+10. Füge Token und Account ID ein
+11. Aktiviere "AI-Generierung aktivieren"
+12. Teste die Verbindung
+
+**Hinweis:** Das LLaVA-Modell von Cloudflare ist etwas kleiner als Gemini und liefert kürzere Beschreibungen. Bei Screenshots mit Text kann es zu Fehlern kommen.
+
+### Nutzung im Alt-Text-Checker
+
+Nach der Einrichtung erscheint im Alt-Text-Checker:
+- **Zauberstab-Button** (✨) bei jedem Bild für einzelne Generierung
+- **"AI für alle generieren"** Button für Bulk-Generierung aller leeren Alt-Texte
+- Bei mehrsprachigen Feldern werden alle Sprachen automatisch generiert
+- Token-Verbrauch wird nach jeder Generierung angezeigt (nur Gemini)
+
+**Nicht unterstützt:** SVG-Dateien (können von der AI nicht analysiert werden)
 
 ## Hinweise
 

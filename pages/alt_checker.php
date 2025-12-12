@@ -738,17 +738,47 @@ $(document).on('rex:ready', function() {
         },
         
         saveAll() {
+            console.log('saveAll called, modifiedImages:', Array.from(this.modifiedImages));
+            
             const updates = [];
             
             this.modifiedImages.forEach(filename => {
-                const $input = $(`.alt-input[data-filename="${this.escapeHtml(filename)}"]`);
-                const altText = $input.val().trim();
-                if (altText) {
+                // Finde alle Inputs für diese Datei
+                const $allInputs = $(`.alt-input`).filter(function() {
+                    return $(this).data('filename') === filename;
+                });
+                
+                console.log('Processing:', filename, 'found inputs:', $allInputs.length);
+                
+                // Prüfe ob mehrsprachig (mehrere Inputs pro Datei)
+                if ($allInputs.length > 1) {
+                    // Mehrsprachig: Sammle alle Sprachen
+                    const langTexts = {};
+                    $allInputs.each(function() {
+                        // jQuery konvertiert data-clang-id zu clangId (camelCase)
+                        const clangId = $(this).data('clangId');
+                        const text = $(this).val().trim();
+                        // Speichere auch leere Texte, damit die Sprache aktualisiert wird
+                        if (clangId !== undefined) {
+                            langTexts[clangId] = text;
+                        }
+                    });
+                    if (Object.keys(langTexts).length > 0) {
+                        updates.push({ filename, lang_texts: langTexts });
+                    }
+                } else if ($allInputs.length === 1) {
+                    // Einsprachig
+                    const altText = $allInputs.val().trim();
                     updates.push({ filename, alt_text: altText });
                 }
             });
             
-            if (updates.length === 0) return;
+            console.log('saveAll updates:', updates);
+            
+            if (updates.length === 0) {
+                console.log('No updates to save');
+                return;
+            }
             
             $('#btn-save-all').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Speichern...');
             
@@ -843,12 +873,18 @@ $(document).on('rex:ready', function() {
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
             $row.addClass('saving');
             
-            // Bei Mehrsprachigkeit: Alle Sprachen generieren
+            // Bei Mehrsprachigkeit: Alle Sprachen generieren (nur wenn leer)
             if (this.isMultiLang && $allInputs.length > 1) {
                 let success = false;
                 for (const input of $allInputs) {
                     const $input = $(input);
-                    const clangId = $input.data('clang-id');
+                    
+                    // Überspringe wenn bereits ausgefüllt
+                    if ($input.val() && $input.val().trim() !== '') {
+                        continue;
+                    }
+                    
+                    const clangId = $input.data('clangId');
                     const langCode = this.languages[clangId]?.code || 'de';
                     
                     try {
@@ -881,7 +917,7 @@ $(document).on('rex:ready', function() {
             } else {
                 // Einsprachig: Nur erste Sprache
                 const $input = $allInputs.first();
-                const clangId = $input.data('clang-id') || this.currentLangId;
+                const clangId = $input.data('clangId') || this.currentLangId;
                 const langCode = this.languages[clangId]?.code || 'de';
                 
                 try {
@@ -930,34 +966,41 @@ $(document).on('rex:ready', function() {
                 $btn.html(`<i class="fa fa-spinner fa-spin"></i> ${processed}/${total}`);
                 
                 const $row = $(`tr.image-row[data-filename="${this.escapeHtml(img.filename)}"]`);
-                const $input = $row.find('.alt-input').first();
+                const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(img.filename)}"]`);
+                // Alle Inputs: aus der Hauptzeile UND der Sprachzeile
+                const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
                 
-                // Überspringe wenn bereits ausgefüllt
-                if ($input.val() && $input.val().trim() !== '') {
-                    continue;
-                }
-                
-                const clangId = $input.data('clang-id') || this.currentLangId;
-                const langCode = this.languages[clangId]?.code || 'de';
-                
-                try {
-                    const response = await $.getJSON(this.apiEndpoint, {
-                        action: 'ai_generate',
-                        filename: img.filename,
-                        language: langCode
-                    });
+                // Für jede Sprache prüfen ob leer und dann generieren
+                for (let i = 0; i < $allInputs.length; i++) {
+                    const $input = $($allInputs[i]);
                     
-                    if (response.success && response.alt_text) {
-                        $input.val(response.alt_text).addClass('modified');
-                        this.modifiedImages.add(img.filename);
-                        $row.find('.btn-save-row').addClass('visible');
+                    // Überspringe wenn bereits ausgefüllt
+                    if ($input.val() && $input.val().trim() !== '') {
+                        continue;
                     }
-                } catch (e) {
-                    console.error('AI error for ' + img.filename, e);
+                    
+                    const clangId = $input.data('clangId') || this.currentLangId;
+                    const langCode = this.languages[clangId]?.code || 'de';
+                    
+                    try {
+                        const response = await $.getJSON(this.apiEndpoint, {
+                            action: 'ai_generate',
+                            filename: img.filename,
+                            language: langCode
+                        });
+                        
+                        if (response.success && response.alt_text) {
+                            $input.val(response.alt_text).addClass('modified');
+                            this.modifiedImages.add(img.filename);
+                            $row.find('.btn-save-row').addClass('visible');
+                        }
+                    } catch (e) {
+                        console.error('AI error for ' + img.filename + ' lang ' + langCode, e);
+                    }
+                    
+                    // Kleine Pause zwischen Requests
+                    await new Promise(r => setTimeout(r, 200));
                 }
-                
-                // Kleine Pause zwischen Requests
-                await new Promise(r => setTimeout(r, 200));
             }
             
             this.updateSaveAllButton();

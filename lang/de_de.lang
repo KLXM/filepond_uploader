@@ -149,18 +149,25 @@ filepond_metadata_save = Metadaten speichern
 filepond_metadata_cancel = Abbrechen
 
 # AI Alt-Text Settings
-filepond_ai_settings = AI Alt-Text Generierung (Gemini)
+filepond_ai_settings = AI Alt-Text Generierung
 filepond_settings_enable_ai_alt = AI-Generierung aktivieren
 filepond_settings_enable_ai_alt_label = AI Alt-Text-Generierung aktivieren
-filepond_settings_enable_ai_alt_notice = Nutzt Google Gemini Vision API zur automatischen Generierung von Alt-Texten. Kostenlos bis 1500 Requests/Tag.
+filepond_settings_enable_ai_alt_notice = Nutzt KI zur automatischen Generierung von Alt-Texten für Bilder.
+filepond_settings_ai_provider = AI Provider
+filepond_settings_ai_provider_notice = Wähle den AI-Dienst für die Alt-Text-Generierung.
 filepond_settings_gemini_api_key = Gemini API-Key
 filepond_settings_gemini_api_key_notice = API-Key von <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> erstellen (kostenlos)
 filepond_settings_gemini_model = Gemini Modell
 filepond_settings_gemini_model_notice = Flash-Modelle sind kostenlos (bis 1500 Req/Tag). Pro-Modelle erfordern einen bezahlten API-Key.
+filepond_settings_cloudflare_token = Cloudflare API Token
+filepond_settings_cloudflare_token_notice = API-Token von <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a> erstellen. Berechtigung: Workers AI Read.
+filepond_settings_cloudflare_account_id = Cloudflare Account ID
+filepond_settings_cloudflare_account_id_notice = Account ID findest du unter <a href="https://dash.cloudflare.com/" target="_blank">Workers & Pages</a> in der rechten Sidebar.
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
 filepond_settings_gemini_usage = Limits & Verbrauch anzeigen
+filepond_settings_cloudflare_usage = API Tokens verwalten
 
 # Token Settings
 filepond_token_section = API Token Einstellungen

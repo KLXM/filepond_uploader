@@ -135,18 +135,25 @@ filepond_metadata_save = Save Metadata
 filepond_metadata_cancel = Cancel
 
 # AI Alt-Text Settings
-filepond_ai_settings = AI Alt-Text Generation (Gemini)
+filepond_ai_settings = AI Alt-Text Generation
 filepond_settings_enable_ai_alt = Enable AI generation
 filepond_settings_enable_ai_alt_label = Enable AI alt-text generation
-filepond_settings_enable_ai_alt_notice = Uses Google Gemini Vision API for automatic alt-text generation. Free up to 1500 requests/day.
+filepond_settings_enable_ai_alt_notice = Uses AI for automatic alt-text generation for images.
+filepond_settings_ai_provider = AI Provider
+filepond_settings_ai_provider_notice = Choose the AI service for alt-text generation.
 filepond_settings_gemini_api_key = Gemini API Key
 filepond_settings_gemini_api_key_notice = Create API key from <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> (free)
 filepond_settings_gemini_model = Gemini Model
 filepond_settings_gemini_model_notice = Flash models are free (up to 1500 req/day). Pro models require a paid API key.
+filepond_settings_cloudflare_token = Cloudflare API Token
+filepond_settings_cloudflare_token_notice = Create API token from <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a>. Permission: Workers AI Read.
+filepond_settings_cloudflare_account_id = Cloudflare Account ID
+filepond_settings_cloudflare_account_id_notice = Find Account ID under <a href="https://dash.cloudflare.com/" target="_blank">Workers & Pages</a> in the right sidebar.
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholder: {language} for language.
 filepond_settings_test_ai_connection = Test connection
 filepond_settings_gemini_usage = View limits & usage
+filepond_settings_cloudflare_usage = Manage API tokens
 
 # Token Settings
 filepond_token_section = API Token Settings

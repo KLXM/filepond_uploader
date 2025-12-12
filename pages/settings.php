@@ -260,13 +260,13 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
 // ============================================================================
-// 5. AI ALT-TEXT GENERIERUNG (GEMINI)
+// 5. AI ALT-TEXT GENERIERUNG
 // ============================================================================
 $form->addFieldset($addon->i18n('filepond_ai_settings'));
 
 $form->addRawField('<div class="row">');
 
-// Linke Spalte - Aktivierung und API-Key
+// Linke Spalte - Aktivierung und Provider
 $form->addRawField('<div class="col-sm-6">');
 
 // AI Alt-Text aktivieren
@@ -275,24 +275,17 @@ $field->setLabel($addon->i18n('filepond_settings_enable_ai_alt'));
 $field->addOption($addon->i18n('filepond_settings_enable_ai_alt_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_enable_ai_alt_notice'));
 
-// Gemini API Key
-$field = $form->addInputField('text', 'gemini_api_key', null, [
+// AI Provider Auswahl
+$field = $form->addSelectField('ai_provider', null, [
     'class' => 'form-control',
-    'autocomplete' => 'off'
+    'id' => 'ai-provider-select'
 ]);
-$field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
-$field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice'));
-
-// Gemini Modell Auswahl
-$field = $form->addSelectField('gemini_model', null, [
-    'class' => 'form-control selectpicker'
-]);
-$field->setLabel($addon->i18n('filepond_settings_gemini_model'));
+$field->setLabel($addon->i18n('filepond_settings_ai_provider'));
 $select = $field->getSelect();
-foreach (filepond_ai_alt_generator::MODELS as $modelId => $modelName) {
-    $select->addOption($modelName, $modelId);
+foreach (filepond_ai_alt_generator::PROVIDERS as $providerId => $providerName) {
+    $select->addOption($providerName, $providerId);
 }
-$field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
+$field->setNotice($addon->i18n('filepond_settings_ai_provider_notice'));
 
 $form->addRawField('</div>');
 
@@ -311,6 +304,65 @@ $field->setNotice($addon->i18n('filepond_settings_ai_prompt_notice'));
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
+// === GEMINI SETTINGS ===
+$form->addRawField('<div id="gemini-settings" class="ai-provider-settings">');
+$form->addRawField('<div class="row">');
+$form->addRawField('<div class="col-sm-6">');
+
+// Gemini API Key
+$field = $form->addInputField('text', 'gemini_api_key', null, [
+    'class' => 'form-control',
+    'autocomplete' => 'off'
+]);
+$field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
+$field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('<div class="col-sm-6">');
+
+// Gemini Modell Auswahl
+$field = $form->addSelectField('gemini_model', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_gemini_model'));
+$select = $field->getSelect();
+foreach (filepond_ai_alt_generator::GEMINI_MODELS as $modelId => $modelName) {
+    $select->addOption($modelName, $modelId);
+}
+$field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+$form->addRawField('</div>'); // Ende gemini-settings
+
+// === CLOUDFLARE SETTINGS ===
+$form->addRawField('<div id="cloudflare-settings" class="ai-provider-settings" style="display:none;">');
+$form->addRawField('<div class="row">');
+$form->addRawField('<div class="col-sm-6">');
+
+// Cloudflare API Token
+$field = $form->addInputField('text', 'cloudflare_api_token', null, [
+    'class' => 'form-control',
+    'autocomplete' => 'off'
+]);
+$field->setLabel($addon->i18n('filepond_settings_cloudflare_token'));
+$field->setNotice($addon->i18n('filepond_settings_cloudflare_token_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('<div class="col-sm-6">');
+
+// Cloudflare Account ID
+$field = $form->addInputField('text', 'cloudflare_account_id', null, [
+    'class' => 'form-control',
+    'autocomplete' => 'off'
+]);
+$field->setLabel($addon->i18n('filepond_settings_cloudflare_account_id'));
+$field->setNotice($addon->i18n('filepond_settings_cloudflare_account_id_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+$form->addRawField('</div>'); // Ende cloudflare-settings
+
 // API-Verbindungstest Button
 $form->addRawField('
     <div class="form-group">
@@ -318,8 +370,11 @@ $form->addRawField('
             <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
         </button>
         <span id="ai-connection-result" style="margin-left: 10px;"></span>
-        <a href="https://aistudio.google.com/usage?tab=rate-limit" target="_blank" class="btn btn-link" title="' . $addon->i18n('filepond_settings_gemini_usage') . '">
+        <a href="https://aistudio.google.com/usage?tab=rate-limit" target="_blank" class="btn btn-link" id="gemini-usage-link" title="' . $addon->i18n('filepond_settings_gemini_usage') . '">
             <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_gemini_usage') . '
+        </a>
+        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" class="btn btn-link" id="cloudflare-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_cloudflare_usage') . '">
+            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_cloudflare_usage') . '
         </a>
     </div>
 ');
@@ -523,15 +578,46 @@ echo $fragment->parse('core/page/section.php');
         });
     }
     
+    // AI Provider Toggle
+    function initAiProviderToggle() {
+        const providerSelect = document.getElementById('ai-provider-select');
+        if (!providerSelect) return;
+        
+        function toggleProviderSettings() {
+            const provider = providerSelect.value;
+            const geminiSettings = document.getElementById('gemini-settings');
+            const cloudflareSettings = document.getElementById('cloudflare-settings');
+            const geminiUsageLink = document.getElementById('gemini-usage-link');
+            const cloudflareUsageLink = document.getElementById('cloudflare-usage-link');
+            
+            if (provider === 'cloudflare') {
+                if (geminiSettings) geminiSettings.style.display = 'none';
+                if (cloudflareSettings) cloudflareSettings.style.display = 'block';
+                if (geminiUsageLink) geminiUsageLink.style.display = 'none';
+                if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'inline';
+            } else {
+                if (geminiSettings) geminiSettings.style.display = 'block';
+                if (cloudflareSettings) cloudflareSettings.style.display = 'none';
+                if (geminiUsageLink) geminiUsageLink.style.display = 'inline';
+                if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'none';
+            }
+        }
+        
+        providerSelect.addEventListener('change', toggleProviderSettings);
+        toggleProviderSettings(); // Initial
+    }
+    
     // Warte auf DOM ready
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function() {
             initCombinedSettings();
             initAiTest();
+            initAiProviderToggle();
         });
     } else {
         initCombinedSettings();
         initAiTest();
+        initAiProviderToggle();
     }
 })();
 </script>

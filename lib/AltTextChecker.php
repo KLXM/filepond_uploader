@@ -362,13 +362,27 @@ class filepond_alt_text_checker
         foreach ($updates as $update) {
             if (empty($update['filename'])) continue;
             
-            $result = self::updateAltText($update['filename'], $update['alt_text'] ?? '');
-            
-            if ($result['success']) {
-                $results['success']++;
+            // Mehrsprachige Updates
+            if (isset($update['lang_texts']) && is_array($update['lang_texts'])) {
+                // Konvertiere zu dem Format das updateAltText erwartet: [clang_id => value]
+                $result = self::updateAltText($update['filename'], $update['lang_texts']);
+                
+                if ($result['success']) {
+                    $results['success']++;
+                } else {
+                    $results['failed']++;
+                    $results['errors'][$update['filename']] = $result['error'];
+                }
             } else {
-                $results['failed']++;
-                $results['errors'][$update['filename']] = $result['error'];
+                // Einsprachiges Update
+                $result = self::updateAltText($update['filename'], $update['alt_text'] ?? '');
+                
+                if ($result['success']) {
+                    $results['success']++;
+                } else {
+                    $results['failed']++;
+                    $results['errors'][$update['filename']] = $result['error'];
+                }
             }
         }
         
