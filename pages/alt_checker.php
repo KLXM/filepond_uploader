@@ -556,12 +556,17 @@ $(document).on('rex:ready', function() {
                 }
                 
                 // Hauptzeile
+                const isSvg = img.filename.toLowerCase().endsWith('.svg');
+                const thumbSrc = isSvg 
+                    ? '../media/' + encodeURIComponent(img.filename)
+                    : 'index.php?rex_media_type=rex_media_small&rex_media_file=' + encodeURIComponent(img.filename);
+                
                 $tbody.append(`
                     <tr data-filename="${this.escapeHtml(img.filename)}" class="image-row">
                         <td>
                             <span class="preview-toggle" data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_show_preview') ?>">
                                 <i class="fa fa-chevron-right"></i>
-                                <img src="index.php?rex_media_type=rex_media_small&rex_media_file=${encodeURIComponent(img.filename)}" 
+                                <img src="${thumbSrc}" 
                                      alt="" class="thumb-mini" loading="lazy">
                             </span>
                         </td>
@@ -623,12 +628,16 @@ $(document).on('rex:ready', function() {
                 }
                 
                 // Vorschau-Zeile (Akkordeon)
+                const previewSrc = isSvg 
+                    ? '../media/' + encodeURIComponent(img.filename)
+                    : 'index.php?rex_media_type=rex_media_medium&rex_media_file=' + encodeURIComponent(img.filename);
+                
                 $tbody.append(`
                     <tr class="preview-row" data-filename="${this.escapeHtml(img.filename)}">
                         <td colspan="5">
                             <div class="preview-container">
-                                <img src="index.php?rex_media_type=rex_media_medium&rex_media_file=${encodeURIComponent(img.filename)}" 
-                                     alt="" loading="lazy">
+                                <img src="${previewSrc}" 
+                                     alt="" loading="lazy"${isSvg ? ' style="max-width: 300px; background: #f5f5f5; padding: 10px;"' : ''}>
                                 <div style="margin-top: 10px;">
                                     <a href="index.php?page=mediapool/media&file_name=${encodeURIComponent(img.filename)}" 
                                        target="_blank" class="btn btn-default btn-xs">
