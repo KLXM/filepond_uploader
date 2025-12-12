@@ -2,30 +2,131 @@
 
 /**
  * Alt-Text-Checker - Findet Bilder ohne Alt-Text für Barrierefreiheit
+ * Unterstützt auch mehrsprachige Metafelder (metainfo_lang_fields)
  * 
  * @package filepond_uploader
  */
 class filepond_alt_text_checker
 {
     /**
+     * Prüft ob das med_alt Feld mehrsprachig konfiguriert ist
+     */
+    public static function isMultiLangField(): bool
+    {
+        // Prüfe MetaInfo Lang Fields AddOn
+        if (!rex_addon::exists('metainfo_lang_fields') || !rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+            return false;
+        }
+        
+        // Prüfe ob MetaInfo AddOn verfügbar ist
+        if (!rex_addon::exists('metainfo') || !rex_addon::get('metainfo')->isAvailable()) {
+            return false;
+        }
+        
+        try {
+            // Prüfe den Feldtyp in der MetaInfo-Konfiguration
+            $sql = rex_sql::factory();
+            $sql->setQuery('
+                SELECT mf.type_id, mt.label as type_label 
+                FROM ' . rex::getTable('metainfo_field') . ' mf 
+                LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id 
+                WHERE mf.name = ?
+            ', ['med_alt']);
+            
+            if ($sql->getRows() > 0) {
+                $typeLabel = $sql->getValue('type_label');
+                
+                // Prüfe ob es ein mehrsprachiger Feldtyp ist
+                $multilingualTypes = ['lang_text', 'lang_textarea', 'lang_text_all', 'lang_textarea_all'];
+                return in_array($typeLabel, $multilingualTypes);
+            }
+            
+            return false;
+            
+        } catch (Exception $e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Prüft ob ein Alt-Text Wert vorhanden ist (auch bei JSON-Format)
+     */
+    public static function hasAltText(?string $value): bool
+    {
+        if (empty($value)) {
+            return false;
+        }
+        
+        // Prüfen ob es ein JSON-Array ist (mehrsprachig)
+        if (str_starts_with(trim($value), '[')) {
+            $langData = json_decode($value, true);
+            if (is_array($langData)) {
+                foreach ($langData as $entry) {
+                    if (!empty($entry['value'])) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // Einfacher String
+        return true;
+    }
+    
+    /**
+     * Extrahiert den Alt-Text für eine bestimmte Sprache
+     */
+    public static function getAltTextForLang(?string $value, ?int $clangId = null): string
+    {
+        if (empty($value)) {
+            return '';
+        }
+        
+        if ($clangId === null) {
+            $clangId = rex_clang::getCurrentId();
+        }
+        
+        // Prüfen ob es ein JSON-Array ist (mehrsprachig)
+        if (str_starts_with(trim($value), '[')) {
+            $langData = json_decode($value, true);
+            if (is_array($langData)) {
+                foreach ($langData as $entry) {
+                    if (isset($entry['clang_id']) && $entry['clang_id'] == $clangId) {
+                        return $entry['value'] ?? '';
+                    }
+                }
+                // Fallback: erste verfügbare Sprache
+                foreach ($langData as $entry) {
+                    if (!empty($entry['value'])) {
+                        return $entry['value'];
+                    }
+                }
+                return '';
+            }
+        }
+        
+        // Einfacher String
+        return $value;
+    }
+
+    /**
      * Findet alle Bilder ohne Alt-Text
      * Dekorative Bilder (aus Negativ-Liste) werden ausgeschlossen
      */
     public static function findImagesWithoutAlt(array $filters = []): array
     {
-        $where = ['filetype LIKE "image/%"'];
-        
-        // Alt-Text fehlt oder ist leer
-        $where[] = '(med_alt IS NULL OR med_alt = "")';
-        
         // Dekorative Bilder ausschließen
         $decorativeList = self::getDecorativeList();
+        
+        // Zusätzliche Filter
+        $where = ['filetype LIKE "image/%"'];
+        
         if (!empty($decorativeList)) {
             $escapedList = array_map(fn($f) => rex_sql::factory()->escape($f), $decorativeList);
             $where[] = 'filename NOT IN (' . implode(',', $escapedList) . ')';
         }
         
-        // Zusätzliche Filter
         if (!empty($filters['filename'])) {
             $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
         }
@@ -41,7 +142,17 @@ class filepond_alt_text_checker
             ORDER BY createdate DESC
         ');
         
-        return $sql->getArray();
+        $allImages = $sql->getArray();
+        
+        // Filter: Nur Bilder ohne Alt-Text (berücksichtigt JSON-Format)
+        $imagesWithoutAlt = [];
+        foreach ($allImages as $image) {
+            if (!self::hasAltText($image['med_alt'])) {
+                $imagesWithoutAlt[] = $image;
+            }
+        }
+        
+        return $imagesWithoutAlt;
     }
 
     /**
@@ -52,22 +163,31 @@ class filepond_alt_text_checker
     {
         $sql = rex_sql::factory();
         
-        // Gesamt Bilder
-        $sql->setQuery('SELECT COUNT(*) as total FROM ' . rex::getTable('media') . ' WHERE filetype LIKE "image/%"');
-        $total = (int)$sql->getValue('total');
+        // Alle Bilder laden und prüfen (wegen JSON-Format)
+        $sql->setQuery('SELECT filename, med_alt FROM ' . rex::getTable('media') . ' WHERE filetype LIKE "image/%"');
         
-        // Mit Alt-Text
-        $sql->setQuery('SELECT COUNT(*) as with_alt FROM ' . rex::getTable('media') . ' WHERE filetype LIKE "image/%" AND med_alt IS NOT NULL AND med_alt != ""');
-        $withAlt = (int)$sql->getValue('with_alt');
+        $total = 0;
+        $withAlt = 0;
+        $decorativeList = self::getDecorativeList();
         
-        // Dekorative Bilder zählen auch als "erledigt"
-        $decorativeCount = count(self::getDecorativeList());
-        $withAlt += $decorativeCount;
+        foreach ($sql as $row) {
+            $total++;
+            $filename = $row->getValue('filename');
+            
+            // Dekorative Bilder zählen als "mit Alt-Text"
+            if (in_array($filename, $decorativeList)) {
+                $withAlt++;
+                continue;
+            }
+            
+            // Prüfen ob Alt-Text vorhanden (auch JSON)
+            if (self::hasAltText($row->getValue('med_alt'))) {
+                $withAlt++;
+            }
+        }
         
-        // Ohne Alt-Text (minus dekorative)
-        $withoutAlt = max(0, $total - $withAlt);
-        
-        // Prozent
+        $withoutAlt = $total - $withAlt;
+        $decorativeCount = count($decorativeList);
         $percentComplete = $total > 0 ? round(($withAlt / $total) * 100, 1) : 100;
         
         return [
@@ -81,11 +201,12 @@ class filepond_alt_text_checker
 
     /**
      * Aktualisiert den Alt-Text eines Bildes
+     * Unterstützt mehrsprachiges Format wenn metainfo_lang_fields aktiv ist
      * 
      * @param string $filename Dateiname
-     * @param string $altText Alt-Text
+     * @param string|array $altText Alt-Text (String oder Array mit clang_id => value)
      */
-    public static function updateAltText(string $filename, string $altText): array
+    public static function updateAltText(string $filename, string|array $altText): array
     {
         try {
             $media = rex_media::get($filename);
@@ -93,10 +214,55 @@ class filepond_alt_text_checker
                 return ['success' => false, 'error' => 'Medium nicht gefunden'];
             }
             
+            $valueToSave = $altText;
+            
+            // Wenn mehrsprachig aktiv und ein Array übergeben wurde
+            if (is_array($altText)) {
+                $langData = [];
+                foreach ($altText as $clangId => $value) {
+                    $langData[] = [
+                        'clang_id' => (int)$clangId,
+                        'value' => $value
+                    ];
+                }
+                $valueToSave = json_encode($langData, JSON_UNESCAPED_UNICODE);
+            }
+            // Wenn mehrsprachig aktiv und ein String übergeben wurde, in aktuelle Sprache speichern
+            elseif (self::isMultiLangField() && is_string($altText)) {
+                // Bestehenden Wert laden und updaten
+                $sql = rex_sql::factory();
+                $sql->setQuery('SELECT med_alt FROM ' . rex::getTable('media') . ' WHERE filename = ?', [$filename]);
+                $currentValue = $sql->getValue('med_alt');
+                
+                $langData = [];
+                if ($currentValue && str_starts_with(trim($currentValue), '[')) {
+                    $langData = json_decode($currentValue, true) ?: [];
+                }
+                
+                // Aktuelle Sprache updaten oder hinzufügen
+                $currentClangId = rex_clang::getCurrentId();
+                $found = false;
+                foreach ($langData as &$entry) {
+                    if (isset($entry['clang_id']) && $entry['clang_id'] == $currentClangId) {
+                        $entry['value'] = $altText;
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $langData[] = [
+                        'clang_id' => $currentClangId,
+                        'value' => $altText
+                    ];
+                }
+                
+                $valueToSave = json_encode($langData, JSON_UNESCAPED_UNICODE);
+            }
+            
             $sql = rex_sql::factory();
             $sql->setTable(rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
-            $sql->setValue('med_alt', $altText);
+            $sql->setValue('med_alt', $valueToSave);
             $sql->setValue('updatedate', date('Y-m-d H:i:s'));
             $sql->setValue('updateuser', rex::getUser() ? rex::getUser()->getLogin() : 'system');
             $sql->update();
@@ -107,7 +273,7 @@ class filepond_alt_text_checker
             return [
                 'success' => true,
                 'filename' => $filename,
-                'alt_text' => $altText
+                'alt_text' => $valueToSave
             ];
             
         } catch (Exception $e) {

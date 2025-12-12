@@ -32,6 +32,7 @@ alt_checker_save = Save (Enter)
 alt_checker_save_all = Save all
 alt_checker_show_preview = Show preview
 alt_checker_open_mediapool = Open in media pool
+alt_checker_more_languages = Show more languages
 alt_checker_ignore_decorative = Mark as decorative (no alt text needed)
 alt_checker_decorative = [decorative]
 alt_checker_field_missing_title = MetaInfo field missing

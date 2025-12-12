@@ -108,6 +108,7 @@ class rex_api_filepond_alt_checker extends rex_api_function
         $filename = rex_request('filename', 'string', '');
         $altText = rex_request('alt_text', 'string', '');
         $decorative = rex_request('decorative', 'bool', false);
+        $isMultilang = rex_request('is_multilang', 'bool', false);
 
         if (empty($filename)) {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
@@ -118,7 +119,17 @@ class rex_api_filepond_alt_checker extends rex_api_function
         if ($decorative) {
             $result = filepond_alt_text_checker::markAsDecorative($filename);
         } else {
-            $result = filepond_alt_text_checker::updateAltText($filename, $altText);
+            // Mehrsprachig: JSON-String zu Array konvertieren
+            if ($isMultilang && !empty($altText)) {
+                $altData = json_decode($altText, true);
+                if (is_array($altData)) {
+                    $result = filepond_alt_text_checker::updateAltText($filename, $altData);
+                } else {
+                    $result = filepond_alt_text_checker::updateAltText($filename, $altText);
+                }
+            } else {
+                $result = filepond_alt_text_checker::updateAltText($filename, $altText);
+            }
         }
         
         $this->sendJson($result);

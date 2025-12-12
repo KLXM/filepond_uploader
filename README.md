@@ -88,6 +88,7 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Statistik-Dashboard mit Vollständigkeits-Prozent
     *   Akkordeon-Vorschau: Große Bildansicht zum besseren Beschreiben
     *   Inline-Bearbeitung direkt in der Tabelle
+    *   Unterstützt mehrsprachige Alt-Texte (metainfo_lang_fields)
     *   Dekorative Bilder markieren (Negativ-Liste für Bilder ohne Alt-Text-Pflicht)
     *   Schnelle Navigation mit Tab-Taste
     *   Bulk-Speichern aller Änderungen

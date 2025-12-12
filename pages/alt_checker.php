@@ -30,6 +30,20 @@ $apiEndpoint = rex_url::backendController([
 // Prüfen ob med_alt Feld existiert
 $altFieldExists = filepond_alt_text_checker::checkAltFieldExists();
 
+// Mehrsprachigkeit prüfen
+$isMultiLang = filepond_alt_text_checker::isMultiLangField();
+$languages = [];
+if ($isMultiLang) {
+    foreach (rex_clang::getAll() as $clang) {
+        $languages[$clang->getId()] = [
+            'id' => $clang->getId(),
+            'code' => $clang->getCode(),
+            'name' => $clang->getName()
+        ];
+    }
+}
+$currentLangId = rex_clang::getCurrentId();
+
 ?>
 
 <div id="alt-checker-app">
@@ -257,6 +271,64 @@ tr:hover .btn-save-row,
     color: #999;
     font-style: italic;
 }
+/* Mehrsprachige Alt-Text Felder */
+.alt-input-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.alt-input-group .alt-input {
+    flex: 1;
+}
+.alt-input-group .lang-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-radius: 3px;
+    background: rgba(128,128,128,0.15);
+    color: inherit;
+    min-width: 28px;
+    text-align: center;
+}
+.alt-input-group .lang-toggle {
+    padding: 6px 8px;
+    border-radius: 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s, background 0.2s;
+}
+.alt-input-group .lang-toggle:hover {
+    opacity: 1;
+}
+.alt-input-group .lang-toggle.active {
+    opacity: 1;
+    background-color: #337ab7;
+    color: #fff;
+}
+.lang-row {
+    display: none;
+}
+.lang-row.open {
+    display: table-row;
+}
+.lang-row td {
+    padding-top: 0 !important;
+    border-top: none !important;
+    background: rgba(0,0,0,0.02);
+}
+.other-langs-container {
+    padding: 8px 0 5px 0;
+}
+.other-langs-container .input-group {
+    margin-bottom: 6px;
+}
+.other-langs-container .input-group:last-child {
+    margin-bottom: 0;
+}
+.other-langs-container .input-group-addon {
+    min-width: 32px;
+    font-size: 10px;
+    font-weight: 600;
+}
 </style>
 
 <script>
@@ -264,6 +336,9 @@ $(document).on('rex:ready', function() {
     const AltChecker = {
         apiEndpoint: <?= json_encode($apiEndpoint) ?>,
         categories: <?= json_encode($categories) ?>,
+        isMultiLang: <?= json_encode($isMultiLang) ?>,
+        languages: <?= json_encode($languages) ?>,
+        currentLangId: <?= json_encode($currentLangId) ?>,
         images: [],
         modifiedImages: new Set(),
         
@@ -287,7 +362,7 @@ $(document).on('rex:ready', function() {
                 const $input = $(e.target);
                 const filename = $input.data('filename');
                 $input.addClass('modified').removeClass('saved');
-                $input.closest('tr').find('.btn-save-row').addClass('visible');
+                $input.closest('tr.image-row').find('.btn-save-row').addClass('visible');
                 this.modifiedImages.add(filename);
                 this.updateSaveAllButton();
             });
@@ -322,6 +397,17 @@ $(document).on('rex:ready', function() {
                 
                 $toggle.toggleClass('open');
                 $previewRow.toggleClass('open');
+            });
+            
+            // Sprachen-Toggle (Globus-Button)
+            $(document).on('click', '.lang-toggle', (e) => {
+                e.stopPropagation();
+                const $toggle = $(e.currentTarget);
+                const filename = $toggle.data('filename');
+                const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
+                
+                $toggle.toggleClass('active');
+                $langRow.toggleClass('open');
             });
             
             // Ignorieren (dekoratives Bild)
@@ -407,10 +493,48 @@ $(document).on('rex:ready', function() {
             const $tbody = $('#images-tbody');
             $tbody.empty();
             
+            const langArray = Object.values(this.languages);
+            const firstLang = langArray[0] || { id: this.currentLangId, code: 'DE', name: 'Deutsch' };
+            const otherLangs = langArray.slice(1);
+            const hasMoreLangs = this.isMultiLang && otherLangs.length > 0;
+            
             this.images.forEach((img, index) => {
                 const categoryName = img.category_id == 0 
                     ? '<?= rex_i18n::msg('pool_kats_no') ?>' 
                     : (this.categories[img.category_id] || '-');
+                
+                // Alt-Text Eingabefeld generieren
+                let altInputHtml = '';
+                
+                if (this.isMultiLang && hasMoreLangs) {
+                    // Mehrsprachig: Kompaktes Layout mit Badge und Globus
+                    altInputHtml = `
+                        <div class="alt-input-group">
+                            <span class="lang-badge">${this.escapeHtml(firstLang.code.toUpperCase())}</span>
+                            <input type="text" class="form-control input-sm alt-input" 
+                                   data-filename="${this.escapeHtml(img.filename)}"
+                                   data-clang-id="${firstLang.id}"
+                                   value=""
+                                   placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
+                                   tabindex="${index + 1}">
+                            <button type="button" class="btn btn-default btn-sm lang-toggle" 
+                                    data-filename="${this.escapeHtml(img.filename)}" 
+                                    title="<?= $addon->i18n('alt_checker_more_languages') ?> (${otherLangs.length})">
+                                <i class="fa fa-globe"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Einsprachig: Nur Input ohne Badge
+                    altInputHtml = `
+                        <input type="text" class="form-control input-sm alt-input" 
+                               data-filename="${this.escapeHtml(img.filename)}"
+                               data-clang-id="${this.currentLangId}"
+                               value=""
+                               placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
+                               tabindex="${index + 1}">
+                    `;
+                }
                 
                 // Hauptzeile
                 $tbody.append(`
@@ -428,12 +552,7 @@ $(document).on('rex:ready', function() {
                             <br><small class="text-muted">${img.width || '?'} × ${img.height || '?'} px</small>
                         </td>
                         <td>
-                            <input type="text" class="alt-input" 
-                                   data-filename="${this.escapeHtml(img.filename)}"
-                                   data-original=""
-                                   value=""
-                                   placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
-                                   tabindex="${index + 1}">
+                            ${altInputHtml}
                         </td>
                         <td><small>${this.escapeHtml(categoryName)}</small></td>
                         <td class="text-nowrap">
@@ -448,6 +567,35 @@ $(document).on('rex:ready', function() {
                         </td>
                     </tr>
                 `);
+                
+                // Sprach-Zeile (nur bei mehrsprachig mit weiteren Sprachen)
+                if (hasMoreLangs) {
+                    let otherLangsHtml = '';
+                    otherLangs.forEach(lang => {
+                        otherLangsHtml += `
+                            <div class="input-group input-group-sm" style="margin-bottom: 5px;">
+                                <span class="input-group-addon" style="min-width: 35px;">${this.escapeHtml(lang.code.toUpperCase())}</span>
+                                <input type="text" class="form-control alt-input" 
+                                       data-filename="${this.escapeHtml(img.filename)}"
+                                       data-clang-id="${lang.id}"
+                                       value=""
+                                       placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>">
+                            </div>
+                        `;
+                    });
+                    
+                    $tbody.append(`
+                        <tr class="lang-row" data-filename="${this.escapeHtml(img.filename)}">
+                            <td></td>
+                            <td colspan="2">
+                                <div class="other-langs-container">
+                                    ${otherLangsHtml}
+                                </div>
+                            </td>
+                            <td colspan="2"></td>
+                        </tr>
+                    `);
+                }
                 
                 // Vorschau-Zeile (Akkordeon)
                 $tbody.append(`
@@ -474,12 +622,37 @@ $(document).on('rex:ready', function() {
         },
         
         saveOne(filename) {
-            const $row = $(`tr[data-filename="${this.escapeHtml(filename)}"]`);
-            const $input = $row.find('.alt-input');
-            const altText = $input.val().trim();
+            const $row = $(`tr.image-row[data-filename="${this.escapeHtml(filename)}"]`);
+            const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
+            const $previewRow = $(`.preview-row[data-filename="${this.escapeHtml(filename)}"]`);
             
-            if (!altText) {
-                $input.focus();
+            // Alle Inputs sammeln (aus Hauptzeile und Sprach-Zeile)
+            const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
+            
+            // Alt-Text sammeln (einsprachig oder mehrsprachig)
+            let altData = {};
+            let hasValue = false;
+            
+            if (this.isMultiLang) {
+                // Mehrsprachig: alle Sprachen sammeln
+                $allInputs.each((i, input) => {
+                    const $input = $(input);
+                    const clangId = $input.data('clang-id');
+                    const value = $input.val().trim();
+                    altData[clangId] = value;
+                    if (value) hasValue = true;
+                });
+            } else {
+                // Einsprachig
+                const altText = $allInputs.first().val().trim();
+                if (altText) {
+                    altData = altText;
+                    hasValue = true;
+                }
+            }
+            
+            if (!hasValue) {
+                $allInputs.first().focus();
                 return;
             }
             
@@ -488,21 +661,23 @@ $(document).on('rex:ready', function() {
             $.post(this.apiEndpoint, {
                 action: 'update',
                 filename: filename,
-                alt_text: altText
+                alt_text: typeof altData === 'object' ? JSON.stringify(altData) : altData,
+                is_multilang: this.isMultiLang && typeof altData === 'object'
             })
             .done((response) => {
                 if (response.success) {
-                    $input.removeClass('modified').addClass('saved');
+                    $allInputs.removeClass('modified').addClass('saved');
                     $row.find('.btn-save-row').removeClass('visible');
                     this.modifiedImages.delete(filename);
                     this.updateSaveAllButton();
                     
-                    // Nach kurzer Zeit aus Tabelle entfernen
-                    const $previewRow = $(`.preview-row[data-filename="${this.escapeHtml(filename)}"]`);
+                    // Nach kurzer Zeit aus Tabelle entfernen (inkl. Sprach-Zeile)
                     setTimeout(() => {
                         $row.fadeOut(300);
+                        $langRow.fadeOut(300);
                         $previewRow.fadeOut(300, () => {
                             $row.remove();
+                            $langRow.remove();
                             $previewRow.remove();
                             this.images = this.images.filter(i => i.filename !== filename);
                             $('#image-count').text(this.images.length);
