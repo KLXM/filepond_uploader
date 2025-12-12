@@ -12,6 +12,7 @@ perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
 # Tabs
 filepond_uploader_upload = Upload
 filepond_uploader_settings = Einstellungen
+filepond_uploader_bulk_resize = Bulk Resize
 help = Hilfe
 
 # Upload page
@@ -145,3 +146,37 @@ filepond_select_for_media = In Media-Feld übernehmen
 filepond_select_for_medialist = In Medienliste übernehmen
 filepond_uploader_media_widget_mode = Upload-Auswahl
 filepond_uploader_media_widget_info = Die ausgewählten Elemente können in die Liste übernommen werden.
+
+# Bulk Resize
+bulk_resize_title = Bulk Resize - Bildgrößen optimieren
+bulk_resize_description = Verkleinern Sie mehrere Bilder im Medienpool auf eine maximale Größe. Ideal für nachträgliche Optimierung großer Bilddateien.
+bulk_resize_filter = Filter & Einstellungen
+bulk_resize_filename = Dateiname
+bulk_resize_category = Kategorie
+bulk_resize_all_categories = Alle Kategorien
+bulk_resize_max_size = Max. Größe
+bulk_resize_quality = Qualität
+bulk_resize_search = Bilder suchen
+bulk_resize_reset = Zurücksetzen
+bulk_resize_images = Übergroße Bilder
+bulk_resize_start = Resize starten
+bulk_resize_select_all = Alle auswählen
+bulk_resize_deselect_all = Alle abwählen
+bulk_resize_loading = Bilder werden geladen...
+bulk_resize_preview = Vorschau
+bulk_resize_dimensions = Maße
+bulk_resize_filesize = Größe
+bulk_resize_status = Status
+bulk_resize_status_pending = Ausstehend
+bulk_resize_no_images = Keine übergroßen Bilder gefunden. Alle Bilder sind bereits kleiner als die angegebene Maximalgröße.
+bulk_resize_process_count = Bilder verarbeiten
+bulk_resize_processing = Bilder werden verarbeitet...
+bulk_resize_stat_processed = Verarbeitet
+bulk_resize_stat_success = Erfolgreich
+bulk_resize_stat_skipped = Übersprungen
+bulk_resize_stat_saved = Gespart
+bulk_resize_current = Aktuell in Bearbeitung
+bulk_resize_log = Verarbeitungslog
+bulk_resize_cancel = Abbrechen
+bulk_resize_done = Fertig
+bulk_resize_finished = Verarbeitung abgeschlossen

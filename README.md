@@ -73,6 +73,16 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Protokollierung aller Upload-Vorgänge
     *   Admin-Interface zur Systemwartung
 
+*   **Bulk Resize - Bildgrößen optimieren:**
+    *   Nachträgliche Verkleinerung bestehender Bilder im Medienpool
+    *   Filter nach Dateiname, Kategorie und Mindestgröße
+    *   Parallele Verarbeitung (bis zu 3 Bilder gleichzeitig)
+    *   Live-Fortschrittsanzeige mit Statistiken
+    *   Unterstützung für GD und ImageMagick
+    *   Automatische EXIF-Orientierungskorrektur
+    *   Speicherplatz-Ersparnis wird angezeigt
+    *   Verfügbar für Admins und Nutzer mit `media[sync]` Berechtigung
+
 ## Installation
 
 1.  **AddOn installieren:** Installiere das AddOn "filepond_uploader" über den REDAXO-Installer.
@@ -1222,6 +1232,56 @@ Die Wartungsfunktion löscht:
 - Alte Chunk-Verzeichnisse (älter als 24 Stunden)
 - Temporäre Metadaten-Dateien
 - Nicht mehr benötigte temporäre Dateien
+
+## Bulk Resize - Bildgrößen optimieren
+
+Mit dem Bulk Resize Feature können bestehende Bilder im Medienpool nachträglich verkleinert werden. Dies ist besonders nützlich, wenn:
+
+- Große Bilder ohne Optimierung hochgeladen wurden
+- Die maximale Bildgröße nachträglich angepasst werden soll
+- Speicherplatz eingespart werden soll
+
+### Zugriff
+
+Die Bulk Resize Funktion ist verfügbar unter **FilePond Uploader → Bulk Resize** für:
+- Administratoren
+- Nutzer mit der Berechtigung `media[sync]`
+
+### Funktionsumfang
+
+**Filter & Suche:**
+- Filterung nach Dateiname (Teilsuche)
+- Filterung nach Medienkategorie
+- Einstellbare Zielgröße (max. Breite/Höhe in Pixel)
+- Einstellbare Kompressionsqualität (10-100%)
+
+**Verarbeitung:**
+- Parallele Verarbeitung von bis zu 3 Bildern gleichzeitig
+- Live-Fortschrittsanzeige mit Prozent-Balken
+- Echtzeit-Statistiken (verarbeitet, erfolgreich, übersprungen, gespart)
+- Verarbeitungsprotokoll mit Zeitstempeln
+- Abbruch-Funktion jederzeit möglich
+
+**Unterstützte Formate:**
+- Standard (GD): JPG, JPEG, PNG, GIF, WebP
+- Mit ImageMagick zusätzlich: PSD, BMP
+- Automatische EXIF-Orientierungskorrektur
+
+**Bildverarbeitung:**
+- Proportionale Skalierung (Seitenverhältnis bleibt erhalten)
+- Qualitätserhaltende Kompression
+- Automatische Aktualisierung der Datenbankeinträge
+- Media-Cache wird automatisch geleert
+
+### Beispiel-Workflow
+
+1. Öffne **FilePond Uploader → Bulk Resize**
+2. Setze die gewünschte Maximalgröße (z.B. 2100px)
+3. Optional: Filtere nach Kategorie oder Dateiname
+4. Klicke auf **Bilder suchen**
+5. Wähle die zu verarbeitenden Bilder aus (oder "Alle auswählen")
+6. Klicke auf **Resize starten**
+7. Warte auf die Fertigstellung und prüfe die Ersparnis
 
 ## Hinweise
 
