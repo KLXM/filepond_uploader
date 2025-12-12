@@ -5,8 +5,8 @@
  * @package filepond_uploader
  */
 
-// Nur für Admins oder Nutzer mit media[sync] Berechtigung
-if (!rex::getUser() || (!rex::getUser()->isAdmin() && !rex::getUser()->hasPerm('media[sync]'))) {
+// Nur für Admins oder Nutzer mit bulk_resize Berechtigung
+if (!rex::getUser() || (!rex::getUser()->isAdmin() && !rex::getUser()->hasPerm('filepond_uploader[bulk_resize]'))) {
     echo rex_view::error(rex_i18n::msg('no_perm'));
     return;
 }

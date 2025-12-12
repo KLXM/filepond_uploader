@@ -8,6 +8,7 @@ filepond_mediapool_settings = Medienpool-Integration
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
 perm_general_filepond_uploader[upload] = Filepond Upload-Seite verwenden
+perm_general_filepond_uploader[bulk_resize] = Bulk Resize verwenden
 
 # Tabs
 filepond_uploader_upload = Upload

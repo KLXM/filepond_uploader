@@ -18,7 +18,7 @@ page:
         }
         bulk_resize: { 
             title: 'translate:filepond_uploader_bulk_resize',
-            perm: media[sync]
+            perm: filepond_uploader[bulk_resize]
         }
         settings: { 
             title: 'translate:filepond_uploader_settings',

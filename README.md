@@ -81,7 +81,7 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Unterstützung für GD und ImageMagick
     *   Automatische EXIF-Orientierungskorrektur
     *   Speicherplatz-Ersparnis wird angezeigt
-    *   Verfügbar für Admins und Nutzer mit `media[sync]` Berechtigung
+    *   Eigene Berechtigung: `filepond_uploader[bulk_resize]`
 
 ## Installation
 
@@ -1245,7 +1245,7 @@ Mit dem Bulk Resize Feature können bestehende Bilder im Medienpool nachträglic
 
 Die Bulk Resize Funktion ist verfügbar unter **FilePond Uploader → Bulk Resize** für:
 - Administratoren
-- Nutzer mit der Berechtigung `media[sync]`
+- Nutzer mit der Berechtigung `filepond_uploader[bulk_resize]`
 
 ### Funktionsumfang
 

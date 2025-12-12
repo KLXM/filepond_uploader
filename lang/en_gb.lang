@@ -6,6 +6,7 @@ filepond_image_processing = Image Processing
 filepond_metadata_settings = Metadata & Dialog
 filepond_mediapool_settings = Media Pool Integration
 perm_general_filepond_uploader[upload] = Use Filepond upload page
+perm_general_filepond_uploader[bulk_resize] = Use Bulk Resize
 
 # Tabs
 filepond_uploader_upload = Upload

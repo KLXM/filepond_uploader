@@ -11,9 +11,9 @@ class rex_api_filepond_bulk_resize extends rex_api_function
     {
         rex_response::cleanOutputBuffers();
         
-        // Nur für Backend-Nutzer mit Admin-Rechten oder media[sync] Berechtigung
+        // Nur für Backend-Nutzer mit Admin-Rechten oder bulk_resize Berechtigung
         $user = rex::getUser();
-        if (!rex::isBackend() || !$user || (!$user->isAdmin() && !$user->hasPerm('media[sync]'))) {
+        if (!rex::isBackend() || !$user || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[bulk_resize]'))) {
             $this->sendJson(['error' => 'Zugriff verweigert']);
             return;
         }
