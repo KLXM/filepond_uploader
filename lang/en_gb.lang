@@ -146,6 +146,7 @@ filepond_settings_gemini_model_notice = Flash models are free (up to 1500 req/da
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholder: {language} for language.
 filepond_settings_test_ai_connection = Test connection
+filepond_settings_gemini_usage = View limits & usage
 
 # Token Settings
 filepond_token_section = API Token Settings

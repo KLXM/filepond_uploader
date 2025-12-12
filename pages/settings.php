@@ -318,6 +318,9 @@ $form->addRawField('
             <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
         </button>
         <span id="ai-connection-result" style="margin-left: 10px;"></span>
+        <a href="https://aistudio.google.com/usage?tab=rate-limit" target="_blank" class="btn btn-link" title="' . $addon->i18n('filepond_settings_gemini_usage') . '">
+            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_gemini_usage') . '
+        </a>
     </div>
 ');
 

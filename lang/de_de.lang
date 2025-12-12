@@ -160,6 +160,7 @@ filepond_settings_gemini_model_notice = Flash-Modelle sind kostenlos (bis 1500 R
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
+filepond_settings_gemini_usage = Limits & Verbrauch anzeigen
 
 # Token Settings
 filepond_token_section = API Token Einstellungen
