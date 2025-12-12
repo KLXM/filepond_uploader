@@ -488,12 +488,17 @@ echo $fragment->parse('core/page/section.php');
             ]) ?>';
             
             fetch(apiUrl)
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) {
+                        throw new Error('HTTP ' + r.status);
+                    }
+                    return r.json();
+                })
                 .then(data => {
-                    if (data.success) {
-                        resultSpan.innerHTML = '<span class="text-success"><i class="fa fa-check"></i> ' + data.message + '</span>';
+                    if (data && data.success) {
+                        resultSpan.innerHTML = '<span class="text-success"><i class="fa fa-check"></i> ' + (data.message || 'OK') + '</span>';
                     } else {
-                        resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> ' + data.message + '</span>';
+                        resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> ' + (data?.message || data?.error || 'Unbekannter Fehler') + '</span>';
                     }
                 })
                 .catch(err => {
