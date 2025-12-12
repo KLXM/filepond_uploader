@@ -822,44 +822,82 @@ $(document).on('rex:ready', function() {
             });
         },
         
-        // AI: Alt-Text für einzelnes Bild generieren
-        aiGenerateSingle(filename) {
+        // AI: Alt-Text für einzelnes Bild generieren (alle Sprachen bei multilang)
+        async aiGenerateSingle(filename) {
             const $row = $(`tr.image-row[data-filename="${this.escapeHtml(filename)}"]`);
+            const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
             const $btn = $row.find('.btn-ai-generate');
-            const $input = $row.find('.alt-input').first(); // Erste Sprache
+            const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
             
             // Button-Status ändern
             const originalHtml = $btn.html();
             $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
             $row.addClass('saving');
             
-            // Sprache ermitteln
-            const clangId = $input.data('clang-id') || this.currentLangId;
-            const langCode = this.languages[clangId]?.code || 'de';
-            
-            $.getJSON(this.apiEndpoint, {
-                action: 'ai_generate',
-                filename: filename,
-                language: langCode
-            })
-            .done((response) => {
-                console.log('AI Response:', response); // Debug
-                if (response.success && response.alt_text) {
-                    $input.val(response.alt_text).addClass('modified').focus();
+            // Bei Mehrsprachigkeit: Alle Sprachen generieren
+            if (this.isMultiLang && $allInputs.length > 1) {
+                let success = false;
+                for (const input of $allInputs) {
+                    const $input = $(input);
+                    const clangId = $input.data('clang-id');
+                    const langCode = this.languages[clangId]?.code || 'de';
+                    
+                    try {
+                        const response = await $.getJSON(this.apiEndpoint, {
+                            action: 'ai_generate',
+                            filename: filename,
+                            language: langCode
+                        });
+                        
+                        if (response.success && response.alt_text) {
+                            $input.val(response.alt_text).addClass('modified');
+                            success = true;
+                        }
+                    } catch (e) {
+                        console.error('AI error for ' + filename + ' (' + langCode + ')', e);
+                    }
+                    
+                    // Kleine Pause zwischen Sprachen
+                    await new Promise(r => setTimeout(r, 150));
+                }
+                
+                if (success) {
                     this.modifiedImages.add(filename);
                     $row.find('.btn-save-row').addClass('visible');
                     this.updateSaveAllButton();
-                } else {
-                    alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
+                    // Lang-Row öffnen um alle Übersetzungen zu zeigen
+                    $row.find('.lang-toggle').addClass('active');
+                    $langRow.addClass('open');
                 }
-            })
-            .fail((xhr, status, error) => {
-                alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + error);
-            })
-            .always(() => {
-                $btn.prop('disabled', false).html(originalHtml);
-                $row.removeClass('saving');
-            });
+            } else {
+                // Einsprachig: Nur erste Sprache
+                const $input = $allInputs.first();
+                const clangId = $input.data('clang-id') || this.currentLangId;
+                const langCode = this.languages[clangId]?.code || 'de';
+                
+                try {
+                    const response = await $.getJSON(this.apiEndpoint, {
+                        action: 'ai_generate',
+                        filename: filename,
+                        language: langCode
+                    });
+                    
+                    console.log('AI Response:', response);
+                    if (response.success && response.alt_text) {
+                        $input.val(response.alt_text).addClass('modified').focus();
+                        this.modifiedImages.add(filename);
+                        $row.find('.btn-save-row').addClass('visible');
+                        this.updateSaveAllButton();
+                    } else {
+                        alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
+                    }
+                } catch (e) {
+                    alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + e.message);
+                }
+            }
+            
+            $btn.prop('disabled', false).html(originalHtml);
+            $row.removeClass('saving');
         },
         
         // AI: Alt-Texte für alle Bilder generieren
