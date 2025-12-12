@@ -47,6 +47,7 @@ alt_checker_ai_generate = AI Alt-Text generieren
 alt_checker_ai_generate_all = AI für alle generieren
 alt_checker_ai_generating = Generiere...
 alt_checker_ai_not_configured = AI nicht konfiguriert
+alt_checker_ai_hint = KI-Alt-Text-Generierung ist nicht aktiv. Konfiguration unter Einstellungen (ggf. kostenpflichtig).
 alt_checker_ai_error = AI-Fehler
 alt_checker_ai_tokens = Tokens
 alt_checker_ai_svg_not_supported = SVG nicht unterstützt

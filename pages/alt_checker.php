@@ -30,6 +30,10 @@ $apiEndpoint = rex_url::backendController([
 // Prüfen ob med_alt Feld existiert
 $altFieldExists = filepond_alt_text_checker::checkAltFieldExists();
 
+// AI-Status prüfen
+$aiEnabled = filepond_ai_alt_generator::isEnabled();
+$aiProvider = rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
+
 // Mehrsprachigkeit prüfen
 $isMultiLang = filepond_alt_text_checker::isMultiLangField();
 $languages = [];
@@ -101,6 +105,14 @@ $currentLangId = rex_clang::getCurrentId();
     </div>
 
     <!-- Filter -->
+    <?php if (!$aiEnabled): ?>
+    <div class="alert alert-info alert-dismissible" style="margin-bottom: 15px; padding: 10px 15px;">
+        <button type="button" class="close" data-dismiss="alert" style="right: 10px;">&times;</button>
+        <i class="fa fa-magic"></i> 
+        <?= $addon->i18n('alt_checker_ai_hint') ?>
+    </div>
+    <?php endif; ?>
+    
     <form id="alt-checker-filter-form" class="form-inline" style="margin-bottom: 15px;">
         <div class="form-group">
             <label for="filter_filename" class="sr-only"><?= $addon->i18n('alt_checker_filename') ?></label>
