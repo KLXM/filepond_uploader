@@ -283,6 +283,17 @@ $field = $form->addInputField('text', 'gemini_api_key', null, [
 $field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
 $field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice'));
 
+// Gemini Modell Auswahl
+$field = $form->addSelectField('gemini_model', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_gemini_model'));
+$select = $field->getSelect();
+foreach (filepond_ai_alt_generator::MODELS as $modelId => $modelName) {
+    $select->addOption($modelName, $modelId);
+}
+$field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
+
 $form->addRawField('</div>');
 
 // Rechte Spalte - Custom Prompt

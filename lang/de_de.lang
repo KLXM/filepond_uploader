@@ -153,6 +153,8 @@ filepond_settings_enable_ai_alt_label = AI Alt-Text-Generierung aktivieren
 filepond_settings_enable_ai_alt_notice = Nutzt Google Gemini Vision API zur automatischen Generierung von Alt-Texten. Kostenlos bis 1500 Requests/Tag.
 filepond_settings_gemini_api_key = Gemini API-Key
 filepond_settings_gemini_api_key_notice = API-Key von <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> erstellen (kostenlos)
+filepond_settings_gemini_model = Gemini Modell
+filepond_settings_gemini_model_notice = Flash-Modelle sind kostenlos (bis 1500 Req/Tag). Pro-Modelle erfordern einen bezahlten API-Key.
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
