@@ -391,9 +391,23 @@ PROMPT;
         }
         
         if ($httpCode === 200) {
+            $responseData = json_decode($response, true);
+            
+            // Token-Info extrahieren
+            $tokenInfo = '';
+            if (isset($responseData['usageMetadata'])) {
+                $usage = $responseData['usageMetadata'];
+                $tokenInfo = sprintf(
+                    ' | Tokens: %d (Prompt) + %d (Antwort) = %d',
+                    $usage['promptTokenCount'] ?? 0,
+                    $usage['candidatesTokenCount'] ?? 0,
+                    $usage['totalTokenCount'] ?? 0
+                );
+            }
+            
             return [
                 'success' => true,
-                'message' => 'Verbindung erfolgreich! Modell: ' . $this->model
+                'message' => 'Verbindung erfolgreich! Modell: ' . $this->model . $tokenInfo
             ];
         }
         
