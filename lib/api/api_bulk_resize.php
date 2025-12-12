@@ -5,7 +5,7 @@
  */
 class rex_api_filepond_bulk_resize extends rex_api_function
 {
-    protected $published = true;
+    protected $published = false;  // Nur für eingeloggte Backend-User
 
     public function execute()
     {
