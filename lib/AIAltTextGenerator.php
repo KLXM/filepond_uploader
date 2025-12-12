@@ -327,17 +327,42 @@ PROMPT;
             CURLOPT_POSTFIELDS => json_encode($data),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 10
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2
         ]);
         
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        $curlErrno = curl_errno($ch);
         curl_close($ch);
+        
+        // cURL-Fehler (Netzwerk, SSL, etc.)
+        if ($curlErrno) {
+            $errorDetails = 'cURL Error #' . $curlErrno . ': ' . $curlError;
+            
+            // Hilfreiche Hinweise für häufige Fehler
+            if ($curlErrno === 60 || $curlErrno === 77) {
+                $errorDetails .= ' (SSL-Zertifikatsproblem - evtl. cacert.pem fehlt)';
+            } elseif ($curlErrno === 6) {
+                $errorDetails .= ' (DNS-Auflösung fehlgeschlagen)';
+            } elseif ($curlErrno === 7) {
+                $errorDetails .= ' (Verbindung zu Google-Servern fehlgeschlagen)';
+            } elseif ($curlErrno === 28) {
+                $errorDetails .= ' (Timeout - Server antwortet nicht)';
+            }
+            
+            return [
+                'success' => false,
+                'message' => $errorDetails
+            ];
+        }
         
         if ($httpCode === 200) {
             return [
                 'success' => true,
-                'message' => 'Verbindung erfolgreich! API ist bereit.'
+                'message' => 'Verbindung erfolgreich! Modell: ' . $this->model
             ];
         }
         
