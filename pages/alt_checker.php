@@ -33,14 +33,13 @@ $altFieldExists = filepond_alt_text_checker::checkAltFieldExists();
 // Mehrsprachigkeit prüfen
 $isMultiLang = filepond_alt_text_checker::isMultiLangField();
 $languages = [];
-if ($isMultiLang) {
-    foreach (rex_clang::getAll() as $clang) {
-        $languages[$clang->getId()] = [
-            'id' => $clang->getId(),
-            'code' => $clang->getCode(),
-            'name' => $clang->getName()
-        ];
-    }
+// Sprachen immer laden, auch für einsprachige Seiten (für AI-Generierung)
+foreach (rex_clang::getAll() as $clang) {
+    $languages[$clang->getId()] = [
+        'id' => $clang->getId(),
+        'code' => $clang->getCode(),
+        'name' => $clang->getName()
+    ];
 }
 $currentLangId = rex_clang::getCurrentId();
 
@@ -844,6 +843,7 @@ $(document).on('rex:ready', function() {
                 language: langCode
             })
             .done((response) => {
+                console.log('AI Response:', response); // Debug
                 if (response.success && response.alt_text) {
                     $input.val(response.alt_text).addClass('modified').focus();
                     this.modifiedImages.add(filename);

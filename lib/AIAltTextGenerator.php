@@ -162,18 +162,18 @@ class filepond_ai_alt_generator
         $langName = $this->getLanguageName($language);
         
         return <<<PROMPT
-Analysiere dieses Bild und erstelle einen prägnanten, beschreibenden Alt-Text auf $langName.
+Analysiere dieses Bild und erstelle einen beschreibenden Alt-Text auf $langName.
 
-Regeln für den Alt-Text:
-- Beschreibe den wesentlichen Inhalt des Bildes in 1-2 Sätzen
-- Maximal 125 Zeichen
-- Keine Phrasen wie "Bild von" oder "Foto zeigt"
+Regeln:
+- Beschreibe den wesentlichen Bildinhalt in einem vollständigen Satz
+- Halte den Text kurz (ca. 10-15 Wörter), aber vollständig
+- Keine Phrasen wie "Bild von", "Foto zeigt" oder "Abbildung"
 - Beginne direkt mit der Beschreibung
-- Sei konkret und beschreibend
-- Berücksichtige wichtige Details wie Farben, Personen, Objekte, Aktionen
-- Der Text soll für Screenreader-Nutzer den Bildinhalt verständlich machen
+- Beschreibe konkret: Farben, Personen, Objekte, Handlungen
+- Der Text muss für Screenreader-Nutzer verständlich sein
+- WICHTIG: Der Satz muss vollständig sein, nicht mitten im Wort abbrechen!
 
-Antworte NUR mit dem Alt-Text, ohne Anführungszeichen oder zusätzliche Erklärungen.
+Antworte NUR mit dem Alt-Text, ohne Anführungszeichen oder Erklärungen.
 PROMPT;
     }
     
