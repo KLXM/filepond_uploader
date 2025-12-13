@@ -19,9 +19,29 @@ class filepond_bulk_resize
     // Batch Cache Key Prefix
     const BATCH_CACHE_KEY = 'filepond_bulk_resize_';
     
-    // Max parallele Prozesse
-    const MAX_PARALLEL = 3;
+    // Max parallele Prozesse (reduziert für große Bilder)
+    const MAX_PARALLEL = 1;
 
+    /**
+     * Prüft ob convert/magick CLI verfügbar ist
+     */
+    public static function hasConvertCli(): bool
+    {
+        static $hasConvert = null;
+        
+        if ($hasConvert !== null) {
+            return $hasConvert;
+        }
+        
+        if (!function_exists('exec')) {
+            return $hasConvert = false;
+        }
+        
+        $out = [];
+        exec('command -v convert 2>/dev/null || command -v magick 2>/dev/null', $out, $ret);
+        return $hasConvert = ($ret === 0 && !empty($out[0]));
+    }
+    
     /**
      * Prüft ob ImageMagick verfügbar ist
      */
@@ -31,13 +51,7 @@ class filepond_bulk_resize
             return true;
         }
         
-        if (function_exists('exec')) {
-            $out = [];
-            exec('command -v convert || which convert 2>/dev/null', $out, $ret);
-            return $ret === 0 && !empty($out[0]);
-        }
-        
-        return false;
+        return self::hasConvertCli();
     }
 
     /**
@@ -329,6 +343,10 @@ class filepond_bulk_resize
      */
     public static function processNextBatchItems(string $batchId): array
     {
+        // Memory und Timeout für große Bilder erhöhen
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(300);
+        
         $status = self::getBatchStatus($batchId);
         
         if (!$status || $status['status'] !== 'running') {
@@ -412,6 +430,10 @@ class filepond_bulk_resize
      */
     public static function resizeFile(string $filename, int $maxWidth, int $maxHeight, int $quality = 85): array
     {
+        // Zusätzliche Ressourcen für große Bilder
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+        
         try {
             $canProcess = self::canProcessImage($filename);
             
@@ -460,17 +482,29 @@ class filepond_bulk_resize
                 ];
             }
             
-            // Verarbeitung mit ImageMagick oder GD
-            if ($canProcess['needsImageMagick'] || (self::hasImageMagick() && class_exists('Imagick'))) {
-                $result = self::resizeWithImageMagick($imagePath, $maxWidth, $maxHeight, $quality);
-            } else {
-                $result = self::resizeWithGD($imagePath, $maxWidth, $maxHeight, $quality, $imageInfo[2]);
-            }
+            // Verarbeitung: Bevorzuge CLI für große Bilder (robuster)
+            $useCliForLargeImages = ($origWidth > 3000 || $origHeight > 3000);
             
-            if (!$result) {
+            try {
+                if ($useCliForLargeImages && self::hasConvertCli()) {
+                    $result = self::resizeWithConvertCli($imagePath, $maxWidth, $maxHeight, $quality);
+                } elseif ($canProcess['needsImageMagick'] || (self::hasImageMagick() && class_exists('Imagick'))) {
+                    $result = self::resizeWithImageMagick($imagePath, $maxWidth, $maxHeight, $quality);
+                } else {
+                    $result = self::resizeWithGD($imagePath, $maxWidth, $maxHeight, $quality, $imageInfo[2]);
+                }
+                
+                if (!$result) {
+                    return [
+                        'success' => false,
+                        'error' => 'Bildverarbeitung fehlgeschlagen',
+                        'filename' => $filename
+                    ];
+                }
+            } catch (Exception $resizeException) {
                 return [
                     'success' => false,
-                    'error' => 'Bildverarbeitung fehlgeschlagen',
+                    'error' => 'Resize-Fehler: ' . $resizeException->getMessage(),
                     'filename' => $filename
                 ];
             }
@@ -514,12 +548,67 @@ class filepond_bulk_resize
     }
 
     /**
-     * Resize mit ImageMagick
+     * Resize mit convert/magick CLI (am robustesten für große Bilder)
+     */
+    private static function resizeWithConvertCli(string $imagePath, int $maxWidth, int $maxHeight, int $quality): bool
+    {
+        $tempPath = $imagePath . '.tmp_' . uniqid();
+        
+        // Prüfe ob convert oder magick verfügbar ist
+        $out = [];
+        exec('command -v magick 2>/dev/null', $out, $ret);
+        $binary = ($ret === 0 && !empty($out[0])) ? 'magick' : 'convert';
+        
+        // Setze Ressourcenlimits für ImageMagick
+        $cmd = sprintf(
+            '%s %s -auto-orient -resize %dx%d\> -quality %d -limit memory 512MiB -limit map 1GiB %s 2>&1',
+            $binary,
+            escapeshellarg($imagePath),
+            $maxWidth,
+            $maxHeight,
+            $quality,
+            escapeshellarg($tempPath)
+        );
+        
+        $output = [];
+        $returnVar = 0;
+        exec($cmd, $output, $returnVar);
+        
+        if ($returnVar !== 0 || !file_exists($tempPath)) {
+            @unlink($tempPath);
+            if (!empty($output)) {
+                rex_logger::factory()->log('warning', 'ImageMagick CLI Fehler: ' . implode(' ', $output));
+            }
+            return false;
+        }
+        
+        // Prüfe ob die Datei erfolgreich erstellt wurde und nicht leer ist
+        if (filesize($tempPath) === 0) {
+            @unlink($tempPath);
+            return false;
+        }
+        
+        if (!rename($tempPath, $imagePath)) {
+            @unlink($tempPath);
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Resize mit ImageMagick (PHP Extension)
      */
     private static function resizeWithImageMagick(string $imagePath, int $maxWidth, int $maxHeight, int $quality): bool
     {
         if (class_exists('Imagick')) {
             try {
+                // Memory-Limit für ImageMagick setzen
+                if (method_exists('Imagick', 'setResourceLimit')) {
+                    Imagick::setResourceLimit(Imagick::RESOURCETYPE_MEMORY, 256);
+                    Imagick::setResourceLimit(Imagick::RESOURCETYPE_MAP, 512);
+                }
+                
                 $imagick = new Imagick($imagePath);
                 
                 // EXIF-Orientierung korrigieren (falls Methode existiert)
@@ -555,9 +644,14 @@ class filepond_bulk_resize
                 
                 $imagick->writeImage($imagePath);
                 $imagick->clear();
+                $imagick->destroy();
                 return true;
             } catch (Exception $e) {
                 rex_logger::logException($e);
+                if (isset($imagick)) {
+                    $imagick->clear();
+                    $imagick->destroy();
+                }
                 return false;
             }
         }
