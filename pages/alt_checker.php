@@ -329,7 +329,7 @@ if ($altFieldExists) {
             $urlProvider = new rex_context([
                 'page' => 'filepond_uploader/alt_checker',
                 'filter_filename' => $filterFilename,
-                'filter_category' => $filterCategoryId,
+                'filter_category' => $filterCategory,
                 'items_per_page' => $itemsPerPage
             ]);
             $fragment = new rex_fragment();
