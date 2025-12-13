@@ -62,8 +62,10 @@ $images = filepond_bulk_resize::findOversizedImages($filters, $itemsPerPage, $of
 // Load JS and CSS
 rex_view::addJsFile($addon->getAssetsUrl('filepond_bulk_resize.js'));
 
+// Setze Body-ID für JavaScript
+rex_view::setBodyAttr('id', 'rex-page-filepond-uploader-bulk-resize');
+
 ?>
-<body id="rex-page-filepond-uploader-bulk-resize">
 
 <!-- Header mit Info -->
 <div class="panel panel-default">
@@ -252,5 +254,3 @@ rex_view::addJsFile($addon->getAssetsUrl('filepond_bulk_resize.js'));
     </div>
     <?php endif; ?>
 </div>
-
-</body>

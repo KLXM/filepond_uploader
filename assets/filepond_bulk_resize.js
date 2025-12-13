@@ -1,6 +1,6 @@
 
-$(document).on('rex:ready', function (event, element) {
-    if(!$('body#rex-page-filepond-uploader-bulk-resize').length) {
+function initBulkResize() {
+    if(!$('body#rex-page-filepond-uploader-bulk-resize').length && !$('#filepond-bulk-resize-table').length) {
         return;
     }
 
@@ -344,4 +344,8 @@ $(document).on('rex:ready', function (event, element) {
             location.reload();
         }, 600);
     });
-});
+}
+
+// Initialize on rex:ready and document ready
+$(document).on('rex:ready', initBulkResize);
+$(document).ready(initBulkResize);
