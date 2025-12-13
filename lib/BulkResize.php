@@ -86,7 +86,7 @@ class filepond_bulk_resize
     /**
      * Findet alle Bilder die größer als die max. Werte sind
      */
-    public static function findOversizedImages(int $maxWidth, int $maxHeight, array $filters = []): array
+    public static function findOversizedImages(int $maxWidth, int $maxHeight, array $filters = [], int $limit = 0, int $offset = 0): array
     {
         $where = ['filetype LIKE "image/%"'];
         
@@ -121,14 +121,68 @@ class filepond_bulk_resize
         }
         
         $sql = rex_sql::factory();
-        $sql->setQuery('
+        $query = '
             SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
             ORDER BY filesize DESC
-        ');
+        ';
+
+        if ($limit > 0) {
+            $query .= ' LIMIT ' . (int)$offset . ', ' . (int)$limit;
+        }
+        
+        $sql->setQuery($query);
         
         return $sql->getArray();
+    }
+
+    /**
+     * Zählt alle Bilder die größer als die max. Werte sind
+     */
+    public static function countOversizedImages(int $maxWidth, int $maxHeight, array $filters = []): int
+    {
+        $where = ['filetype LIKE "image/%"'];
+        
+        // Größenfilter
+        $sizeConditions = [];
+        if ($maxWidth > 0) {
+            $sizeConditions[] = 'width > ' . $maxWidth;
+        }
+        if ($maxHeight > 0) {
+            $sizeConditions[] = 'height > ' . $maxHeight;
+        }
+        
+        if (!empty($sizeConditions)) {
+            $where[] = '(' . implode(' OR ', $sizeConditions) . ')';
+        }
+        
+        // Zusätzliche Filter
+        if (!empty($filters['filename'])) {
+            $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
+        }
+        if (!empty($filters['category_id'])) {
+            $categories = array_map('intval', explode(',', $filters['category_id']));
+            $where[] = 'category_id IN (' . implode(',', $categories) . ')';
+        }
+        if (!empty($filters['min_filesize'])) {
+            $where[] = 'CAST(filesize as SIGNED) >= ' . (intval($filters['min_filesize']) * 1024);
+        }
+        if (!empty($filters['min_width'])) {
+            $where[] = 'width >= ' . intval($filters['min_width']);
+        }
+        if (!empty($filters['min_height'])) {
+            $where[] = 'height >= ' . intval($filters['min_height']);
+        }
+        
+        $sql = rex_sql::factory();
+        $sql->setQuery('
+            SELECT COUNT(*) as count
+            FROM ' . rex::getTable('media') . '
+            WHERE ' . implode(' AND ', $where)
+        );
+        
+        return (int) $sql->getValue('count');
     }
 
     /**

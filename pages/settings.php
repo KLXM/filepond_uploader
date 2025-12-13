@@ -380,6 +380,26 @@ $form->addRawField('
 ');
 
 // ============================================================================
+// 5. ANZEIGE-EINSTELLUNGEN
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_display_settings'));
+
+$form->addRawField('<div class="row">');
+$form->addRawField('<div class="col-sm-6">');
+
+// Elemente pro Seite
+$field = $form->addInputField('number', 'items_per_page', null, [
+    'class' => 'form-control',
+    'min' => '10',
+    'max' => '500'
+]);
+$field->setLabel($addon->i18n('filepond_settings_items_per_page'));
+$field->setNotice($addon->i18n('filepond_settings_items_per_page_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>');
+
+// ============================================================================
 // 6. API & SICHERHEIT
 // ============================================================================
 $form->addFieldset($addon->i18n('filepond_token_section'));
