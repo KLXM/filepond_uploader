@@ -97,7 +97,7 @@
                 type: 'POST',
                 dataType: 'json',
                 data: {
-                    'rex-api-call': 'FriendsOfRedaxo_FilePondUploader_ApiBulkProcess',
+                    'rex-api-call': 'filepond_api_bulk_process',
                     action: 'start',
                     filenames: selectedFiles,
                     maxWidth: maxWidth,
@@ -133,7 +133,7 @@
                 type: 'POST',
                 dataType: 'json',
                 data: {
-                    'rex-api-call': 'FriendsOfRedaxo_FilePondUploader_ApiBulkProcess',
+                    'rex-api-call': 'filepond_api_bulk_process',
                     action: 'process',
                     batchId: this.batchId
                 },
@@ -179,7 +179,7 @@
                 type: 'POST',
                 dataType: 'json',
                 data: {
-                    'rex-api-call': 'FriendsOfRedaxo_FilePondUploader_ApiBulkProcess',
+                    'rex-api-call': 'filepond_api_bulk_process',
                     action: 'status',
                     batchId: this.batchId
                 },

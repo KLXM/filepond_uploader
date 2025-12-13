@@ -1,18 +1,13 @@
 <?php
 
-namespace FriendsOfRedaxo\FilePondUploader;
-
-use rex;
-use rex_api_function;
-use rex_request;
-use rex_response;
+use FriendsOfRedaxo\FilePondUploader\BulkResize;
 
 /**
  * API Endpunkt für asynchrone Bulk-Verarbeitung
  *
  * @package filepond_uploader
  */
-class ApiBulkProcess extends rex_api_function
+class filepond_api_bulk_process extends rex_api_function
 {
     public function execute(): void
     {

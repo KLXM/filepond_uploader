@@ -8,10 +8,29 @@ use FriendsOfRedaxo\FilePondUploader\BulkReworkList;
 echo rex_view::title($this->i18n('filepond_uploader_bulk_resize'));
 
 $addon = rex_addon::get('filepond_uploader');
-// Nutze max_pixel als Standard für beide Dimensionen
-$maxPixel = (int) $addon->getConfig('max_pixel', 2100);
-$maxWidth = $maxPixel;
-$maxHeight = $maxPixel;
+
+// Nutze spezifische Bulk Resize Einstellungen oder fallback zu max_pixel
+// WICHTIG: max_pixel kann sehr klein sein (z.B. 100px für Upload-Validierung)
+// Für Bulk Resize brauchen wir größere Werte
+$maxWidth = (int) $addon->getConfig('bulk_resize_max_width', 0);
+$maxHeight = (int) $addon->getConfig('bulk_resize_max_height', 0);
+
+// Fallback: Wenn nicht gesetzt, nutze 2000x2000 als sinnvollen Standard für Bulk Resize
+if ($maxWidth === 0 && $maxHeight === 0) {
+    $maxWidth = 2000;
+    $maxHeight = 2000;
+}
+
+// Max-Größe konfigurieren
+if (rex_request('formsubmit', 'string') == 'set-max-size') {
+    $newMaxWidth = rex_request('bulk-max-width', 'int', 2000);
+    $newMaxHeight = rex_request('bulk-max-height', 'int', 2000);
+    $this->setConfig('bulk_resize_max_width', $newMaxWidth);
+    $this->setConfig('bulk_resize_max_height', $newMaxHeight);
+    $maxWidth = $newMaxWidth;
+    $maxHeight = $newMaxHeight;
+    echo rex_view::success('Maximale Bildgröße gespeichert: ' . $maxWidth . 'x' . $maxHeight . ' px');
+}
 
 // Einträge pro Seite konfigurieren
 if (rex_request('formsubmit', 'string') == 'set-num-hits-per-page') {
@@ -36,6 +55,44 @@ if (BulkResize::hasImageMagick()) {
 if (!empty($imageLibInfo)) {
     echo rex_view::info(implode(' | ', $imageLibInfo));
 }
+
+// Einstellungsformular
+$content = '
+<form action="' . rex_url::currentBackendPage() . '" method="post">
+    <div class="row">
+        <div class="col-sm-6">
+            <div class="panel panel-default">
+                <header class="panel-heading"><div class="panel-title">Maximale Bildgröße</div></header>
+                <div class="panel-body">
+                    <p class="text-muted">Bilder die breiter ODER höher als diese Werte sind, werden in der Liste angezeigt.</p>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="bulk-max-width">Max. Breite (px)</label>
+                                <input type="number" class="form-control" id="bulk-max-width" name="bulk-max-width" value="' . $maxWidth . '" min="100" max="10000">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="bulk-max-height">Max. Höhe (px)</label>
+                                <input type="number" class="form-control" id="bulk-max-height" name="bulk-max-height" value="' . $maxHeight . '" min="100" max="10000">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-save" name="formsubmit" value="set-max-size">
+                        <i class="rex-icon fa-save"></i> Speichern
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+';
+
+$fragment = new rex_fragment();
+$fragment->setVar('body', $content, false);
+$fragment->setVar('class', 'edit', false);
+echo $fragment->parse('core/page/section.php');
 
 // Bereinige alte Batch-Dateien
 BulkResize::cleanupOldBatches();
@@ -100,11 +157,6 @@ $sql = '
     WHERE
         ' . implode(' AND ', $conditions) . '
 ';
-
-// Debug-Ausgabe
-if (rex::isDebugMode()) {
-    echo rex_view::info('Debug SQL: <pre>' . $sql . '</pre>Max Width: ' . $maxWidth . ', Max Height: ' . $maxHeight);
-}
 
 $list = BulkReworkList::factory($sql, $hitsPerPage, 'filepond-bulk-resize', false, 1, ['id' => 'desc']);
 $list->addParam('page', rex_be_controller::getCurrentPage());
