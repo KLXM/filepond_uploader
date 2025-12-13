@@ -127,7 +127,7 @@ class filepond_bulk_resize
             SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
-            ORDER BY filesize DESC
+            ORDER BY createdate DESC
         ';
 
         if ($limit > 0) {
