@@ -437,7 +437,9 @@ $(document).on('rex:ready', function() {
                 per_page: this.perPage
             };
             
-            $.getJSON(this.apiEndpoint + '&' + $.param(params))
+            const url = this.apiEndpoint + '&' + $.param(params);
+            console.log('BulkResize loadImages URL:', url);
+            $.getJSON(url)
                 .done((response) => {
                     $loading.hide();
                     
@@ -502,7 +504,11 @@ $(document).on('rex:ready', function() {
                 })
                 .fail((xhr, status, error) => {
                     $loading.hide();
-                    $noImages.text('Fehler beim Laden: ' + error).removeClass('alert-info').addClass('alert-danger').show();
+                    console.error('BulkResize loadImages failed:', status, error, xhr.responseText);
+                    const serverText = xhr && xhr.responseText ? xhr.responseText : error;
+                    $noImages.text('Fehler beim Laden: ' + (status + ' - ' + error)).removeClass('alert-info').addClass('alert-danger').show();
+                    // Show server response in console for debugging
+                    console.debug('Server response:', serverText);
                 });
         },
         

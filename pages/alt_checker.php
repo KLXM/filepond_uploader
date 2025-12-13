@@ -500,7 +500,9 @@ $(document).on('rex:ready', function() {
                 per_page: this.perPage
             };
             
-            $.getJSON(this.apiEndpoint + '&' + $.param(params))
+            const url = this.apiEndpoint + '&' + $.param(params);
+            console.log('AltChecker loadImages URL:', url);
+            $.getJSON(url)
                 .done((response) => {
                     $loading.hide();
                     
@@ -544,7 +546,8 @@ $(document).on('rex:ready', function() {
                 })
                 .fail((xhr, status, error) => {
                     $loading.hide();
-                    alert('Fehler: ' + error);
+                    console.error('AltChecker loadImages failed:', status, error, xhr.responseText);
+                    alert('Fehler: ' + status + ' - ' + error + '\nSiehe Konsole für Details.');
                 });
         },
         
