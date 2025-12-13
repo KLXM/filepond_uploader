@@ -181,6 +181,18 @@ $currentLangId = rex_clang::getCurrentId();
                 <i class="fa fa-check-circle"></i> <?= $addon->i18n('alt_checker_all_complete') ?>
             </div>
         </div>
+        <div class="panel-footer" id="pagination-container" style="display:none;">
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="pagination-info"></div>
+                </div>
+                <div class="col-sm-6">
+                    <nav class="text-right">
+                        <ul class="pagination" style="margin: 0;"></ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
     </div>
     
     <?php endif; ?>
@@ -358,6 +370,10 @@ $(document).on('rex:ready', function() {
         aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
         images: [],
         modifiedImages: new Set(),
+        currentPage: 1,
+        perPage: 50,
+        totalPages: 1,
+        totalImages: 0,
         
         init() {
             this.bindEvents();
@@ -443,19 +459,27 @@ $(document).on('rex:ready', function() {
             $('#btn-ai-generate-all').on('click', () => this.aiGenerateAll());
         },
         
-        loadImages() {
+        loadImages(page = null) {
+            if (page !== null) {
+                this.currentPage = page;
+            }
+            
             const $loading = $('#loading-indicator');
             const $table = $('#images-table');
             const $noImages = $('#no-images-message');
+            const $pagination = $('#pagination-container');
             
             $loading.show();
             $table.hide();
             $noImages.hide();
+            $pagination.hide();
             
             const params = {
                 action: 'list',
                 filter_filename: $('#filter_filename').val(),
-                filter_category: $('#filter_category').val()
+                filter_category: $('#filter_category').val(),
+                page: this.currentPage,
+                per_page: this.perPage
             };
             
             $.getJSON(this.apiEndpoint + '&' + $.param(params))
@@ -476,9 +500,17 @@ $(document).on('rex:ready', function() {
                         this.updateStats(response.stats);
                     }
                     
+                    // Pagination-Daten aktualisieren
+                    if (response.pagination) {
+                        this.totalPages = response.pagination.totalPages;
+                        this.totalImages = response.pagination.total;
+                        this.currentPage = response.pagination.page;
+                        this.perPage = response.pagination.perPage;
+                    }
+                    
                     this.images = response.images || [];
                     this.modifiedImages.clear();
-                    $('#image-count').text(this.images.length);
+                    $('#image-count').text(this.totalImages || this.images.length);
                     this.updateSaveAllButton();
                     
                     // AI-Button aktivieren wenn Bilder vorhanden
@@ -486,13 +518,19 @@ $(document).on('rex:ready', function() {
                         $('#btn-ai-generate-all').prop('disabled', this.images.length === 0);
                     }
                     
-                    if (this.images.length === 0) {
+                    if (this.totalImages === 0) {
                         $noImages.show();
                         return;
                     }
                     
                     this.renderTable();
                     $table.show();
+                    
+                    // Pagination anzeigen wenn mehr als eine Seite
+                    if (this.totalPages > 1) {
+                        this.renderPagination();
+                        $pagination.show();
+                    }
                 })
                 .fail((xhr, status, error) => {
                     $loading.hide();
@@ -1017,6 +1055,85 @@ $(document).on('rex:ready', function() {
             
             this.updateSaveAllButton();
             $btn.prop('disabled', false).html(originalHtml);
+        },
+        
+        renderPagination() {
+            const $pagination = $('#pagination-container .pagination');
+            const $info = $('#pagination-container .pagination-info');
+            
+            // Info-Text
+            const start = ((this.currentPage - 1) * this.perPage) + 1;
+            const end = Math.min(this.currentPage * this.perPage, this.totalImages);
+            $info.html(`<?= $addon->i18n('alt_checker_showing') ?> ${start}-${end} <?= $addon->i18n('alt_checker_of') ?> ${this.totalImages}`);
+            
+            // Pagination-Buttons
+            $pagination.empty();
+            
+            // Vorherige Seite
+            if (this.currentPage > 1) {
+                $pagination.append(`
+                    <li><a href="#" data-page="${this.currentPage - 1}">
+                        <i class="fa fa-chevron-left"></i>
+                    </a></li>
+                `);
+            } else {
+                $pagination.append(`<li class="disabled"><span><i class="fa fa-chevron-left"></i></span></li>`);
+            }
+            
+            // Seiten-Buttons
+            const maxButtons = 5;
+            let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
+            let endPage = Math.min(this.totalPages, startPage + maxButtons - 1);
+            
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+            
+            if (startPage > 1) {
+                $pagination.append(`<li><a href="#" data-page="1">1</a></li>`);
+                if (startPage > 2) {
+                    $pagination.append(`<li class="disabled"><span>...</span></li>`);
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                if (i === this.currentPage) {
+                    $pagination.append(`<li class="active"><span>${i}</span></li>`);
+                } else {
+                    $pagination.append(`<li><a href="#" data-page="${i}">${i}</a></li>`);
+                }
+            }
+            
+            if (endPage < this.totalPages) {
+                if (endPage < this.totalPages - 1) {
+                    $pagination.append(`<li class="disabled"><span>...</span></li>`);
+                }
+                $pagination.append(`<li><a href="#" data-page="${this.totalPages}">${this.totalPages}</a></li>`);
+            }
+            
+            // Nächste Seite
+            if (this.currentPage < this.totalPages) {
+                $pagination.append(`
+                    <li><a href="#" data-page="${this.currentPage + 1}">
+                        <i class="fa fa-chevron-right"></i>
+                    </a></li>
+                `);
+            } else {
+                $pagination.append(`<li class="disabled"><span><i class="fa fa-chevron-right"></i></span></li>`);
+            }
+            
+            // Click-Handler für Pagination
+            $pagination.find('a').on('click', (e) => {
+                e.preventDefault();
+                const page = parseInt($(e.currentTarget).data('page'));
+                if (page && page !== this.currentPage) {
+                    this.loadImages(page);
+                    // Nach oben scrollen
+                    $('html, body').animate({
+                        scrollTop: $('#images-table').offset().top - 100
+                    }, 300);
+                }
+            });
         },
         
         escapeHtml(text) {

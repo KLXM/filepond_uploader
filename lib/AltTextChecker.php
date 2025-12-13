@@ -113,8 +113,13 @@ class filepond_alt_text_checker
     /**
      * Findet alle Bilder ohne Alt-Text
      * Dekorative Bilder (aus Negativ-Liste) werden ausgeschlossen
+     * 
+     * @param array $filters Filter-Optionen
+     * @param int|null $page Seitennummer (1-basiert), null für alle Ergebnisse
+     * @param int $perPage Anzahl der Ergebnisse pro Seite
+     * @return array Bilder oder Paginated Array mit 'items', 'total', 'page', 'perPage', 'totalPages'
      */
-    public static function findImagesWithoutAlt(array $filters = []): array
+    public static function findImagesWithoutAlt(array $filters = [], ?int $page = null, int $perPage = 50): array
     {
         // Dekorative Bilder ausschließen
         $decorativeList = self::getDecorativeList();
@@ -152,7 +157,26 @@ class filepond_alt_text_checker
             }
         }
         
-        return $imagesWithoutAlt;
+        // Wenn keine Paginierung gewünscht ist, alle Ergebnisse zurückgeben
+        if ($page === null) {
+            return $imagesWithoutAlt;
+        }
+        
+        // Paginierung anwenden
+        $total = count($imagesWithoutAlt);
+        $totalPages = $perPage > 0 ? (int)ceil($total / $perPage) : 1;
+        $page = max(1, min($page, max(1, $totalPages)));
+        $offset = ($page - 1) * $perPage;
+        
+        $items = array_slice($imagesWithoutAlt, $offset, $perPage);
+        
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => $totalPages
+        ];
     }
 
     /**

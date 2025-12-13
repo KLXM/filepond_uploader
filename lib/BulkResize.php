@@ -85,8 +85,15 @@ class filepond_bulk_resize
 
     /**
      * Findet alle Bilder die größer als die max. Werte sind
+     * 
+     * @param int $maxWidth Maximale Breite
+     * @param int $maxHeight Maximale Höhe
+     * @param array $filters Filter-Optionen
+     * @param int|null $page Seitennummer (1-basiert), null für alle Ergebnisse
+     * @param int $perPage Anzahl der Ergebnisse pro Seite
+     * @return array Bilder oder Paginated Array mit 'items', 'total', 'page', 'perPage', 'totalPages'
      */
-    public static function findOversizedImages(int $maxWidth, int $maxHeight, array $filters = []): array
+    public static function findOversizedImages(int $maxWidth, int $maxHeight, array $filters = [], ?int $page = null, int $perPage = 50): array
     {
         $where = ['filetype LIKE "image/%"'];
         
@@ -121,14 +128,47 @@ class filepond_bulk_resize
         }
         
         $sql = rex_sql::factory();
+        
+        // Wenn keine Paginierung gewünscht ist, alle Ergebnisse zurückgeben
+        if ($page === null) {
+            $sql->setQuery('
+                SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
+                FROM ' . rex::getTable('media') . '
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY filesize DESC
+            ');
+            return $sql->getArray();
+        }
+        
+        // Gesamtanzahl ermitteln
+        $sql->setQuery('
+            SELECT COUNT(*) as total
+            FROM ' . rex::getTable('media') . '
+            WHERE ' . implode(' AND ', $where)
+        );
+        $total = (int)$sql->getValue('total');
+        
+        // Paginierung berechnen
+        $totalPages = $perPage > 0 ? (int)ceil($total / $perPage) : 1;
+        $page = max(1, min($page, max(1, $totalPages)));
+        $offset = ($page - 1) * $perPage;
+        
+        // Daten mit Limit laden
         $sql->setQuery('
             SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
             ORDER BY filesize DESC
-        ');
+            LIMIT ' . $offset . ', ' . $perPage
+        );
         
-        return $sql->getArray();
+        return [
+            'items' => $sql->getArray(),
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'totalPages' => $totalPages
+        ];
     }
 
     /**

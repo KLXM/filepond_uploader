@@ -46,6 +46,8 @@ alt_checker_ai_hint = AI alt text generation is not active. Configure in Setting
 alt_checker_ai_error = AI error
 alt_checker_ai_tokens = Tokens
 alt_checker_ai_svg_not_supported = SVG not supported
+alt_checker_showing = Showing
+alt_checker_of = of
 
 # Tabs
 filepond_uploader_upload = Upload
@@ -214,3 +216,5 @@ bulk_resize_log = Processing Log
 bulk_resize_cancel = Cancel
 bulk_resize_done = Done
 bulk_resize_finished = Processing completed
+bulk_resize_showing = Showing
+bulk_resize_of = of
