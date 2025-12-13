@@ -76,6 +76,9 @@ if ($altFieldExists) {
     $offset = $pager->getCursor();
     $images = filepond_alt_text_checker::findImagesWithoutAlt($filters, $itemsPerPage, $offset);
 }
+
+// Determine current page context (mediapool or addon)
+$currentPage = rex_be_controller::getCurrentPage();
 ?>
 
 <div id="alt-checker-app">
@@ -327,7 +330,7 @@ if ($altFieldExists) {
         <div class="panel-footer">
             <?php
             $urlProvider = new rex_context([
-                'page' => 'filepond_uploader/alt_checker',
+                'page' => $currentPage,
                 'filter_filename' => $filterFilename,
                 'filter_category' => $filterCategory,
                 'items_per_page' => $itemsPerPage
