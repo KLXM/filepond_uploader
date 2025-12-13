@@ -4,6 +4,50 @@
 
 ![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
+## Changelog
+
+### Version 2.0.3 (2025-12-13)
+
+**Kritische Bugfixes:**
+
+- ✅ **Fix: Bildverkleinerung trotz deaktivierter Einstellungen**
+  - Problem: Bilder wurden clientseitig verkleinert, obwohl beide Checkboxen deaktiviert waren
+  - Ursache: REDAXO Checkboxen speichern `|1|` wenn aktiviert und `null` wenn deaktiviert
+  - Der Code prüfte mit boolean cast, wodurch `|1|` immer zu `true` konvertiert wurde
+  - Lösung: Explizite String-Prüfung `== '|1|'` statt boolean cast
+  - Betrifft: `create_thumbnails` (clientseitig) und `server_image_processing` (serverseitig)
+
+- ✅ **Fix: Standardwert für clientseitige Verkleinerung**
+  - Clientseitige Bildverkleinerung ist nun standardmäßig deaktiviert
+  - FilePond-Plugins `ImageResize` und `ImageTransform` müssen explizit aktiviert werden
+  - Ändert: `allowImageResize` und `allowImageTransform` nur bei `data-filepond-client-resize="true"`
+
+**Betroffene Dateien:**
+- `lib/FilePondUploadWidget.php`
+- `pages/upload.php`
+- `ytemplates/bootstrap/value.filepond.tpl.php`
+- `assets/filepond_widget.js`
+- `lib/api/api_filepond.php`
+
+**Migration:**
+- Wenn clientseitige Verkleinerung gewünscht ist: Checkbox in Einstellungen aktivieren
+- Wenn serverseitige Verarbeitung gewünscht ist: Checkbox in Einstellungen aktivieren
+- Beide Checkboxen aus = Original-Dateien werden hochgeladen (empfohlen für hochwertige Bilder)
+
+### Version 2.0.2 (2025-12-13)
+
+**Neue Features:**
+
+- ✨ **Bulk Resize Feature**
+  - Nachträgliche Verkleinerung bestehender Bilder im Medienpool
+  - Asynchrone Batch-Verarbeitung mit Progress-Modal
+  - Thumbnail-Vorschau mit Lazy Loading und Modal-Zoom
+  - GD Library + ImageMagick CLI Support (95% JPEG/WebP Qualität)
+  - Rex_list mit Paginierung und Suchfiltern
+  - Dark Mode Support
+  - Datenbank-Updates ohne Änderung von `updatedate`
+  - Verwendet `max_pixel` aus Addon-Einstellungen
+
 Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreiheit und rechtliche Anforderungen entwickelt. Er bietet eine moderne Drag-and-Drop-Oberfläche und integriert sich nahtlos in den REDAXO-Medienpool.
 
 ## Hauptmerkmale
@@ -27,13 +71,14 @@ Dieser Uploader wurde mit Blick auf Benutzerfreundlichkeit (UX), Barrierefreihei
     *   Responsives Design für alle Bildschirmgrößen
 
 *   **Automatische Bildoptimierung:**
-    *   **Clientseitige Verkleinerung** großer Bilder vor dem Upload (Standard)
+    *   **Clientseitige Verkleinerung** großer Bilder vor dem Upload (optional, standardmäßig deaktiviert)
     *   Schnellerer Upload durch reduzierte Dateigröße
     *   Weniger Serverlast – ideal für Shared Hosting
     *   Automatische EXIF-Orientierungskorrektur (wichtig für Smartphone-Fotos)
     *   Einstellbare Kompressionsqualität für JPEG/PNG/WebP
     *   Beibehaltung der Originaldimensionen für GIF-Dateien
     *   **Optional:** Zusätzliche serverseitige Bildverarbeitung aktivierbar
+    *   **Wichtig:** Beide Optionen deaktiviert = Original-Dateien werden hochgeladen (empfohlen für professionelle Fotografie)
 
 *   **Barrierefreiheit & rechtliche Sicherheit:**
     *   Erzwingt das Setzen von Alt-Texten für Bilder

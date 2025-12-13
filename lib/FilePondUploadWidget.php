@@ -67,7 +67,7 @@ class FilePondUploadWidget extends AbstractWidget
         $skipMeta = $addon->getConfig('upload_skip_meta', false);
         $delayedUpload = $addon->getConfig('delayed_upload_mode', false);
         $titleRequired = $addon->getConfig('title_required_default', false);
-        $clientResize = $addon->getConfig('create_thumbnails', false);
+        $clientResize = ($addon->getConfig('create_thumbnails', '') == '|1|');
         $maxPixel = $addon->getConfig('max_pixel', 2100);
         $imageQuality = $addon->getConfig('image_quality', 90);
 

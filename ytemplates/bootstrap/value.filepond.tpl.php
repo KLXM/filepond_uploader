@@ -48,10 +48,10 @@ $langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepo
        data-filepond-chunk-size="<?= $chunk_size ?>"
        data-filepond-delayed-upload="<?= (1 == $delayed_upload || 2 == $delayed_upload) ? 'true' : 'false' ?>"
        data-filepond-delayed-type="<?= $delayed_upload ?>"
-       data-filepond-title-required="<?= ($this->getElement('title_required') ? 'true' : 'false') ?>"
-       data-filepond-max-pixel="<?= rex_config::get('filepond_uploader', 'client_max_pixel', '') ?: rex_config::get('filepond_uploader', 'max_pixel', 2100) ?>"
-       data-filepond-image-quality="<?= rex_config::get('filepond_uploader', 'client_image_quality', '') ?: rex_config::get('filepond_uploader', 'image_quality', 90) ?>"
-       data-filepond-client-resize="<?= rex_config::get('filepond_uploader', 'create_thumbnails', true) ? 'true' : 'false' ?>"
+       data-filepond-title-required="<?= ($this->getElement('title_required') ? 'true' : 'false') ?>" 
+       data-filepond-max-pixel="<?= rex_config::get('filepond_uploader', 'client_max_pixel', '') ?: rex_config::get('filepond_uploader', 'max_pixel', 2100) ?>" 
+       data-filepond-image-quality="<?= rex_config::get('filepond_uploader', 'client_image_quality', '') ?: rex_config::get('filepond_uploader', 'image_quality', 90) ?>" 
+       data-filepond-client-resize="<?= (rex_config::get('filepond_uploader', 'create_thumbnails', '') == '|1|') ? 'true' : 'false' ?>"
     />
     
     <?php if ($notice = $this->getElement('notice')): ?>

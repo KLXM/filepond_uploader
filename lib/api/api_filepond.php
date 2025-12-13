@@ -622,7 +622,7 @@ class rex_api_filepond_uploader extends rex_api_function
 
         // Bildoptimierung für unterstützte Formate (keine GIFs)
         // Nur wenn serverseitige Bildverarbeitung aktiviert ist
-        $serverImageProcessing = rex_config::get('filepond_uploader', 'server_image_processing', false);
+        $serverImageProcessing = (rex_config::get('filepond_uploader', 'server_image_processing', '') == '|1|');
         if ($serverImageProcessing && strpos($file['type'], 'image/') === 0 && $file['type'] !== 'image/gif') {
             $this->processImage($file['tmp_name']);
         }
