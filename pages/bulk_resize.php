@@ -22,7 +22,8 @@ $defaultQuality = rex_config::get('filepond_uploader', 'image_quality', 85);
 $filterFilename = rex_request('filter_filename', 'string', '');
 $filterCategoryId = rex_request('filter_category', 'int', -1);
 $filterMaxWidth = rex_request('max_width', 'int', $defaultMaxWidth);
-$filterMaxHeight = rex_request('max_height', 'int', $defaultMaxHeight);
+// Wenn max_height nicht explizit gesetzt wurde, verwende max_width (gleiches Feld im UI)
+$filterMaxHeight = rex_request('max_height', 'int', $filterMaxWidth);
 $filterQuality = rex_request('quality', 'int', $defaultQuality);
 
 // API Endpoint
@@ -486,7 +487,7 @@ $(document).on('rex:ready', function() {
             
             $.post(this.apiEndpoint, {
                 action: 'start',
-                filenames: JSON.stringify(filenames),
+                filenames: filenames,
                 max_width: this.maxWidth,
                 max_height: this.maxHeight,
                 quality: this.quality
