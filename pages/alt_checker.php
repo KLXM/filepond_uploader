@@ -500,7 +500,7 @@ $(document).on('rex:ready', function() {
                         this.updateStats(response.stats);
                     }
                     
-                    // Pagination-Daten aktualisieren
+                    // Paginierungsdaten aktualisieren
                     if (response.pagination) {
                         this.totalPages = response.pagination.totalPages;
                         this.totalImages = response.pagination.total;
@@ -526,7 +526,7 @@ $(document).on('rex:ready', function() {
                     this.renderTable();
                     $table.show();
                     
-                    // Pagination anzeigen wenn mehr als eine Seite
+                    // Pagination anzeigen, wenn mehr als eine Seite
                     if (this.totalPages > 1) {
                         this.renderPagination();
                         $pagination.show();
@@ -1129,9 +1129,12 @@ $(document).on('rex:ready', function() {
                 if (page && page !== this.currentPage) {
                     this.loadImages(page);
                     // Nach oben scrollen
-                    $('html, body').animate({
-                        scrollTop: $('#images-table').offset().top - 100
-                    }, 300);
+                    const $table = $('#images-table');
+                    if ($table.length) {
+                        $('html, body').animate({
+                            scrollTop: $table.offset().top - 100
+                        }, 300);
+                    }
                 }
             });
         },
