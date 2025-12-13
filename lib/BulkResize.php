@@ -461,8 +461,6 @@ class filepond_bulk_resize
             $sql->setValue('filesize', $newSize);
             $sql->setValue('width', $newImageInfo[0]);
             $sql->setValue('height', $newImageInfo[1]);
-            $sql->setValue('updatedate', date('Y-m-d H:i:s'));
-            $sql->setValue('updateuser', rex::getUser() ? rex::getUser()->getLogin() : 'system');
             $sql->update();
             
             // Cache löschen

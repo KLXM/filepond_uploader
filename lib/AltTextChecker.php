@@ -276,8 +276,6 @@ class filepond_alt_text_checker
             $sql->setTable(rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
             $sql->setValue('med_alt', $valueToSave);
-            $sql->setValue('updatedate', date('Y-m-d H:i:s'));
-            $sql->setValue('updateuser', rex::getUser() ? rex::getUser()->getLogin() : 'system');
             $sql->update();
             
             // Cache löschen
