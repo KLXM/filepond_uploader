@@ -44,7 +44,6 @@ foreach ($sqlCats as $cat) {
 }
 
 // Pagination
-$page = rex_request('page', 'int', 1);
 $itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
 if ($itemsPerPage < 1) $itemsPerPage = 30;
 
@@ -56,13 +55,14 @@ $filters = [
 ];
 
 $totalCount = filepond_bulk_resize::countOversizedImages($filters);
-$offset = ($page - 1) * $itemsPerPage;
-$images = filepond_bulk_resize::findOversizedImages($filters, $itemsPerPage, $offset);
 
 // Pager initialisieren
-$pager = new rex_pager($itemsPerPage, 'page');
+$pager = new rex_pager($itemsPerPage, 'start');
 $pager->setRowCount($totalCount);
-$pager->setPage($page);
+$offset = $pager->getCursor();
+
+$images = filepond_bulk_resize::findOversizedImages($filters, $itemsPerPage, $offset);
+
 
 ?>
 

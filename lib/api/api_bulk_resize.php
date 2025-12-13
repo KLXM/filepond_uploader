@@ -71,7 +71,11 @@ class rex_api_filepond_bulk_resize extends rex_api_function
         $filterFilename = rex_request('filter_filename', 'string', '');
         $filterCategory = rex_request('filter_category', 'int', -1);
 
-        $filters = [];
+        $filters = [
+            'max_width' => $maxWidth,
+            'max_height' => $maxHeight
+        ];
+        
         if (!empty($filterFilename)) {
             $filters['filename'] = $filterFilename;
         }
@@ -80,7 +84,7 @@ class rex_api_filepond_bulk_resize extends rex_api_function
         }
 
         try {
-            $images = filepond_bulk_resize::findOversizedImages($maxWidth, $maxHeight, $filters);
+            $images = filepond_bulk_resize::findOversizedImages($filters);
             $this->sendJson(['images' => $images]);
         } catch (Exception $e) {
             $this->sendJson(['error' => $e->getMessage()]);
