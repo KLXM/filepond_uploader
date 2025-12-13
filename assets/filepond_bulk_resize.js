@@ -139,18 +139,33 @@
                     maxHeight: maxHeight
                 },
                 success: function(response) {
-                    if (response.success && response.data.batchId) {
+                    console.log('Start response:', response);
+                    if (response.success && response.data && response.data.batchId) {
                         self.batchId = response.data.batchId;
                         self.updateModal();
                         self.startPolling();
                         self.processNextBatch();
                     } else {
-                        self.showError('Fehler beim Starten: ' + (response.data.error || 'Unbekannter Fehler'));
+                        const errorMsg = response.error || (response.data && response.data.error) || 'Unbekannter Fehler';
+                        console.error('Start error:', errorMsg, response);
+                        self.showError('Fehler beim Starten: ' + errorMsg + '<br><small>Prüfen Sie die Browser-Konsole für Details.</small>');
                         self.stopProcessing();
                     }
                 },
                 error: function(xhr, status, error) {
-                    self.showError('AJAX Fehler: ' + error);
+                    console.error('AJAX error:', xhr.status, xhr.responseText);
+                    let errorMsg = 'AJAX Fehler: ' + error;
+                    if (xhr.status === 500) {
+                        errorMsg += '<br><strong>Server-Fehler (500)</strong><br>Prüfen Sie die PHP Error-Logs.';
+                    } else if (xhr.status === 403) {
+                        errorMsg += '<br><strong>Zugriff verweigert (403)</strong><br>Keine Berechtigung.';
+                    } else if (xhr.status === 0) {
+                        errorMsg += '<br><strong>Verbindung fehlgeschlagen</strong><br>Timeout oder Netzwerkproblem.';
+                    }
+                    if (xhr.responseText) {
+                        errorMsg += '<br><small>Response: ' + xhr.responseText.substring(0, 200) + '</small>';
+                    }
+                    self.showError(errorMsg);
                     self.stopProcessing();
                 }
             });
@@ -168,12 +183,14 @@
                 type: 'POST',
                 dataType: 'json',
                 traditional: true,
+                timeout: 60000, // 60 Sekunden Timeout
                 data: {
                     'rex-api-call': 'filepond_bulk_process',
                     action: 'process',
                     batchId: this.batchId
                 },
                 success: function(response) {
+                    console.log('Process response:', response);
                     if (response.success && response.data) {
                         if (response.data.finished) {
                             self.finishProcessing(response.data.status);
@@ -184,12 +201,21 @@
                             }, 100);
                         }
                     } else {
-                        self.showError('Fehler bei Verarbeitung: ' + (response.data.error || 'Unbekannter Fehler'));
+                        const errorMsg = response.error || (response.data && response.data.error) || 'Unbekannter Fehler';
+                        console.error('Process error:', errorMsg, response);
+                        self.showError('Fehler bei Verarbeitung: ' + errorMsg);
                         self.stopProcessing();
                     }
                 },
                 error: function(xhr, status, error) {
-                    self.showError('AJAX Fehler: ' + error);
+                    console.error('Process AJAX error:', xhr.status, status, error);
+                    let errorMsg = 'AJAX Fehler: ' + error;
+                    if (status === 'timeout') {
+                        errorMsg = 'Timeout nach 60 Sekunden.<br>Bildverarbeitung dauert zu lange.<br>Versuchen Sie kleinere Batch-Größen oder wenden Sie sich an Ihren Hoster.';
+                    } else if (xhr.status === 500) {
+                        errorMsg += '<br>Server-Fehler. Prüfen Sie die PHP Error-Logs.';
+                    }
+                    self.showError(errorMsg);
                     self.stopProcessing();
                 }
             });

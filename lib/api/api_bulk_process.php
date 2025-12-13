@@ -69,52 +69,67 @@ class rex_api_filepond_bulk_process extends rex_api_function
 
     private function startBatch(): array
     {
-        $filenames = rex_request('filenames', 'array', []);
-        $maxWidth = rex_request('maxWidth', 'int', null);
-        $maxHeight = rex_request('maxHeight', 'int', null);
+        try {
+            $filenames = rex_request('filenames', 'array', []);
+            $maxWidth = rex_request('maxWidth', 'int', null);
+            $maxHeight = rex_request('maxHeight', 'int', null);
 
-        if (empty($filenames)) {
-            return ['error' => 'Keine Dateien angegeben'];
+            if (empty($filenames)) {
+                return ['error' => 'Keine Dateien angegeben'];
+            }
+
+            // Bereinige alte Batches - verwende vollständigen Klassennamen
+            \FriendsOfRedaxo\FilePondUploader\BulkResize::cleanupOldBatches();
+
+            $batchId = \FriendsOfRedaxo\FilePondUploader\BulkResize::startBatchProcessing($filenames, $maxWidth, $maxHeight);
+
+            return [
+                'batchId' => $batchId,
+                'status' => \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId),
+            ];
+        } catch (\Exception $e) {
+            rex_logger::logException($e);
+            return ['error' => 'Exception: ' . $e->getMessage()];
         }
-
-        // Bereinige alte Batches - verwende vollständigen Klassennamen
-        \FriendsOfRedaxo\FilePondUploader\BulkResize::cleanupOldBatches();
-
-        $batchId = \FriendsOfRedaxo\FilePondUploader\BulkResize::startBatchProcessing($filenames, $maxWidth, $maxHeight);
-
-        return [
-            'batchId' => $batchId,
-            'status' => \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId),
-        ];
     }
 
     private function processNext(): array
     {
-        $batchId = rex_request('batchId', 'string');
+        try {
+            $batchId = rex_request('batchId', 'string');
 
-        if (!$batchId) {
-            return ['error' => 'Keine Batch-ID angegeben'];
+            if (!$batchId) {
+                return ['error' => 'Keine Batch-ID angegeben'];
+            }
+
+            $result = \FriendsOfRedaxo\FilePondUploader\BulkResize::processNextBatchItems($batchId);
+
+            return $result;
+        } catch (\Exception $e) {
+            rex_logger::logException($e);
+            return ['error' => 'Exception: ' . $e->getMessage()];
         }
-
-        $result = \FriendsOfRedaxo\FilePondUploader\BulkResize::processNextBatchItems($batchId);
-
-        return $result;
     }
 
     private function getStatus(): array
     {
-        $batchId = rex_request('batchId', 'string');
+        try {
+            $batchId = rex_request('batchId', 'string');
 
-        if (!$batchId) {
-            return ['error' => 'Keine Batch-ID angegeben'];
+            if (!$batchId) {
+                return ['error' => 'Keine Batch-ID angegeben'];
+            }
+
+            $status = \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId);
+
+            if (!$status) {
+                return ['error' => 'Batch nicht gefunden'];
+            }
+
+            return $status;
+        } catch (\Exception $e) {
+            rex_logger::logException($e);
+            return ['error' => 'Exception: ' . $e->getMessage()];
         }
-
-        $status = \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId);
-
-        if (!$status) {
-            return ['error' => 'Batch nicht gefunden'];
-        }
-
-        return $status;
     }
 }
