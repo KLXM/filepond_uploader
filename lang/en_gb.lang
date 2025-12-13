@@ -5,6 +5,11 @@ filepond_general_settings = General Settings
 filepond_image_processing = Image Processing
 filepond_metadata_settings = Metadata & Dialog
 filepond_mediapool_settings = Media Pool Integration
+filepond_settings_replace_mediapool = Replace media pool upload page
+filepond_settings_replace_mediapool_notice = When enabled, the default media pool upload page is replaced by FilePond
+filepond_settings_alt_checker = Enable Alt-Text-Checker
+filepond_settings_alt_checker_label = Show Alt-Text-Checker in media pool
+filepond_settings_alt_checker_notice = Shows a subpage in the media pool for checking and editing missing alt texts
 perm_general_filepond_uploader[upload] = Use Filepond upload page
 perm_general_filepond_uploader[alt_checker] = Use Alt-Text-Checker
 
@@ -60,9 +65,15 @@ filepond_upload_files = Files
 # Settings page
 filepond_settings_title = Settings
 filepond_settings_saved = Settings have been saved
+filepond_upload_settings = Upload Settings
 filepond_settings_max_files = Maximum number of files
 filepond_settings_maxsize = Maximum file size (MB)
 filepond_settings_maxsize_notice = Size in megabytes
+filepond_settings_chunk_size = Chunk size (MB)
+filepond_settings_chunk_size_notice = Size of an upload chunk in megabytes (Default: 5)
+filepond_settings_enable_chunks = Enable chunk upload
+filepond_settings_enable_chunks_label = Enable chunk upload
+filepond_settings_enable_chunks_notice = Allows uploading large files in parts
 filepond_settings_allowed_types = Allowed file types
 filepond_settings_allowed_types_notice = Example: image/*,video/*,.pdf
 filepond_settings_category_id = Default media category
@@ -88,6 +99,9 @@ filepond_settings_client_max_pixel_notice = Maximum size for client-side pre-res
 filepond_settings_client_image_quality = Client-side image quality
 filepond_settings_client_image_quality_notice = Quality for client-side compression (empty = use global setting)
 filepond_settings_use_global = Use global setting
+filepond_settings_always_show_meta = Always show meta dialog
+filepond_settings_always_show_meta_label = Always show metadata dialog
+filepond_settings_always_show_meta_notice = Shows the metadata dialog even when disabled via data attributes
 filepond_settings_upload_skip_meta = Disable meta dialog on upload page
 filepond_settings_upload_skip_meta_label = Disable metadata dialog on upload page
 filepond_settings_upload_skip_meta_notice = Disables the metadata prompt on the upload page (title, alt text, copyright, description)
@@ -117,10 +131,13 @@ filepond_error_upload_failed = Upload failed
 filepond_error_delete_failed = Could not delete file
 filepond_error_file_not_found = File not found
 filepond_error_invalid_function = Invalid function
+filepond_error_chunk_missing = Chunk missing
+filepond_error_upload_aborted = Upload was aborted
 
 # Messages
 filepond_upload_success = File successfully uploaded
 filepond_delete_success = File successfully deleted
+filepond_chunk_uploaded = Chunk {current} of {total} uploaded
 
 # Metadata fields  
 pool_file_description = Description
@@ -167,6 +184,58 @@ filepond_token_regenerated = API Token has been regenerated.
 # General Settings
 filepond_general_settings = General Settings
 filepond_save = Save
+
+# General Settings
+filepond_general_settings = General Settings
+filepond_save = Save
+
+# Chunk Upload Messages
+filepond_chunk_upload_progress = Chunk Upload: {current} of {total}
+filepond_chunk_upload_retry = Retry
+filepond_chunk_upload_abort = Abort upload
+filepond_chunk_upload_resume = Resume upload
+filepond_upload_button = Upload files
+
+# Multilingual Display
+filepond_no_description = No description
+
+# Media Widget Integration
+filepond_uploaded_files_media = Uploaded Files - Ready for Selection
+filepond_uploaded_files_medialist = Uploaded Files - Ready for Media List
+filepond_select_for_media = Select for Media Field
+filepond_select_for_medialist = Add to Media List
+filepond_uploader_media_widget_mode = Upload Selection
+filepond_uploader_media_widget_info = The selected items can be added to the list.
+
+# Display Settings
+filepond_display_settings = Display Settings
+filepond_settings_items_per_page = Items per page
+filepond_settings_items_per_page_notice = Number of items to display per page in lists (Alt-Text-Checker, etc.) (Default: 30).
+filepond_settings_alt_checker_sort = Alt-Text-Checker sorting
+filepond_sort_createdate_desc = Newest first
+filepond_sort_createdate_asc = Oldest first
+filepond_sort_filename_asc = Filename A-Z
+filepond_sort_filename_desc = Filename Z-A
+
+# Maintenance section
+filepond_maintenance_section = Maintenance and Care
+filepond_maintenance_cleanup = Clean up temporary files
+filepond_maintenance_cleanup_button = Delete temporary files now
+filepond_maintenance_cleanup_notice = Deletes old temporary files and chunks that are no longer needed
+filepond_maintenance_cleanup_running = Deleting temporary files...
+filepond_maintenance_cleanup_error = Error deleting temporary files
+filepond_maintenance_cleanup_success = Temporary files have been successfully deleted
+
+# General Settings
+filepond_general_settings = General Settings
+filepond_save = Save
+
+# Chunk Upload Messages
+filepond_chunk_upload_progress = Chunk Upload: {current} of {total}
+filepond_chunk_upload_retry = Retry
+filepond_chunk_upload_abort = Abort upload
+filepond_chunk_upload_resume = Resume upload
+filepond_upload_button = Upload files
 
 # Multilingual Display
 filepond_no_description = No description

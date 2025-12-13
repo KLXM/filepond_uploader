@@ -13,12 +13,35 @@ if (!rex::getUser() || (!rex::getUser()->isAdmin() && !rex::getUser()->hasPerm('
 
 $addon = rex_addon::get('filepond_uploader');
 
-// Kategorien laden
-$categories = [];
-$sqlCats = rex_sql::factory();
-$sqlCats->setQuery('SELECT id, name FROM ' . rex::getTable('media_category') . ' ORDER BY name');
-foreach ($sqlCats as $cat) {
-    $categories[$cat->getValue('id')] = $cat->getValue('name');
+// Filter und Pagination zuerst definieren
+$itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
+if ($itemsPerPage < 1) $itemsPerPage = 30;
+
+$filterFilename = rex_request('filter_filename', 'string', '');
+$filterCategory = rex_request('filter_category', 'int', -1);
+
+// Debug: Zeige die aktuellen Parameter
+if (rex::isDebugMode()) {
+    dump([
+        'filterFilename' => $filterFilename,
+        'filterCategory' => $filterCategory,
+        'currentBackendPage' => rex_url::currentBackendPage(),
+        'REQUEST_URI' => $_SERVER['REQUEST_URI'] ?? 'unknown',
+        'GET_params' => $_GET
+    ]);
+}
+
+// Media Category Select für Filter - wie auf der Upload-Seite
+$selMediaFilter = new rex_media_category_select($checkPerm = true);
+$selMediaFilter->setId('filter_category');
+$selMediaFilter->setName('filter_category');
+$selMediaFilter->setSize(1);
+$selMediaFilter->setSelected($filterCategory);
+$selMediaFilter->setAttribute('class', 'form-control');
+$selMediaFilter->setAttribute('onchange', 'this.form.submit(); return false;');
+$selMediaFilter->addOption($addon->i18n('alt_checker_all_categories'), '-1');
+if (rex::getUser()->getComplexPerm('media')->hasAll()) {
+    $selMediaFilter->addOption(rex_i18n::msg('pool_kats_no'), '0');
 }
 
 // API Endpoint
@@ -47,13 +70,7 @@ foreach (rex_clang::getAll() as $clang) {
 }
 $currentLangId = rex_clang::getCurrentId();
 
-// Filter und Pagination
-$itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
-if ($itemsPerPage < 1) $itemsPerPage = 30;
-
-$filterFilename = rex_request('filter_filename', 'string', '');
-$filterCategory = rex_request('filter_category', 'int', -1);
-
+// Filter und Pagination (bereits oben definiert)
 $filters = [];
 if (!empty($filterFilename)) {
     $filters['filename'] = $filterFilename;
@@ -150,8 +167,8 @@ $currentPage = rex_be_controller::getCurrentPage();
     </div>
     <?php endif; ?>
     
-    <form action="<?= rex_url::currentBackendPage() ?>" method="get" class="form-inline" style="margin-bottom: 15px;">
-        <input type="hidden" name="page" value="filepond_uploader/alt_checker">
+    <form method="get" action="<?= rex_url::currentBackendPage() ?>" class="form-inline" style="margin-bottom: 15px;">
+        <input type="hidden" name="page" value="mediapool/alt_checker">
         
         <div class="form-group">
             <label for="filter_filename" class="sr-only"><?= $addon->i18n('alt_checker_filename') ?></label>
@@ -161,13 +178,7 @@ $currentPage = rex_be_controller::getCurrentPage();
         </div>
         <div class="form-group" style="margin-left: 10px;">
             <label for="filter_category" class="sr-only"><?= $addon->i18n('alt_checker_category') ?></label>
-            <select class="form-control" id="filter_category" name="filter_category">
-                <option value="-1" <?= $filterCategory == -1 ? 'selected' : '' ?>><?= $addon->i18n('alt_checker_all_categories') ?></option>
-                <option value="0" <?= $filterCategory == 0 ? 'selected' : '' ?>><?= rex_i18n::msg('pool_kats_no') ?></option>
-                <?php foreach ($categories as $catId => $catName): ?>
-                    <option value="<?= $catId ?>" <?= $filterCategory == $catId ? 'selected' : '' ?>><?= rex_escape($catName) ?></option>
-                <?php endforeach; ?>
-            </select>
+            <?php echo $selMediaFilter->get(); ?>
         </div>
         <button type="submit" class="btn btn-primary" style="margin-left: 10px;">
             <i class="fa fa-search"></i> <?= $addon->i18n('alt_checker_search') ?>

@@ -191,6 +191,16 @@ filepond_maintenance_cleanup_success = Temporäre Dateien wurden erfolgreich gel
 filepond_general_settings = Allgemeine Einstellungen
 filepond_save = Speichern
 
+# Display Settings
+filepond_display_settings = Anzeigeeinstellungen
+filepond_settings_items_per_page = Elemente pro Seite
+filepond_settings_items_per_page_notice = Anzahl der Elemente, die pro Seite in Listen angezeigt werden (Alt-Text-Checker, etc.) (Standard: 30).
+filepond_settings_alt_checker_sort = Alt-Text-Checker Sortierung
+filepond_sort_createdate_desc = Neueste zuerst
+filepond_sort_createdate_asc = Älteste zuerst
+filepond_sort_filename_asc = Dateiname A-Z
+filepond_sort_filename_desc = Dateiname Z-A
+
 # Chunk Upload Messages
 filepond_chunk_upload_progress = Chunk-Upload: {current} von {total}
 filepond_chunk_upload_retry = Erneut versuchen
