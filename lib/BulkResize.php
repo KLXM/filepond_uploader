@@ -273,17 +273,27 @@ class BulkResize
                 $resized = self::resizeImage($filePath, $maxWidth, $maxHeight);
 
                 if ($resized) {
-                    // Cache löschen
-                    rex_media_cache::delete($filename);
-
-                    // Managed Media aktualisieren
-                    $managedMedia = rex_managed_media::get($filePath);
-                    if ($managedMedia) {
-                        $managedMedia->updateFile();
-                    }
-
+                    // Neue Datei-Informationen ermitteln
                     $newSize = filesize($filePath);
                     $savedBytes = max(0, $originalSize - $newSize);
+                    
+                    // Neue Bildabmessungen ermitteln
+                    $newDimensions = @getimagesize($filePath);
+                    $newWidth = $newDimensions ? $newDimensions[0] : $width;
+                    $newHeight = $newDimensions ? $newDimensions[1] : $height;
+
+                    // Datenbank aktualisieren (OHNE updatedate/updateuser zu ändern)
+                    $sql = \rex_sql::factory();
+                    $sql->setTable(\rex::getTablePrefix() . 'media');
+                    $sql->setWhere(['filename' => $filename]);
+                    $sql->setValue('filesize', $newSize);
+                    $sql->setValue('width', $newWidth);
+                    $sql->setValue('height', $newHeight);
+                    // NICHT addGlobalUpdateFields() aufrufen - würde updatedate/updateuser ändern
+                    $sql->update();
+
+                    // Cache löschen damit Media-Objekt neu geladen wird
+                    rex_media_cache::delete($filename);
 
                     return [
                         'success' => true,
@@ -291,8 +301,8 @@ class BulkResize
                         'originalSize' => $originalSize,
                         'newSize' => $newSize,
                         'savedBytes' => $savedBytes,
-                        'width' => $width,
-                        'height' => $height,
+                        'width' => $newWidth,
+                        'height' => $newHeight,
                     ];
                 }
 
@@ -407,34 +417,42 @@ class BulkResize
             return false;
         }
 
-        // Erstelle neues Bild
+        // Erstelle neues Bild mit besserer Qualität
         $destination = imagecreatetruecolor($newWidth, $newHeight);
 
-        // Transparenz für PNG/GIF
-        if (IMAGETYPE_PNG === $imageType || IMAGETYPE_GIF === $imageType) {
+        // Transparenz für PNG/GIF/WebP
+        if (IMAGETYPE_PNG === $imageType || IMAGETYPE_GIF === $imageType || IMAGETYPE_WEBP === $imageType) {
             imagealphablending($destination, false);
             imagesavealpha($destination, true);
             $transparent = imagecolorallocatealpha($destination, 0, 0, 0, 127);
             imagefill($destination, 0, 0, $transparent);
         }
 
-        // Resize
+        // Aktiviere beste Interpolation (falls verfügbar)
+        if (function_exists('imagesetinterpolation')) {
+            imagesetinterpolation($destination, IMG_BICUBIC);
+        }
+
+        // Resize mit bester Qualität
         imagecopyresampled($destination, $source, 0, 0, 0, 0, $newWidth, $newHeight, imagesx($source), imagesy($source));
 
-        // Speichere
+        // Speichere mit hoher Qualität
         $result = false;
         switch ($imageType) {
             case IMAGETYPE_JPEG:
-                $result = imagejpeg($destination, $filePath, 85);
+                // JPEG: Qualität 95 für beste Bildqualität
+                $result = imagejpeg($destination, $filePath, 95);
                 break;
             case IMAGETYPE_PNG:
+                // PNG: Kompression Level 6 ist gut (0=keine, 9=max)
                 $result = imagepng($destination, $filePath, 6);
                 break;
             case IMAGETYPE_GIF:
                 $result = imagegif($destination, $filePath);
                 break;
             case IMAGETYPE_WEBP:
-                $result = imagewebp($destination, $filePath, 85);
+                // WebP: Qualität 95 für beste Bildqualität
+                $result = imagewebp($destination, $filePath, 95);
                 break;
         }
 

@@ -1,47 +1,70 @@
 <?php
 
-use FriendsOfRedaxo\FilePondUploader\BulkResize;
-
 /**
  * API Endpunkt für asynchrone Bulk-Verarbeitung
  *
  * @package filepond_uploader
  */
-class filepond_api_bulk_process extends rex_api_function
+class rex_api_filepond_bulk_process extends rex_api_function
 {
-    public function execute(): void
+    protected $published = true;
+
+    /**
+     * Zentrale Methode für das Senden von JSON-Antworten
+     */
+    protected function sendResponse($data, $statusCode = 200)
     {
         rex_response::cleanOutputBuffers();
+        if ($statusCode !== 200) {
+            rex_response::setStatus($statusCode);
+        }
+        rex_response::sendJson($data);
+        exit;
+    }
 
+    public function execute()
+    {
         // Nur für Backend-Nutzer mit Rechten
         if (!rex::isBackend() || !rex::getUser() || !rex::getUser()->isAdmin()) {
-            $this->sendJsonResponse(false, 'Zugriff verweigert');
+            $this->sendResponse([
+                'success' => false,
+                'error' => 'Zugriff verweigert'
+            ], 403);
         }
 
-        $action = rex_request('action', 'string');
+        $action = rex_request('action', 'string', '');
 
         switch ($action) {
             case 'start':
-                $this->sendJsonResponse(true, $this->startBatch());
+                $result = $this->startBatch();
+                $this->sendResponse([
+                    'success' => true,
+                    'data' => $result
+                ]);
                 break;
+                
             case 'process':
-                $this->sendJsonResponse(true, $this->processNext());
+                $result = $this->processNext();
+                $this->sendResponse([
+                    'success' => true,
+                    'data' => $result
+                ]);
                 break;
+                
             case 'status':
-                $this->sendJsonResponse(true, $this->getStatus());
+                $result = $this->getStatus();
+                $this->sendResponse([
+                    'success' => true,
+                    'data' => $result
+                ]);
                 break;
+                
             default:
-                $this->sendJsonResponse(false, 'Unbekannte Aktion');
+                $this->sendResponse([
+                    'success' => false,
+                    'error' => 'Unbekannte Aktion: "' . $action . '"'
+                ], 400);
         }
-    }
-
-    private function sendJsonResponse(bool $success, $data): void
-    {
-        rex_response::sendJson([
-            'success' => $success,
-            'data' => $data,
-        ]);
-        exit;
     }
 
     private function startBatch(): array
@@ -54,14 +77,14 @@ class filepond_api_bulk_process extends rex_api_function
             return ['error' => 'Keine Dateien angegeben'];
         }
 
-        // Bereinige alte Batches
-        BulkResize::cleanupOldBatches();
+        // Bereinige alte Batches - verwende vollständigen Klassennamen
+        \FriendsOfRedaxo\FilePondUploader\BulkResize::cleanupOldBatches();
 
-        $batchId = BulkResize::startBatchProcessing($filenames, $maxWidth, $maxHeight);
+        $batchId = \FriendsOfRedaxo\FilePondUploader\BulkResize::startBatchProcessing($filenames, $maxWidth, $maxHeight);
 
         return [
             'batchId' => $batchId,
-            'status' => BulkResize::getBatchStatus($batchId),
+            'status' => \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId),
         ];
     }
 
@@ -73,7 +96,7 @@ class filepond_api_bulk_process extends rex_api_function
             return ['error' => 'Keine Batch-ID angegeben'];
         }
 
-        $result = BulkResize::processNextBatchItems($batchId);
+        $result = \FriendsOfRedaxo\FilePondUploader\BulkResize::processNextBatchItems($batchId);
 
         return $result;
     }
@@ -86,7 +109,7 @@ class filepond_api_bulk_process extends rex_api_function
             return ['error' => 'Keine Batch-ID angegeben'];
         }
 
-        $status = BulkResize::getBatchStatus($batchId);
+        $status = \FriendsOfRedaxo\FilePondUploader\BulkResize::getBatchStatus($batchId);
 
         if (!$status) {
             return ['error' => 'Batch nicht gefunden'];

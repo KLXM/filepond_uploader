@@ -20,6 +20,38 @@
         init: function() {
             this.bindEvents();
             this.updateCounter();
+            this.initLazyLoading();
+        },
+        
+        initLazyLoading: function() {
+            // Lazy load thumbnails with IntersectionObserver
+            if ('IntersectionObserver' in window) {
+                const imageObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            const src = img.getAttribute('data-src');
+                            if (src) {
+                                img.src = src;
+                                img.removeAttribute('data-src');
+                            }
+                            observer.unobserve(img);
+                        }
+                    });
+                }, {
+                    rootMargin: '50px 0px',
+                    threshold: 0.01
+                });
+
+                document.querySelectorAll('.bulk-resize-thumb[data-src]').forEach(function(img) {
+                    imageObserver.observe(img);
+                });
+            } else {
+                // Fallback for older browsers
+                document.querySelectorAll('.bulk-resize-thumb[data-src]').forEach(function(img) {
+                    img.src = img.getAttribute('data-src');
+                });
+            }
         },
         
         bindEvents: function() {
@@ -41,8 +73,8 @@
                 $('#bulk-toggle-all').prop('checked', totalCheckboxes === checkedCheckboxes);
             });
             
-            // Submit Button
-            $('#bulk-resize-submit').on('click', function(e) {
+            // Submit Buttons (oben und unten)
+            $('#bulk-resize-submit, #bulk-resize-submit-top').on('click', function(e) {
                 e.preventDefault();
                 self.startProcessing();
             });
@@ -50,12 +82,14 @@
         
         updateCounter: function() {
             const count = $('.filepond-bulk-resize-table input[type="checkbox"]:checked:not(#bulk-toggle-all)').length;
-            $('#bulk-resize-submit .number').text(count);
+            
+            // Update beide Buttons (oben und unten)
+            $('#bulk-resize-submit .number, #bulk-resize-submit-top .number').text(count);
             
             if (count > 0) {
-                $('#bulk-resize-submit').prop('disabled', false);
+                $('#bulk-resize-submit, #bulk-resize-submit-top').prop('disabled', false);
             } else {
-                $('#bulk-resize-submit').prop('disabled', true);
+                $('#bulk-resize-submit, #bulk-resize-submit-top').prop('disabled', true);
             }
         },
         
@@ -88,16 +122,17 @@
             // Zeige Modal
             this.showModal();
             
-            // Starte Batch
-            const maxWidth = parseInt($('#bulk-resize-submit').data('max-width')) || null;
-            const maxHeight = parseInt($('#bulk-resize-submit').data('max-height')) || null;
+            // Starte Batch - hole Werte von einem der Buttons
+            const maxWidth = parseInt($('#bulk-resize-submit').data('max-width') || $('#bulk-resize-submit-top').data('max-width')) || null;
+            const maxHeight = parseInt($('#bulk-resize-submit').data('max-height') || $('#bulk-resize-submit-top').data('max-height')) || null;
             
             $.ajax({
                 url: 'index.php',
                 type: 'POST',
                 dataType: 'json',
+                traditional: true,
                 data: {
-                    'rex-api-call': 'filepond_api_bulk_process',
+                    'rex-api-call': 'filepond_bulk_process',
                     action: 'start',
                     filenames: selectedFiles,
                     maxWidth: maxWidth,
@@ -132,8 +167,9 @@
                 url: 'index.php',
                 type: 'POST',
                 dataType: 'json',
+                traditional: true,
                 data: {
-                    'rex-api-call': 'filepond_api_bulk_process',
+                    'rex-api-call': 'filepond_bulk_process',
                     action: 'process',
                     batchId: this.batchId
                 },
@@ -178,8 +214,9 @@
                 url: 'index.php',
                 type: 'POST',
                 dataType: 'json',
+                traditional: true,
                 data: {
-                    'rex-api-call': 'filepond_api_bulk_process',
+                    'rex-api-call': 'filepond_bulk_process',
                     action: 'status',
                     batchId: this.batchId
                 },

@@ -5,32 +5,11 @@
 use FriendsOfRedaxo\FilePondUploader\BulkResize;
 use FriendsOfRedaxo\FilePondUploader\BulkReworkList;
 
-echo rex_view::title($this->i18n('filepond_uploader_bulk_resize'));
-
 $addon = rex_addon::get('filepond_uploader');
 
-// Nutze spezifische Bulk Resize Einstellungen oder fallback zu max_pixel
-// WICHTIG: max_pixel kann sehr klein sein (z.B. 100px für Upload-Validierung)
-// Für Bulk Resize brauchen wir größere Werte
-$maxWidth = (int) $addon->getConfig('bulk_resize_max_width', 0);
-$maxHeight = (int) $addon->getConfig('bulk_resize_max_height', 0);
-
-// Fallback: Wenn nicht gesetzt, nutze 2000x2000 als sinnvollen Standard für Bulk Resize
-if ($maxWidth === 0 && $maxHeight === 0) {
-    $maxWidth = 2000;
-    $maxHeight = 2000;
-}
-
-// Max-Größe konfigurieren
-if (rex_request('formsubmit', 'string') == 'set-max-size') {
-    $newMaxWidth = rex_request('bulk-max-width', 'int', 2000);
-    $newMaxHeight = rex_request('bulk-max-height', 'int', 2000);
-    $this->setConfig('bulk_resize_max_width', $newMaxWidth);
-    $this->setConfig('bulk_resize_max_height', $newMaxHeight);
-    $maxWidth = $newMaxWidth;
-    $maxHeight = $newMaxHeight;
-    echo rex_view::success('Maximale Bildgröße gespeichert: ' . $maxWidth . 'x' . $maxHeight . ' px');
-}
+// Hole die Zielgröße aus den Addon-Einstellungen (max_pixel)
+$maxWidth = (int) $addon->getConfig('max_pixel', 2000);
+$maxHeight = (int) $addon->getConfig('max_pixel', 2000);
 
 // Einträge pro Seite konfigurieren
 if (rex_request('formsubmit', 'string') == 'set-num-hits-per-page') {
@@ -52,47 +31,17 @@ if (BulkResize::hasImageMagick()) {
     }
 }
 
+// Info-Box
+$infoContent = '<div class="alert alert-info">';
+$infoContent .= '<p><strong>' . $addon->i18n('bulk_resize_info_title') . '</strong></p>';
+$infoContent .= '<p>' . rex_i18n::rawMsg('filepond_uploader::bulk_resize_info_text', $maxWidth, $maxHeight) . '</p>';
+$infoContent .= '<p class="small"><i class="rex-icon fa-info-circle"></i> ' . $addon->i18n('bulk_resize_info_settings') . '</p>';
 if (!empty($imageLibInfo)) {
-    echo rex_view::info(implode(' | ', $imageLibInfo));
+    $infoContent .= '<hr><p class="small">' . implode(' | ', $imageLibInfo) . '</p>';
 }
+$infoContent .= '</div>';
 
-// Einstellungsformular
-$content = '
-<form action="' . rex_url::currentBackendPage() . '" method="post">
-    <div class="row">
-        <div class="col-sm-6">
-            <div class="panel panel-default">
-                <header class="panel-heading"><div class="panel-title">Maximale Bildgröße</div></header>
-                <div class="panel-body">
-                    <p class="text-muted">Bilder die breiter ODER höher als diese Werte sind, werden in der Liste angezeigt.</p>
-                    <div class="row">
-                        <div class="col-sm-6">
-                            <div class="form-group">
-                                <label for="bulk-max-width">Max. Breite (px)</label>
-                                <input type="number" class="form-control" id="bulk-max-width" name="bulk-max-width" value="' . $maxWidth . '" min="100" max="10000">
-                            </div>
-                        </div>
-                        <div class="col-sm-6">
-                            <div class="form-group">
-                                <label for="bulk-max-height">Max. Höhe (px)</label>
-                                <input type="number" class="form-control" id="bulk-max-height" name="bulk-max-height" value="' . $maxHeight . '" min="100" max="10000">
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-save" name="formsubmit" value="set-max-size">
-                        <i class="rex-icon fa-save"></i> Speichern
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</form>
-';
-
-$fragment = new rex_fragment();
-$fragment->setVar('body', $content, false);
-$fragment->setVar('class', 'edit', false);
-echo $fragment->parse('core/page/section.php');
+echo $infoContent;
 
 // Bereinige alte Batch-Dateien
 BulkResize::cleanupOldBatches();
@@ -184,6 +133,35 @@ $list->setColumnLabel('id', rex_i18n::msg('id'));
 $list->setColumnSortable('id');
 $list->setColumnFormat('id', 'custom', static function ($params) use ($list) {
     return '<label for="bulk-file-' . $list->getValue('id') . '">' . $params['subject'] . '</label>';
+});
+
+// Vorschau Spalte (erste Spalte)
+$list->addColumn(
+    'preview',
+    '',
+    0,
+    ['<th class="rex-table-icon" style="width: 80px;">###VALUE###</th>', '<td class="rex-table-thumbnail">###VALUE###</td>']
+);
+$list->setColumnLabel('preview', '<i class="rex-icon fa-image"></i>');
+$list->setColumnFormat('preview', 'custom', static function ($params) use ($list) {
+    $filename = $list->getValue('filename');
+    
+    // Wie Alt-Checker: Direkte Media Manager URL (kein rex_media_manager::getUrl)
+    $isSvg = strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'svg';
+    $thumbSrc = $isSvg 
+        ? rex_url::media($filename)
+        : 'index.php?rex_media_type=rex_media_small&rex_media_file=' . urlencode($filename);
+    $previewSrc = $isSvg 
+        ? rex_url::media($filename)
+        : 'index.php?rex_media_type=rex_media_large&rex_media_file=' . urlencode($filename);
+    
+    return '<img src="' . rex_escape($thumbSrc) . '" 
+        alt="' . rex_escape($filename) . '" 
+        class="bulk-resize-thumb" 
+        data-preview="' . rex_escape($previewSrc) . '"
+        data-filename="' . rex_escape($filename) . '"
+        loading="lazy"
+        style="max-width: 60px; max-height: 60px; display: block; margin: 0 auto; cursor: pointer;">';
 });
 
 // Dateiname Spalte
@@ -286,18 +264,13 @@ $list->setColumnFormat('toggle-select-all', 'custom', static function ($params) 
 
 $listContent = $list->get();
 
-// Submit Button
-$formElements = $n = [];
-$n['field'] = $submitButton = '<button class="pull-right btn btn-save" type="button" id="bulk-resize-submit" data-max-width="' .
-    $maxWidth . '" data-max-height="' . $maxHeight . '">' .
-    sprintf($addon->i18n('bulk_resize_start'), '<span class="number">0</span>') .
-    '</button>';
-$formElements[] = $n;
-
-$fragment = new rex_fragment();
-$fragment->setVar('flush', true);
-$fragment->setVar('elements', $formElements, false);
-$buttons = $fragment->parse('core/form/submit.php');
+// Submit Button - wird später am Ende eingefügt
+$submitButton = '<button class="btn btn-save btn-lg" type="button" id="bulk-resize-submit" 
+    data-max-width="' . $maxWidth . '" 
+    data-max-height="' . $maxHeight . '">
+    <i class="rex-icon fa-compress"></i> ' .
+    $addon->i18n('bulk_resize_submit') . ' (<span class="number">0</span> ' . $addon->i18n('bulk_resize_images') . ')
+</button>';
 
 // Treffer pro Seite Form
 $hitsPerPageForm = '<form class="filepond-bulk-resize-num-hits-per-page" action="' . rex_url::currentBackendPage() . '" method="post" style="display: inline-block; margin-right: 20px;">
@@ -310,15 +283,24 @@ $hitsPerPageForm = '<form class="filepond-bulk-resize-num-hits-per-page" action=
     <input type="hidden" name="formsubmit" value="set-num-hits-per-page" />
 </form>';
 
+// Submit Button auch oben (kleinere Version)
+$submitButtonTop = '<button class="btn btn-save" type="button" id="bulk-resize-submit-top" 
+    data-max-width="' . $maxWidth . '" 
+    data-max-height="' . $maxHeight . '"
+    style="margin-left: 10px;">
+    <i class="rex-icon fa-compress"></i> ' .
+    $addon->i18n('bulk_resize_submit') . ' (<span class="number">0</span>)
+</button>';
+
 // Tabelle
 $fragment = new rex_fragment();
 $fragment->setVar('title',
     $addon->i18n('bulk_resize_images') .
-    '<div class="small text-muted">' . sprintf($addon->i18n('bulk_resize_current_settings'), $maxWidth, $maxHeight) . '</div>' .
+    '<div class="small text-muted">' . rex_i18n::rawMsg('filepond_uploader::bulk_resize_current_settings', $maxWidth, $maxHeight) . '</div>' .
     '<div class="small text-muted">' . $list->getRows() . ' ' . $addon->i18n('bulk_resize_hits') . '</div>',
     false
 );
-$fragment->setVar('options', $hitsPerPageForm . preg_replace('@(btn btn-save)@', '$1 btn-xs', $submitButton), false);
+$fragment->setVar('options', $hitsPerPageForm . $submitButtonTop, false);
 $fragment->setVar('content', $listContent, false);
 $table = $fragment->parse('core/page/section.php');
 
@@ -369,12 +351,18 @@ $searchFields[] = '<div class="col-lg-2 col-sm-3"><div class="form-group">
 
 $searchFields = '<div class="row bulk-files-search">' . implode('', $searchFields) . '</div>';
 
-// Zusammenbauen
+// Zusammenbauen - Button in den Footer
+$footerButtons = '
+<div class="panel panel-default" style="margin-top: 20px;">
+    <div class="panel-body text-center" style="padding: 20px;">
+        ' . $submitButton . '
+    </div>
+</div>';
+
 $fragment = new rex_fragment();
 $fragment->setVar('class', 'edit filepond-bulk-resize-wrapper', false);
 $fragment->setVar('title', $addon->i18n('bulk_resize_title'));
-$fragment->setVar('body', $searchFields . '<hr />' . $table, false);
-$fragment->setVar('buttons', $buttons, false);
+$fragment->setVar('body', $searchFields . '<hr />' . $table . $footerButtons, false);
 $content = $fragment->parse('core/page/section.php');
 
 // Query Params für Sortierung
@@ -402,3 +390,51 @@ echo '
 <form action="' . $actionUrl . '" method="post" id="filepond-bulk-resize-form">
     ' . $content . '
 </form>';
+
+// Bildvorschau Modal
+?>
+<div class="modal fade" id="image-preview-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="preview-modal-title">Bildvorschau</h4>
+            </div>
+            <div class="modal-body text-center" id="preview-modal-body" style="padding: 20px;">
+                <img src="" id="preview-modal-image" alt="" style="max-width: 100%; height: auto; max-height: 70vh;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Schließen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Sofortiges Initialisieren des Modal-Handlers
+jQuery(function($) {
+    console.log('Modal handler wird initialisiert');
+    
+    // Klick auf Thumbnails
+    $(document).on('click', '.bulk-resize-thumb', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        var previewSrc = $(this).attr('data-preview');
+        var filename = $(this).attr('data-filename');
+        
+        console.log('Thumbnail geklickt:', filename, previewSrc);
+        
+        if (previewSrc && filename) {
+            $('#preview-modal-title').text(filename);
+            $('#preview-modal-image').attr('src', previewSrc);
+            $('#image-preview-modal').modal('show');
+        } else {
+            console.error('Fehlende Daten:', {previewSrc: previewSrc, filename: filename});
+        }
+    });
+});
+</script>
+<?php

@@ -198,3 +198,8 @@ bulk_resize_select_all = Select all
 bulk_resize_start = Start resize ({0} images)
 bulk_resize_search = Search
 bulk_resize_reset = Reset
+bulk_resize_info_title = Automatically resize images
+bulk_resize_info_text = All images wider OR taller than {0}x{1} pixels will be displayed here and can be resized to this size.
+bulk_resize_info_settings = The target size can be changed in the addon settings under "max_pixel".
+bulk_resize_submit = Start Resize
+
