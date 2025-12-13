@@ -135,6 +135,22 @@ $currentLangId = rex_clang::getCurrentId();
         <button type="button" class="btn btn-default" id="btn-refresh" style="margin-left: 5px;">
             <i class="fa fa-refresh"></i>
         </button>
+        <div class="form-group" style="margin-left: 10px;">
+            <label for="per_page" class="sr-only"><?= $addon->i18n('alt_checker_per_page') ?></label>
+            <select id="per_page" class="form-control input-sm" style="width: 90px;">
+                <option value="10">10 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="25">25 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="50" selected>50 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="100">100 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+            </select>
+        </div>
+        <div class="form-group" style="margin-left: 10px;">
+            <div class="input-group">
+                <button type="button" class="btn btn-default btn-sm" id="btn-page-prev"><i class="fa fa-chevron-left"></i></button>
+                <span class="input-group-addon" id="page-info">1 / 1</span>
+                <button type="button" class="btn btn-default btn-sm" id="btn-page-next"><i class="fa fa-chevron-right"></i></button>
+            </div>
+        </div>
     </form>
 
     <!-- Bilder-Tabelle -->
@@ -358,9 +374,16 @@ $(document).on('rex:ready', function() {
         aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
         images: [],
         modifiedImages: new Set(),
+        page: 1,
+        perPage: 50,
+        totalItems: 0,
+        totalPages: 1,
         
         init() {
             this.bindEvents();
+            // initial per-page from select
+            const initialPerPage = parseInt($('#per_page').val());
+            this.perPage = isNaN(initialPerPage) ? this.perPage : initialPerPage;
             this.loadImages();
         },
         
@@ -371,6 +394,23 @@ $(document).on('rex:ready', function() {
             });
             
             $('#btn-refresh').on('click', () => this.loadImages());
+            $('#per_page').on('change', (e) => {
+                this.perPage = parseInt($(e.target).val()) || 50;
+                this.page = 1;
+                this.loadImages();
+            });
+            $('#btn-page-prev').on('click', () => {
+                if (this.page > 1) {
+                    this.page--;
+                    this.loadImages();
+                }
+            });
+            $('#btn-page-next').on('click', () => {
+                if (this.page < this.totalPages) {
+                    this.page++;
+                    this.loadImages();
+                }
+            });
             
             $('#btn-save-all').on('click', () => this.saveAll());
             
@@ -456,6 +496,8 @@ $(document).on('rex:ready', function() {
                 action: 'list',
                 filter_filename: $('#filter_filename').val(),
                 filter_category: $('#filter_category').val()
+                page: this.page,
+                per_page: this.perPage
             };
             
             $.getJSON(this.apiEndpoint + '&' + $.param(params))
@@ -477,6 +519,11 @@ $(document).on('rex:ready', function() {
                     }
                     
                     this.images = response.images || [];
+                    this.totalItems = response.total || (response.stats ? response.stats.total : this.images.length);
+                    this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.perPage));
+                    if (this.page > this.totalPages) {
+                        this.page = this.totalPages;
+                    }
                     this.modifiedImages.clear();
                     $('#image-count').text(this.images.length);
                     this.updateSaveAllButton();
@@ -493,6 +540,7 @@ $(document).on('rex:ready', function() {
                     
                     this.renderTable();
                     $table.show();
+                    this.updatePaginationControls();
                 })
                 .fail((xhr, status, error) => {
                     $loading.hide();
@@ -518,6 +566,12 @@ $(document).on('rex:ready', function() {
             } else {
                 $bar.addClass('progress-bar-danger');
             }
+        },
+
+        updatePaginationControls() {
+            $('#page-info').text(this.page + ' / ' + this.totalPages);
+            $('#btn-page-prev').prop('disabled', this.page <= 1);
+            $('#btn-page-next').prop('disabled', this.page >= this.totalPages);
         },
         
         renderTable() {

@@ -46,6 +46,9 @@ alt_checker_ai_hint = AI alt text generation is not active. Configure in Setting
 alt_checker_ai_error = AI error
 alt_checker_ai_tokens = Tokens
 alt_checker_ai_svg_not_supported = SVG not supported
+alt_checker_per_page = Per page
+alt_checker_per_page_suffix = items
+bulk_resize_per_page = Per page
 
 # Tabs
 filepond_uploader_upload = Upload

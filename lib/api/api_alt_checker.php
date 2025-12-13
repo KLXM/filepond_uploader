@@ -58,6 +58,8 @@ class rex_api_filepond_alt_checker extends rex_api_function
     {
         $filterFilename = rex_request('filter_filename', 'string', '');
         $filterCategory = rex_request('filter_category', 'int', -1);
+        $page = max(1, rex_request('page', 'int', 1));
+        $perPage = max(1, rex_request('per_page', 'int', 50));
 
         $filters = [];
         if (!empty($filterFilename)) {
@@ -77,12 +79,18 @@ class rex_api_filepond_alt_checker extends rex_api_function
                 return;
             }
             
-            $images = filepond_alt_text_checker::findImagesWithoutAlt($filters);
+            $allImages = filepond_alt_text_checker::findImagesWithoutAlt($filters);
+            $total = count($allImages);
+            $offset = ($page - 1) * $perPage;
+            $images = array_slice($allImages, $offset, $perPage);
             $stats = filepond_alt_text_checker::getStatistics();
             
             $this->sendJson([
                 'images' => $images,
-                'stats' => $stats
+                'stats' => $stats,
+                'page' => $page,
+                'per_page' => $perPage,
+                'total' => $total
             ]);
         } catch (Exception $e) {
             $this->sendJson(['error' => $e->getMessage()]);

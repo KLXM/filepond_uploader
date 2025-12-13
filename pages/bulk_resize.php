@@ -143,6 +143,22 @@ foreach ($sqlCats as $cat) {
             </div>
         </div>
     </form>
+    <div style="margin-bottom: 10px;">
+        <div class="pull-right">
+            <label for="br_per_page" class="sr-only"><?= $addon->i18n('bulk_resize_per_page') ?></label>
+            <select id="br_per_page" class="form-control input-sm" style="width: 90px; display: inline-block;">
+                <option value="10">10 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="25">25 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="50" selected>50 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+                <option value="100">100 <?= $addon->i18n('alt_checker_per_page_suffix') ?></option>
+            </select>
+            <div class="btn-group" style="margin-left: 10px;">
+                <button type="button" class="btn btn-default btn-sm" id="br_page_prev"><i class="fa fa-chevron-left"></i></button>
+                <span class="btn btn-default btn-sm" id="br_page_info">1 / 1</span>
+                <button type="button" class="btn btn-default btn-sm" id="br_page_next"><i class="fa fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
 
     <!-- Ergebnistabelle -->
     <div class="panel panel-default">
@@ -326,9 +342,15 @@ $(document).on('rex:ready', function() {
         cancelled: false,
         images: [],
         selectedImages: new Set(),
+        page: 1,
+        perPage: 50,
+        totalItems: 0,
+        totalPages: 1,
         
         init() {
             this.bindEvents();
+            const initialPerPage = parseInt($('#br_per_page').val());
+            this.perPage = isNaN(initialPerPage) ? this.perPage : initialPerPage;
             this.loadImages();
         },
         
@@ -350,6 +372,24 @@ $(document).on('rex:ready', function() {
                 this.maxHeight = <?= $defaultMaxWidth ?>;
                 this.quality = <?= $defaultQuality ?>;
                 this.loadImages();
+            });
+
+            $('#br_per_page').on('change', (e) => {
+                this.perPage = parseInt($(e.target).val()) || 50;
+                this.page = 1;
+                this.loadImages();
+            });
+            $('#br_page_prev').on('click', () => {
+                if (this.page > 1) {
+                    this.page--;
+                    this.loadImages();
+                }
+            });
+            $('#br_page_next').on('click', () => {
+                if (this.page < this.totalPages) {
+                    this.page++;
+                    this.loadImages();
+                }
             });
             
             $('#btn-select-all').on('click', () => this.selectAll());
@@ -393,6 +433,8 @@ $(document).on('rex:ready', function() {
                 max_height: this.maxHeight,
                 filter_filename: $('#filter_filename').val(),
                 filter_category: $('#filter_category').val()
+                ,page: this.page,
+                per_page: this.perPage
             };
             
             $.getJSON(this.apiEndpoint + '&' + $.param(params))
@@ -405,6 +447,11 @@ $(document).on('rex:ready', function() {
                     }
                     
                     this.images = response.images || [];
+                    this.totalItems = response.total || this.images.length;
+                    this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.perPage));
+                    if (this.page > this.totalPages) {
+                        this.page = this.totalPages;
+                    }
                     $('#image-count').text(this.images.length);
                     
                     if (this.images.length === 0) {
@@ -451,6 +498,7 @@ $(document).on('rex:ready', function() {
                     
                     $table.show();
                     this.updateStartButton();
+                    this.updatePaginationControls();
                 })
                 .fail((xhr, status, error) => {
                     $loading.hide();
@@ -481,6 +529,12 @@ $(document).on('rex:ready', function() {
                 $btn.text(' ' + count + ' <?= $addon->i18n('bulk_resize_process_count') ?>');
                 $btn.prepend('<i class="fa fa-play"></i>');
             }
+        },
+
+        updatePaginationControls() {
+            $('#br_page_info').text(this.page + ' / ' + this.totalPages);
+            $('#br_page_prev').prop('disabled', this.page <= 1);
+            $('#br_page_next').prop('disabled', this.page >= this.totalPages);
         },
         
         startResize() {

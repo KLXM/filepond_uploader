@@ -51,6 +51,9 @@ alt_checker_ai_hint = KI-Alt-Text-Generierung ist nicht aktiv. Konfiguration unt
 alt_checker_ai_error = AI-Fehler
 alt_checker_ai_tokens = Tokens
 alt_checker_ai_svg_not_supported = SVG nicht unterstützt
+alt_checker_per_page = Pro Seite
+alt_checker_per_page_suffix = Einträge
+bulk_resize_per_page = Pro Seite
 
 # Tabs
 filepond_uploader_upload = Upload
