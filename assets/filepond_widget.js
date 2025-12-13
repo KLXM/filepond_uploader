@@ -1468,15 +1468,16 @@
                 credits: false,
                 
                 // Clientseitige Bildverkleinerung
-                // Kann über data-filepond-client-resize deaktiviert werden
-                allowImageResize: input.dataset.filepondClientResize !== 'false',
+                // Standardmäßig deaktiviert, muss explizit mit data-filepond-client-resize="true" aktiviert werden
+                allowImageResize: input.dataset.filepondClientResize === 'true',
                 imageResizeTargetWidth: parseInt(input.dataset.filepondMaxPixel || '2100'),
                 imageResizeTargetHeight: parseInt(input.dataset.filepondMaxPixel || '2100'),
                 imageResizeMode: 'contain', // Bild wird in die Dimensionen eingepasst, behält Seitenverhältnis
                 imageResizeUpscale: false, // Kleine Bilder nicht vergrößern
                 
                 // Clientseitige Bildtransformation
-                allowImageTransform: input.dataset.filepondClientResize !== 'false',
+                // Standardmäßig deaktiviert, muss explizit mit data-filepond-client-resize="true" aktiviert werden
+                allowImageTransform: input.dataset.filepondClientResize === 'true',
                 imageTransformOutputQuality: parseInt(input.dataset.filepondImageQuality || '90'),
                 imageTransformOutputQualityMode: 'optional', // Nur komprimieren wenn auch resize nötig
                 imageTransformOutputStripImageHead: false, // EXIF-Daten behalten (Orientation wird separat gehandhabt)

@@ -67,6 +67,9 @@ class FilePondUploadWidget extends AbstractWidget
         $skipMeta = $addon->getConfig('upload_skip_meta', false);
         $delayedUpload = $addon->getConfig('delayed_upload_mode', false);
         $titleRequired = $addon->getConfig('title_required_default', false);
+        $clientResize = $addon->getConfig('create_thumbnails', false);
+        $maxPixel = $addon->getConfig('max_pixel', 2100);
+        $imageQuality = $addon->getConfig('image_quality', 90);
 
         $content = sprintf('
             <div class="filepond-upload-widget">
@@ -91,6 +94,9 @@ class FilePondUploadWidget extends AbstractWidget
                             data-filepond-skip-meta="%s"
                             data-filepond-delayed-upload="%s"
                             data-filepond-title-required="%s"
+                            data-filepond-client-resize="%s"
+                            data-filepond-max-pixel="%d"
+                            data-filepond-image-quality="%d"
                             value=""
                         >
                     </div>
@@ -133,6 +139,9 @@ class FilePondUploadWidget extends AbstractWidget
             $skipMeta ? 'true' : 'false',
             $delayedUpload ? 'true' : 'false',
             $titleRequired ? 'true' : 'false',
+            $clientResize ? 'true' : 'false',
+            $maxPixel,
+            $imageQuality,
             $widgetId,
             $widgetId
         );
