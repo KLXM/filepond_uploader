@@ -222,3 +222,21 @@ filepond_sort_filesize_desc = Größte Dateien zuerst
 filepond_sort_filesize_asc = Kleinste Dateien zuerst
 filepond_sort_filename_asc = Dateiname (A-Z)
 filepond_sort_filename_desc = Dateiname (Z-A)
+
+# Bulk Resize
+filepond_uploader_bulk_resize = Bulk Resize
+bulk_resize_title = Bulk Resize - Bildgrößen optimieren
+bulk_resize_description = Mehrere Bilder im Medienpool auf maximale Größe verkleinern
+bulk_resize_images = Übergroße Bilder
+bulk_resize_no_images = Keine übergroßen Bilder gefunden. Alle Bilder sind bereits kleiner als die angegebene Maximalgröße.
+bulk_resize_current_settings = Max. Größe: {0}x{1} px (Einstellungen)
+bulk_resize_hits = Treffer
+bulk_resize_hits_per_page = Treffer pro Seite
+bulk_resize_filename = Dateiname
+bulk_resize_category = Kategorie
+bulk_resize_filesize = Dateigröße
+bulk_resize_dimensions = Breite
+bulk_resize_select_all = Alle auswählen
+bulk_resize_start = Resize starten ({0} Bilder)
+bulk_resize_search = Suchen
+bulk_resize_reset = Zurücksetzen

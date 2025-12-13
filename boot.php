@@ -11,6 +11,12 @@ if (rex::isBackend() && rex::getUser()) {
         filepond_helper::getScripts();
         $filepondScriptsLoaded = true;
     }
+    
+    // Bulk Resize Assets auf der bulk_resize Seite laden
+    if (rex_be_controller::getCurrentPage() === 'filepond_uploader/bulk_resize') {
+        rex_view::addCssFile($this->getAssetsUrl('filepond_bulk_resize.css'));
+        rex_view::addJsFile($this->getAssetsUrl('filepond_bulk_resize.js'));
+    }
 }
 
 // Register extension point to format MetaInfo Lang Fields in media pool

@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '2.3.0'
+version: '2.4.0'
 author: 'KLXM Crossmedia GmbH Thomas Skerbis'
 supportpage: https://github.com/KLXM/filepond_uploader
 requires:
@@ -15,6 +15,10 @@ page:
         upload: { 
             title: 'translate:filepond_uploader_upload',
             perm: filepond_uploader[upload]  
+        }
+        bulk_resize: { 
+            title: 'translate:filepond_uploader_bulk_resize',
+            perm: admin
         }
         settings: { 
             title: 'translate:filepond_uploader_settings',
