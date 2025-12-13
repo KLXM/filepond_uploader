@@ -395,6 +395,12 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-title-required` | Titel-Feld als Pflichtfeld           | `false`      |
 | `data-filepond-title-lang-required` | Mehrsprachiger Titel als Pflichtfeld (deprecated) | `true` |
 | `data-filepond-metainfo-lang` | MetaInfo Lang Fields Integration aktivieren | `false` |
+| `data-filepond-max-pixel`    | **NEU in 2.0.1:** Maximale Bildgröße in Pixeln für clientseitige Verkleinerung | `2100` |
+| `data-filepond-image-quality` | **NEU in 2.0.1:** JPEG/WebP Kompressionsqualität (10-100) | `90` |
+| `data-filepond-client-resize` | **NEU in 2.0.1:** Clientseitige Bildverkleinerung aktivieren (`true`/`false`) | `false` |
+| `data-filepond-opener-field`  | **NEU in 2.0.2:** Opener Input Field für Media Widget Integration | - |
+
+> **Wichtig:** Die Attribute `data-filepond-max-pixel`, `data-filepond-image-quality` und `data-filepond-client-resize` wurden in Version 2.0.4 korrigiert. Die Standardwerte aus den Einstellungen werden nun korrekt ausgewertet (REDAXO Checkbox-Werte `|1|` vs `null`).
 
 #### Spezielle Attribute für Metadaten
 
