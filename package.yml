@@ -16,10 +16,6 @@ page:
             title: 'translate:filepond_uploader_upload',
             perm: filepond_uploader[upload]  
         }
-        bulk_resize: { 
-            title: 'translate:filepond_uploader_bulk_resize',
-            perm: admin
-        }
         settings: { 
             title: 'translate:filepond_uploader_settings',
             perm: admin
@@ -48,6 +44,17 @@ default_config:
     title_required_default: false
     fix_exif_orientation: true
     enable_alt_checker: true
+    client_max_pixel: null
+    client_image_quality: null
+    enable_ai_alt: false
+    ai_provider: 'gemini'
+    ai_alt_prompt: null
+    gemini_api_key: null
+    gemini_model: 'gemini-1.5-flash'
+    cloudflare_api_token: null
+    cloudflare_account_id: null
+    items_per_page: 30
+    alt_checker_sort: 'createdate_desc'
 installer_ignore:
     - node_modules
     - package.json

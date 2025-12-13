@@ -178,28 +178,3 @@ filepond_select_for_media = Select for Media Field
 filepond_select_for_medialist = Add to Media List
 filepond_uploader_media_widget_mode = Upload Selection
 filepond_uploader_media_widget_info = The selected items can be added to the list.
-
-# Bulk Resize
-
-# Bulk Resize
-filepond_uploader_bulk_resize = Bulk Resize
-bulk_resize_title = Bulk Resize - Optimize Image Sizes
-bulk_resize_description = Resize multiple images in the media pool to maximum size
-bulk_resize_images = Oversized Images
-bulk_resize_no_images = No oversized images found. All images are already smaller than the specified maximum size.
-bulk_resize_current_settings = Max. size: {0}x{1} px (Settings)
-bulk_resize_hits = Results
-bulk_resize_hits_per_page = Results per page
-bulk_resize_filename = Filename
-bulk_resize_category = Category
-bulk_resize_filesize = File size
-bulk_resize_dimensions = Width
-bulk_resize_select_all = Select all
-bulk_resize_start = Start resize ({0} images)
-bulk_resize_search = Search
-bulk_resize_reset = Reset
-bulk_resize_info_title = Automatically resize images
-bulk_resize_info_text = All images wider OR taller than {0}x{1} pixels will be displayed here and can be resized to this size.
-bulk_resize_info_settings = The target size can be changed in the addon settings under "max_pixel".
-bulk_resize_submit = Start Resize
-

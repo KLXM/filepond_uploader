@@ -72,16 +72,6 @@
     *   Protokollierung aller Upload-Vorgänge
     *   Admin-Interface zur Systemwartung
 
-*   **Bulk Resize - Bildgrößen optimieren:**
-    *   Nachträgliche Verkleinerung bestehender Bilder im Medienpool
-    *   Filter nach Dateiname, Kategorie und Mindestgröße
-    *   Parallele Verarbeitung (bis zu 3 Bilder gleichzeitig)
-    *   Live-Fortschrittsanzeige mit Statistiken
-    *   Unterstützung für GD und ImageMagick
-    *   Automatische EXIF-Orientierungskorrektur
-    *   Speicherplatz-Ersparnis wird angezeigt
-    *   Eigene Berechtigung: `filepond_uploader[bulk_resize]`
-
 *   **Alt-Text-Checker für Barrierefreiheit:**
     *   Findet alle Bilder ohne Alt-Text im Medienpool
     *   Statistik-Dashboard mit Vollständigkeits-Prozent
@@ -395,12 +385,11 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-title-required` | Titel-Feld als Pflichtfeld           | `false`      |
 | `data-filepond-title-lang-required` | Mehrsprachiger Titel als Pflichtfeld (deprecated) | `true` |
 | `data-filepond-metainfo-lang` | MetaInfo Lang Fields Integration aktivieren | `false` |
-| `data-filepond-max-pixel`    | **NEU in 2.0.1:** Maximale Bildgröße in Pixeln für clientseitige Verkleinerung | `2100` |
-| `data-filepond-image-quality` | **NEU in 2.0.1:** JPEG/WebP Kompressionsqualität (10-100) | `90` |
-| `data-filepond-client-resize` | **NEU in 2.0.1:** Clientseitige Bildverkleinerung aktivieren (`true`/`false`) | `false` |
-| `data-filepond-opener-field`  | **NEU in 2.0.2:** Opener Input Field für Media Widget Integration | - |
+| `data-filepond-max-pixel`    |  Maximale Bildgröße in Pixeln für clientseitige Verkleinerung | `2100` |
+| `data-filepond-image-quality` | JPEG/WebP Kompressionsqualität (10-100) | `90` |
+| `data-filepond-client-resize` | *Clientseitige Bildverkleinerung aktivieren (`true`/`false`) | `false` |
+| `data-filepond-opener-field`  | Opener Input Field für Media Widget Integration | - |
 
-> **Wichtig:** Die Attribute `data-filepond-max-pixel`, `data-filepond-image-quality` und `data-filepond-client-resize` wurden in Version 2.0.4 korrigiert. Die Standardwerte aus den Einstellungen werden nun korrekt ausgewertet (REDAXO Checkbox-Werte `|1|` vs `null`).
 
 #### Spezielle Attribute für Metadaten
 
@@ -1510,23 +1499,6 @@ Der Upload-Button wird automatisch unter dem FilePond-Element angezeigt, wenn de
 ```
 
 > **Hinweis:** Bei aktiviertem verzögerten Upload-Modus können Benutzer die Dateien vor dem Upload neu anordnen, löschen und in Ruhe auswählen. Die tatsächliche Upload-Verarbeitung beginnt erst nach dem Klick auf den Button.
-
-## Changelog
-
-### Version 1.15.0-beta.1
-
-- **Neu:** Clientseitiges Resize großer Bilder vor dem Upload (FilePond Image Transform Plugin)
-- **Neu:** Automatische EXIF-Orientierungskorrektur im Browser
-- **Neu:** Einstellbare Kompressionsqualität für JPEG/PNG/WebP
-- **Entfernt:** WebP/AVIF-Konvertierungsfunktion – die Bildformatkonvertierung sollte besser vom MediaManager übernommen werden
-- **Vereinfacht:** Serverseitige Bildverarbeitung auf Größenanpassung und EXIF-Orientierungskorrektur reduziert
-- **Verbessert:** Schnellere Uploads durch reduzierte Dateigröße vor dem Upload
-- **Fix:** Update-Script entfernt nun alte `convert_format` Config-Option
-
-### Version 1.13.3
-
-- Bugfixes und Verbesserungen
-- Verbesserte Chunk-Upload-Stabilität
 
 ## Credits
 
