@@ -86,9 +86,12 @@ class filepond_bulk_resize
     /**
      * Findet alle Bilder die größer als die max. Werte sind
      */
-    public static function findOversizedImages(int $maxWidth, int $maxHeight, array $filters = [], int $limit = 0, int $offset = 0): array
+    public static function findOversizedImages(array $filters = [], int $limit = 0, int $offset = 0): array
     {
         $where = ['filetype LIKE "image/%"'];
+        
+        $maxWidth = isset($filters['max_width']) ? (int)$filters['max_width'] : 0;
+        $maxHeight = isset($filters['max_height']) ? (int)$filters['max_height'] : 0;
         
         // Größenfilter
         $sizeConditions = [];
@@ -106,9 +109,8 @@ class filepond_bulk_resize
         if (!empty($filters['filename'])) {
             $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
         }
-        if (!empty($filters['category_id'])) {
-            $categories = array_map('intval', explode(',', $filters['category_id']));
-            $where[] = 'category_id IN (' . implode(',', $categories) . ')';
+        if (isset($filters['category_id']) && $filters['category_id'] !== '' && $filters['category_id'] >= 0) {
+            $where[] = 'category_id = ' . (int)$filters['category_id'];
         }
         if (!empty($filters['min_filesize'])) {
             $where[] = 'CAST(filesize as SIGNED) >= ' . (intval($filters['min_filesize']) * 1024);
@@ -120,12 +122,38 @@ class filepond_bulk_resize
             $where[] = 'height >= ' . intval($filters['min_height']);
         }
         
+        // Sortierung
+        $sortConfig = rex_config::get('filepond_uploader', 'bulk_resize_sort', 'createdate_desc');
+        $orderBy = 'createdate DESC';
+        
+        switch ($sortConfig) {
+            case 'createdate_asc':
+                $orderBy = 'createdate ASC';
+                break;
+            case 'filesize_desc':
+                $orderBy = 'filesize DESC';
+                break;
+            case 'filesize_asc':
+                $orderBy = 'filesize ASC';
+                break;
+            case 'filename_asc':
+                $orderBy = 'filename ASC';
+                break;
+            case 'filename_desc':
+                $orderBy = 'filename DESC';
+                break;
+            case 'createdate_desc':
+            default:
+                $orderBy = 'createdate DESC';
+                break;
+        }
+        
         $sql = rex_sql::factory();
         $query = '
             SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
-            ORDER BY filesize DESC
+            ORDER BY ' . $orderBy . '
         ';
 
         if ($limit > 0) {
@@ -140,9 +168,12 @@ class filepond_bulk_resize
     /**
      * Zählt alle Bilder die größer als die max. Werte sind
      */
-    public static function countOversizedImages(int $maxWidth, int $maxHeight, array $filters = []): int
+    public static function countOversizedImages(array $filters = []): int
     {
         $where = ['filetype LIKE "image/%"'];
+        
+        $maxWidth = isset($filters['max_width']) ? (int)$filters['max_width'] : 0;
+        $maxHeight = isset($filters['max_height']) ? (int)$filters['max_height'] : 0;
         
         // Größenfilter
         $sizeConditions = [];
@@ -161,9 +192,8 @@ class filepond_bulk_resize
         if (!empty($filters['filename'])) {
             $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
         }
-        if (!empty($filters['category_id'])) {
-            $categories = array_map('intval', explode(',', $filters['category_id']));
-            $where[] = 'category_id IN (' . implode(',', $categories) . ')';
+        if (isset($filters['category_id']) && $filters['category_id'] !== '' && $filters['category_id'] >= 0) {
+            $where[] = 'category_id = ' . (int)$filters['category_id'];
         }
         if (!empty($filters['min_filesize'])) {
             $where[] = 'CAST(filesize as SIGNED) >= ' . (intval($filters['min_filesize']) * 1024);
@@ -457,8 +487,6 @@ class filepond_bulk_resize
             $sql->setValue('filesize', $newSize);
             $sql->setValue('width', $newImageInfo[0]);
             $sql->setValue('height', $newImageInfo[1]);
-            $sql->setValue('updatedate', date('Y-m-d H:i:s'));
-            $sql->setValue('updateuser', rex::getUser() ? rex::getUser()->getLogin() : 'system');
             $sql->update();
             
             // Cache löschen

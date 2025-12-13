@@ -48,7 +48,6 @@ foreach (rex_clang::getAll() as $clang) {
 $currentLangId = rex_clang::getCurrentId();
 
 // Filter und Pagination
-$page = rex_request('page', 'int', 1);
 $itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
 if ($itemsPerPage < 1) $itemsPerPage = 30;
 
@@ -69,18 +68,17 @@ $stats = filepond_alt_text_checker::getStatistics();
 // Bilder laden
 $totalCount = 0;
 $images = [];
+$pager = new rex_pager($itemsPerPage, 'start');
 
 if ($altFieldExists) {
     $totalCount = filepond_alt_text_checker::countImagesWithoutAlt($filters);
-    $offset = ($page - 1) * $itemsPerPage;
+    $pager->setRowCount($totalCount);
+    $offset = $pager->getCursor();
     $images = filepond_alt_text_checker::findImagesWithoutAlt($filters, $itemsPerPage, $offset);
 }
 
-// Pager initialisieren
-$pager = new rex_pager($itemsPerPage, 'page');
-$pager->setRowCount($totalCount);
-$pager->setPage($page);
-
+// Determine current page context (mediapool or addon)
+$currentPage = rex_be_controller::getCurrentPage();
 ?>
 
 <div id="alt-checker-app">
@@ -332,9 +330,9 @@ $pager->setPage($page);
         <div class="panel-footer">
             <?php
             $urlProvider = new rex_context([
-                'page' => 'filepond_uploader/alt_checker',
+                'page' => $currentPage,
                 'filter_filename' => $filterFilename,
-                'filter_category' => $filterCategoryId,
+                'filter_category' => $filterCategory,
                 'items_per_page' => $itemsPerPage
             ]);
             $fragment = new rex_fragment();

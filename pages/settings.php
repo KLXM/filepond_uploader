@@ -397,6 +397,29 @@ $field->setLabel($addon->i18n('filepond_settings_items_per_page'));
 $field->setNotice($addon->i18n('filepond_settings_items_per_page_notice'));
 
 $form->addRawField('</div>');
+$form->addRawField('<div class="col-sm-6">');
+
+// Sortierung Bulk Resize
+$field = $form->addSelectField('bulk_resize_sort');
+$field->setLabel($addon->i18n('filepond_settings_bulk_resize_sort'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_sort_createdate_desc'), 'createdate_desc');
+$select->addOption($addon->i18n('filepond_sort_createdate_asc'), 'createdate_asc');
+$select->addOption($addon->i18n('filepond_sort_filesize_desc'), 'filesize_desc');
+$select->addOption($addon->i18n('filepond_sort_filesize_asc'), 'filesize_asc');
+$select->addOption($addon->i18n('filepond_sort_filename_asc'), 'filename_asc');
+$select->addOption($addon->i18n('filepond_sort_filename_desc'), 'filename_desc');
+
+// Sortierung Alt-Text Checker
+$field = $form->addSelectField('alt_checker_sort');
+$field->setLabel($addon->i18n('filepond_settings_alt_checker_sort'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_sort_createdate_desc'), 'createdate_desc');
+$select->addOption($addon->i18n('filepond_sort_createdate_asc'), 'createdate_asc');
+$select->addOption($addon->i18n('filepond_sort_filename_asc'), 'filename_asc');
+$select->addOption($addon->i18n('filepond_sort_filename_desc'), 'filename_desc');
+
+$form->addRawField('</div>');
 $form->addRawField('</div>');
 
 // ============================================================================

@@ -134,12 +134,32 @@ class filepond_alt_text_checker
             $where[] = 'category_id = ' . intval($filters['category_id']);
         }
         
+        // Sortierung
+        $sortConfig = rex_config::get('filepond_uploader', 'alt_checker_sort', 'createdate_desc');
+        $orderBy = 'createdate DESC';
+        
+        switch ($sortConfig) {
+            case 'createdate_asc':
+                $orderBy = 'createdate ASC';
+                break;
+            case 'filename_asc':
+                $orderBy = 'filename ASC';
+                break;
+            case 'filename_desc':
+                $orderBy = 'filename DESC';
+                break;
+            case 'createdate_desc':
+            default:
+                $orderBy = 'createdate DESC';
+                break;
+        }
+        
         $sql = rex_sql::factory();
         $sql->setQuery('
             SELECT id, filename, category_id, title, med_alt, med_description, createdate, createuser, width, height
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
-            ORDER BY createdate DESC
+            ORDER BY ' . $orderBy . '
         ');
         
         $allImages = $sql->getArray();
@@ -276,8 +296,6 @@ class filepond_alt_text_checker
             $sql->setTable(rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
             $sql->setValue('med_alt', $valueToSave);
-            $sql->setValue('updatedate', date('Y-m-d H:i:s'));
-            $sql->setValue('updateuser', rex::getUser() ? rex::getUser()->getLogin() : 'system');
             $sql->update();
             
             // Cache löschen
