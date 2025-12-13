@@ -8,8 +8,10 @@ use FriendsOfRedaxo\FilePondUploader\BulkReworkList;
 echo rex_view::title($this->i18n('filepond_uploader_bulk_resize'));
 
 $addon = rex_addon::get('filepond_uploader');
-$maxWidth = (int) $addon->getConfig('max_width', 2000);
-$maxHeight = (int) $addon->getConfig('max_height', 2000);
+// Nutze max_pixel als Standard für beide Dimensionen
+$maxPixel = (int) $addon->getConfig('max_pixel', 2100);
+$maxWidth = $maxPixel;
+$maxHeight = $maxPixel;
 
 // Einträge pro Seite konfigurieren
 if (rex_request('formsubmit', 'string') == 'set-num-hits-per-page') {
@@ -98,6 +100,11 @@ $sql = '
     WHERE
         ' . implode(' AND ', $conditions) . '
 ';
+
+// Debug-Ausgabe
+if (rex::isDebugMode()) {
+    echo rex_view::info('Debug SQL: <pre>' . $sql . '</pre>Max Width: ' . $maxWidth . ', Max Height: ' . $maxHeight);
+}
 
 $list = BulkReworkList::factory($sql, $hitsPerPage, 'filepond-bulk-resize', false, 1, ['id' => 'desc']);
 $list->addParam('page', rex_be_controller::getCurrentPage());
