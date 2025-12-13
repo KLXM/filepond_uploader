@@ -6,7 +6,7 @@
 
 ## Changelog
 
-### Version 2.0.3 (2025-12-13)
+### Version 2.0.4 (2025-12-13)
 
 **Kritische Bugfixes:**
 
