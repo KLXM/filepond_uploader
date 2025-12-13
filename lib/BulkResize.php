@@ -23,7 +23,8 @@ class BulkResize
     const IMAGEMAGICK_ONLY_FORMATS = ['psd'];
     const SKIPPED_FORMATS = ['tif', 'tiff', 'svg', 'heic'];
     const BATCH_CACHE_KEY = 'filepond_bulk_batch_';
-    const MAX_PARALLEL_PROCESSES = 3;
+    const MAX_PARALLEL_PROCESSES = 1; // Reduziert auf 1 für bessere Kompatibilität mit Shared Hosting
+    const MAX_EXECUTION_TIME_PER_IMAGE = 30; // Maximale Zeit pro Bild in Sekunden
 
     /**
      * Maximale parallele Prozesse (konfigurierbar)
@@ -170,6 +171,12 @@ class BulkResize
      */
     public static function processNextBatchItems(string $batchId): array
     {
+        // Erhöhe Memory Limit falls möglich
+        @ini_set('memory_limit', '256M');
+        
+        // Setze Execution Time Limit
+        @set_time_limit(60);
+        
         $status = self::getBatchStatus($batchId);
 
         if (!$status) {
@@ -183,8 +190,14 @@ class BulkResize
         $maxParallel = self::getMaxParallelProcesses();
         $processed = 0;
         $results = [];
+        $startTime = time();
 
         while ($processed < $maxParallel && !empty($status['processQueue'])) {
+            // Timeout-Check: Breche ab wenn zu lange
+            if (time() - $startTime > 45) {
+                rex_logger::factory()->log('warning', 'Bulk Resize: Timeout nach 45 Sekunden erreicht');
+                break;
+            }
             $filename = array_shift($status['processQueue']);
             $status['currentFiles'][] = $filename;
 
