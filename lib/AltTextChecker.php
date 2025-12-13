@@ -114,7 +114,7 @@ class filepond_alt_text_checker
      * Findet alle Bilder ohne Alt-Text
      * Dekorative Bilder (aus Negativ-Liste) werden ausgeschlossen
      */
-    public static function findImagesWithoutAlt(array $filters = []): array
+    public static function findImagesWithoutAlt(array $filters = [], int $limit = 0, int $offset = 0): array
     {
         // Dekorative Bilder ausschließen
         $decorativeList = self::getDecorativeList();
@@ -152,7 +152,20 @@ class filepond_alt_text_checker
             }
         }
         
+        // Pagination
+        if ($limit > 0) {
+            return array_slice($imagesWithoutAlt, $offset, $limit);
+        }
+        
         return $imagesWithoutAlt;
+    }
+
+    /**
+     * Zählt alle Bilder ohne Alt-Text
+     */
+    public static function countImagesWithoutAlt(array $filters = []): int
+    {
+        return count(self::findImagesWithoutAlt($filters));
     }
 
     /**

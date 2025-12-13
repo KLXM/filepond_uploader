@@ -43,6 +43,27 @@ foreach ($sqlCats as $cat) {
     $categories[$cat->getValue('id')] = $cat->getValue('name');
 }
 
+// Pagination
+$page = rex_request('page', 'int', 1);
+$itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
+if ($itemsPerPage < 1) $itemsPerPage = 30;
+
+$filters = [
+    'filename' => $filterFilename,
+    'category_id' => $filterCategoryId,
+    'max_width' => $filterMaxWidth,
+    'max_height' => $filterMaxHeight
+];
+
+$totalCount = filepond_bulk_resize::countOversizedImages($filters);
+$offset = ($page - 1) * $itemsPerPage;
+$images = filepond_bulk_resize::findOversizedImages($filters, $itemsPerPage, $offset);
+
+// Pager initialisieren
+$pager = new rex_pager($itemsPerPage, 'page');
+$pager->setRowCount($totalCount);
+$pager->setPage($page);
+
 ?>
 
 <div id="bulk-resize-app">
@@ -72,7 +93,9 @@ foreach ($sqlCats as $cat) {
     </div>
 
     <!-- Filter & Einstellungen -->
-    <form id="bulk-resize-filter-form" class="form-horizontal">
+    <form action="<?= rex_url::currentBackendPage() ?>" method="get" class="form-horizontal">
+        <input type="hidden" name="page" value="filepond_uploader/bulk_resize">
+        
         <div class="panel panel-default">
             <div class="panel-heading">
                 <div class="panel-title">
@@ -96,7 +119,7 @@ foreach ($sqlCats as $cat) {
                             <label for="filter_category" class="col-sm-4 control-label"><?= $addon->i18n('bulk_resize_category') ?></label>
                             <div class="col-sm-8">
                                 <select class="form-control selectpicker" id="filter_category" name="filter_category" data-live-search="true">
-                                    <option value="-1"><?= $addon->i18n('bulk_resize_all_categories') ?></option>
+                                    <option value="-1" <?= $filterCategoryId == -1 ? 'selected' : '' ?>><?= $addon->i18n('bulk_resize_all_categories') ?></option>
                                     <option value="0" <?= $filterCategoryId === 0 ? 'selected' : '' ?>><?= rex_i18n::msg('pool_kats_no') ?></option>
                                     <?php foreach ($categories as $catId => $catName): ?>
                                         <option value="<?= $catId ?>" <?= $filterCategoryId === $catId ? 'selected' : '' ?>><?= rex_escape($catName) ?></option>
@@ -135,9 +158,9 @@ foreach ($sqlCats as $cat) {
                         <button type="submit" class="btn btn-primary">
                             <i class="fa fa-search"></i> <?= $addon->i18n('bulk_resize_search') ?>
                         </button>
-                        <button type="button" class="btn btn-default" id="btn-reset-filter">
+                        <a href="<?= rex_url::currentBackendPage() ?>" class="btn btn-default">
                             <i class="fa fa-times"></i> <?= $addon->i18n('bulk_resize_reset') ?>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -151,7 +174,7 @@ foreach ($sqlCats as $cat) {
                 <span>
                     <i class="fa fa-images fa-fw"></i> 
                     <?= $addon->i18n('bulk_resize_images') ?>
-                    <span id="image-count" class="badge">0</span>
+                    <span id="image-count" class="badge"><?= $totalCount ?></span>
                 </span>
                 <div class="pull-right">
                     <button type="button" class="btn btn-success btn-sm" id="btn-start-resize" disabled>
@@ -166,12 +189,10 @@ foreach ($sqlCats as $cat) {
                 </div>
             </div>
         </div>
-        <div class="panel-body" id="images-container">
-            <div class="text-center text-muted" id="loading-indicator" style="padding: 50px;">
-                <i class="fa fa-spinner fa-spin fa-3x"></i>
-                <p style="margin-top: 15px;"><?= $addon->i18n('bulk_resize_loading') ?></p>
-            </div>
-            <table class="table table-striped table-hover" id="images-table" style="display:none;">
+        
+        <?php if (count($images) > 0): ?>
+        <div class="panel-body" id="images-container" style="padding: 0;">
+            <table class="table table-striped table-hover" id="images-table" style="margin-bottom: 0;">
                 <thead>
                     <tr>
                         <th width="40"><input type="checkbox" id="select-all-checkbox"></th>
@@ -184,12 +205,69 @@ foreach ($sqlCats as $cat) {
                     </tr>
                 </thead>
                 <tbody id="images-tbody">
+                    <?php foreach ($images as $img): 
+                        $categoryName = $img['category_id'] == 0 
+                            ? rex_i18n::msg('pool_kats_no') 
+                            : ($categories[$img['category_id']] ?? '');
+                        
+                        $isOversized = ($filterMaxWidth > 0 && $img['width'] > $filterMaxWidth) || 
+                                       ($filterMaxHeight > 0 && $img['height'] > $filterMaxHeight);
+                    ?>
+                    <tr data-filename="<?= rex_escape($img['filename']) ?>">
+                        <td>
+                            <input type="checkbox" class="image-checkbox" 
+                                   data-filename="<?= rex_escape($img['filename']) ?>">
+                        </td>
+                        <td>
+                            <img src="index.php?rex_media_type=rex_media_small&rex_media_file=<?= urlencode($img['filename']) ?>" 
+                                 alt="" loading="lazy">
+                        </td>
+                        <td>
+                            <strong><?= rex_escape($img['filename']) ?></strong>
+                            <?php if (!empty($img['title'])): ?>
+                                <br><small class="text-muted"><?= rex_escape($img['title']) ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?= $img['width'] ?> × <?= $img['height'] ?>
+                            <?php if ($isOversized): ?>
+                                <span class="badge badge-oversized" title="Größer als <?= $filterMaxWidth ?>px">!</span>
+                            <?php endif; ?>
+                        </td>
+                        <td><?= rex_formatter::bytes($img['filesize'], [2]) ?></td>
+                        <td><small><?= rex_escape($categoryName) ?></small></td>
+                        <td class="status-cell">
+                            <span class="label label-default"><?= $addon->i18n('bulk_resize_status_pending') ?></span>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
-            <div id="no-images-message" class="alert alert-info" style="display:none;">
+        </div>
+        <div class="panel-footer">
+            <?php
+            $urlProvider = new rex_context([
+                'page' => 'filepond_uploader/bulk_resize',
+                'filter_filename' => $filterFilename,
+                'filter_category' => $filterCategoryId,
+                'max_width' => $filterMaxWidth,
+                'max_height' => $filterMaxHeight,
+                'quality' => $filterQuality,
+                'items_per_page' => $itemsPerPage
+            ]);
+            $fragment = new rex_fragment();
+            $fragment->setVar('urlprovider', $urlProvider);
+            $fragment->setVar('pager', $pager);
+            echo $fragment->parse('core/navigations/pagination.php');
+            ?>
+        </div>
+        <?php else: ?>
+        <div class="panel-body">
+            <div class="alert alert-info">
                 <i class="fa fa-info-circle"></i> <?= $addon->i18n('bulk_resize_no_images') ?>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -321,37 +399,15 @@ $(document).on('rex:ready', function() {
         maxWidth: <?= $filterMaxWidth ?>,
         maxHeight: <?= $filterMaxHeight ?>,
         quality: <?= $filterQuality ?>,
-        categories: <?= json_encode($categories) ?>,
         batchId: null,
         cancelled: false,
-        images: [],
         selectedImages: new Set(),
         
         init() {
             this.bindEvents();
-            this.loadImages();
         },
         
         bindEvents() {
-            $('#bulk-resize-filter-form').on('submit', (e) => {
-                e.preventDefault();
-                this.maxWidth = parseInt($('#max_width').val()) || 2100;
-                this.maxHeight = this.maxWidth;
-                this.quality = parseInt($('#quality').val()) || 85;
-                this.loadImages();
-            });
-            
-            $('#btn-reset-filter').on('click', () => {
-                $('#filter_filename').val('');
-                $('#filter_category').val(-1).selectpicker('refresh');
-                $('#max_width').val(<?= $defaultMaxWidth ?>);
-                $('#quality').val(<?= $defaultQuality ?>);
-                this.maxWidth = <?= $defaultMaxWidth ?>;
-                this.maxHeight = <?= $defaultMaxWidth ?>;
-                this.quality = <?= $defaultQuality ?>;
-                this.loadImages();
-            });
-            
             $('#btn-select-all').on('click', () => this.selectAll());
             $('#btn-deselect-all').on('click', () => this.deselectAll());
             $('#select-all-checkbox').on('change', (e) => {
@@ -376,90 +432,10 @@ $(document).on('rex:ready', function() {
             });
         },
         
-        loadImages() {
-            const $container = $('#images-container');
-            const $table = $('#images-table');
-            const $tbody = $('#images-tbody');
-            const $loading = $('#loading-indicator');
-            const $noImages = $('#no-images-message');
-            
-            $loading.show();
-            $table.hide();
-            $noImages.hide();
-            
-            const params = {
-                action: 'list',
-                max_width: this.maxWidth,
-                max_height: this.maxHeight,
-                filter_filename: $('#filter_filename').val(),
-                filter_category: $('#filter_category').val()
-            };
-            
-            $.getJSON(this.apiEndpoint + '&' + $.param(params))
-                .done((response) => {
-                    $loading.hide();
-                    
-                    if (response.error) {
-                        $noImages.text(response.error).show();
-                        return;
-                    }
-                    
-                    this.images = response.images || [];
-                    $('#image-count').text(this.images.length);
-                    
-                    if (this.images.length === 0) {
-                        $noImages.show();
-                        return;
-                    }
-                    
-                    $tbody.empty();
-                    this.images.forEach(img => {
-                        const categoryName = img.category_id == 0 
-                            ? '<?= rex_i18n::msg('pool_kats_no') ?>' 
-                            : (this.categories[img.category_id] || '');
-                        
-                        const isOversized = (this.maxWidth > 0 && img.width > this.maxWidth) || 
-                                           (this.maxHeight > 0 && img.height > this.maxHeight);
-                        
-                        $tbody.append(`
-                            <tr data-filename="${this.escapeHtml(img.filename)}">
-                                <td>
-                                    <input type="checkbox" class="image-checkbox" 
-                                           data-filename="${this.escapeHtml(img.filename)}"
-                                           ${this.selectedImages.has(img.filename) ? 'checked' : ''}>
-                                </td>
-                                <td>
-                                    <img src="index.php?rex_media_type=rex_media_small&rex_media_file=${encodeURIComponent(img.filename)}" 
-                                         alt="" loading="lazy">
-                                </td>
-                                <td>
-                                    <strong>${this.escapeHtml(img.filename)}</strong>
-                                    ${img.title ? '<br><small class="text-muted">' + this.escapeHtml(img.title) + '</small>' : ''}
-                                </td>
-                                <td>
-                                    ${img.width} × ${img.height}
-                                    ${isOversized ? '<span class="badge badge-oversized" title="Größer als ' + this.maxWidth + 'px">!</span>' : ''}
-                                </td>
-                                <td>${this.formatBytes(img.filesize)}</td>
-                                <td><small>${this.escapeHtml(categoryName)}</small></td>
-                                <td class="status-cell">
-                                    <span class="label label-default"><?= $addon->i18n('bulk_resize_status_pending') ?></span>
-                                </td>
-                            </tr>
-                        `);
-                    });
-                    
-                    $table.show();
-                    this.updateStartButton();
-                })
-                .fail((xhr, status, error) => {
-                    $loading.hide();
-                    $noImages.text('Fehler beim Laden: ' + error).removeClass('alert-info').addClass('alert-danger').show();
-                });
-        },
-        
         selectAll() {
-            this.images.forEach(img => this.selectedImages.add(img.filename));
+            $('.image-checkbox').each((i, el) => {
+                this.selectedImages.add($(el).data('filename'));
+            });
             $('.image-checkbox').prop('checked', true);
             $('#select-all-checkbox').prop('checked', true);
             this.updateStartButton();
@@ -502,6 +478,11 @@ $(document).on('rex:ready', function() {
             
             // Batch starten
             const filenames = Array.from(this.selectedImages);
+            
+            // Parameter aus Formular lesen
+            this.maxWidth = parseInt($('#max_width').val()) || 2100;
+            this.maxHeight = this.maxWidth;
+            this.quality = parseInt($('#quality').val()) || 85;
             
             $.post(this.apiEndpoint, {
                 action: 'start',
@@ -625,6 +606,11 @@ $(document).on('rex:ready', function() {
             $('#current-files-list').html('<li class="text-success"><i class="fa fa-check"></i> <?= $addon->i18n('bulk_resize_finished') ?></li>');
             
             this.logMessage(this.cancelled ? 'Verarbeitung abgebrochen' : 'Verarbeitung abgeschlossen', 'info');
+            
+            // Seite neu laden nach Abschluss, um aktualisierte Dateigrößen zu sehen
+            if (!this.cancelled) {
+                setTimeout(() => window.location.reload(), 2000);
+            }
         },
         
         cancelResize() {

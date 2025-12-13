@@ -47,6 +47,40 @@ foreach (rex_clang::getAll() as $clang) {
 }
 $currentLangId = rex_clang::getCurrentId();
 
+// Filter und Pagination
+$page = rex_request('page', 'int', 1);
+$itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
+if ($itemsPerPage < 1) $itemsPerPage = 30;
+
+$filterFilename = rex_request('filter_filename', 'string', '');
+$filterCategory = rex_request('filter_category', 'int', -1);
+
+$filters = [];
+if (!empty($filterFilename)) {
+    $filters['filename'] = $filterFilename;
+}
+if ($filterCategory >= 0) {
+    $filters['category_id'] = $filterCategory;
+}
+
+// Statistik laden
+$stats = filepond_alt_text_checker::getStatistics();
+
+// Bilder laden
+$totalCount = 0;
+$images = [];
+
+if ($altFieldExists) {
+    $totalCount = filepond_alt_text_checker::countImagesWithoutAlt($filters);
+    $offset = ($page - 1) * $itemsPerPage;
+    $images = filepond_alt_text_checker::findImagesWithoutAlt($filters, $itemsPerPage, $offset);
+}
+
+// Pager initialisieren
+$pager = new rex_pager($itemsPerPage, 'page');
+$pager->setRowCount($totalCount);
+$pager->setPage($page);
+
 ?>
 
 <div id="alt-checker-app">
@@ -74,27 +108,32 @@ $currentLangId = rex_clang::getCurrentId();
             <div class="row">
                 <div class="col-md-3 text-center">
                     <div class="stat-box">
-                        <div class="stat-value" id="stat-total">-</div>
+                        <div class="stat-value" id="stat-total"><?= $stats['total'] ?></div>
                         <div class="stat-label"><?= $addon->i18n('alt_checker_stat_total') ?></div>
                     </div>
                 </div>
                 <div class="col-md-3 text-center">
                     <div class="stat-box">
-                        <div class="stat-value text-success" id="stat-with-alt">-</div>
+                        <div class="stat-value text-success" id="stat-with-alt"><?= $stats['with_alt'] ?></div>
                         <div class="stat-label"><?= $addon->i18n('alt_checker_stat_with_alt') ?></div>
                     </div>
                 </div>
                 <div class="col-md-3 text-center">
                     <div class="stat-box">
-                        <div class="stat-value text-danger" id="stat-without-alt">-</div>
+                        <div class="stat-value text-danger" id="stat-without-alt"><?= $stats['without_alt'] ?></div>
                         <div class="stat-label"><?= $addon->i18n('alt_checker_stat_without_alt') ?></div>
                     </div>
                 </div>
                 <div class="col-md-3 text-center">
                     <div class="stat-box">
+                        <?php
+                        $percentClass = 'progress-bar-danger';
+                        if ($stats['percent_complete'] >= 90) $percentClass = 'progress-bar-success';
+                        elseif ($stats['percent_complete'] >= 50) $percentClass = 'progress-bar-warning';
+                        ?>
                         <div class="progress" style="height: 30px; margin: 5px 0;">
-                            <div id="progress-bar" class="progress-bar progress-bar-success" role="progressbar" style="width: 0%; line-height: 30px;">
-                                0%
+                            <div id="progress-bar" class="progress-bar <?= $percentClass ?>" role="progressbar" style="width: <?= $stats['percent_complete'] ?>%; line-height: 30px;">
+                                <?= $stats['percent_complete'] ?>%
                             </div>
                         </div>
                         <div class="stat-label"><?= $addon->i18n('alt_checker_stat_complete') ?></div>
@@ -113,28 +152,31 @@ $currentLangId = rex_clang::getCurrentId();
     </div>
     <?php endif; ?>
     
-    <form id="alt-checker-filter-form" class="form-inline" style="margin-bottom: 15px;">
+    <form action="<?= rex_url::currentBackendPage() ?>" method="get" class="form-inline" style="margin-bottom: 15px;">
+        <input type="hidden" name="page" value="filepond_uploader/alt_checker">
+        
         <div class="form-group">
             <label for="filter_filename" class="sr-only"><?= $addon->i18n('alt_checker_filename') ?></label>
             <input type="text" class="form-control" id="filter_filename" name="filter_filename" 
+                   value="<?= rex_escape($filterFilename) ?>"
                    placeholder="<?= $addon->i18n('alt_checker_filter_filename') ?>" style="width: 200px;">
         </div>
         <div class="form-group" style="margin-left: 10px;">
             <label for="filter_category" class="sr-only"><?= $addon->i18n('alt_checker_category') ?></label>
             <select class="form-control" id="filter_category" name="filter_category">
-                <option value="-1"><?= $addon->i18n('alt_checker_all_categories') ?></option>
-                <option value="0"><?= rex_i18n::msg('pool_kats_no') ?></option>
+                <option value="-1" <?= $filterCategory == -1 ? 'selected' : '' ?>><?= $addon->i18n('alt_checker_all_categories') ?></option>
+                <option value="0" <?= $filterCategory == 0 ? 'selected' : '' ?>><?= rex_i18n::msg('pool_kats_no') ?></option>
                 <?php foreach ($categories as $catId => $catName): ?>
-                    <option value="<?= $catId ?>"><?= rex_escape($catName) ?></option>
+                    <option value="<?= $catId ?>" <?= $filterCategory == $catId ? 'selected' : '' ?>><?= rex_escape($catName) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <button type="submit" class="btn btn-primary" style="margin-left: 10px;">
             <i class="fa fa-search"></i> <?= $addon->i18n('alt_checker_search') ?>
         </button>
-        <button type="button" class="btn btn-default" id="btn-refresh" style="margin-left: 5px;">
+        <a href="<?= rex_url::currentBackendPage() ?>" class="btn btn-default" style="margin-left: 5px;">
             <i class="fa fa-refresh"></i>
-        </button>
+        </a>
     </form>
 
     <!-- Bilder-Tabelle -->
@@ -143,11 +185,11 @@ $currentLangId = rex_clang::getCurrentId();
             <div class="panel-title">
                 <i class="fa fa-image fa-fw"></i> 
                 <?= $addon->i18n('alt_checker_images_without_alt') ?>
-                <span id="image-count" class="badge">0</span>
+                <span id="image-count" class="badge"><?= $totalCount ?></span>
                 
                 <div class="pull-right">
-                    <?php if (filepond_ai_alt_generator::isEnabled()): ?>
-                    <button type="button" class="btn btn-info btn-xs" id="btn-ai-generate-all" disabled>
+                    <?php if (filepond_ai_alt_generator::isEnabled() && count($images) > 0): ?>
+                    <button type="button" class="btn btn-info btn-xs" id="btn-ai-generate-all">
                         <i class="fa fa-magic"></i> <?= $addon->i18n('alt_checker_ai_generate_all') ?>
                     </button>
                     <?php endif; ?>
@@ -157,13 +199,10 @@ $currentLangId = rex_clang::getCurrentId();
                 </div>
             </div>
         </div>
-        <div class="panel-body" id="images-container">
-            <div class="text-center text-muted" id="loading-indicator" style="padding: 50px;">
-                <i class="fa fa-spinner fa-spin fa-3x"></i>
-                <p style="margin-top: 15px;"><?= $addon->i18n('alt_checker_loading') ?></p>
-            </div>
-            
-            <table class="table table-hover" id="images-table" style="display:none;">
+        
+        <?php if (count($images) > 0): ?>
+        <div class="panel-body" id="images-container" style="padding: 0;">
+            <table class="table table-hover" id="images-table" style="margin-bottom: 0;">
                 <thead>
                     <tr>
                         <th width="50"></th>
@@ -174,13 +213,143 @@ $currentLangId = rex_clang::getCurrentId();
                     </tr>
                 </thead>
                 <tbody id="images-tbody">
+                    <?php 
+                    $langArray = array_values($languages);
+                    $firstLang = $langArray[0] ?? ['id' => $currentLangId, 'code' => 'DE', 'name' => 'Deutsch'];
+                    $otherLangs = array_slice($langArray, 1);
+                    $hasMoreLangs = $isMultiLang && count($otherLangs) > 0;
+                    
+                    foreach ($images as $index => $img): 
+                        $categoryName = $img['category_id'] == 0 
+                            ? rex_i18n::msg('pool_kats_no') 
+                            : ($categories[$img['category_id']] ?? '-');
+                        
+                        $isSvg = strtolower(pathinfo($img['filename'], PATHINFO_EXTENSION)) === 'svg';
+                        $thumbSrc = $isSvg 
+                            ? '../media/' . urlencode($img['filename'])
+                            : 'index.php?rex_media_type=rex_media_small&rex_media_file=' . urlencode($img['filename']);
+                        $previewSrc = $isSvg 
+                            ? '../media/' . urlencode($img['filename'])
+                            : 'index.php?rex_media_type=rex_media_medium&rex_media_file=' . urlencode($img['filename']);
+                    ?>
+                    <tr data-filename="<?= rex_escape($img['filename']) ?>" class="image-row">
+                        <td>
+                            <span class="preview-toggle" data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_show_preview') ?>">
+                                <i class="fa fa-chevron-right"></i>
+                                <img src="<?= $thumbSrc ?>" alt="" class="thumb-mini" loading="lazy">
+                            </span>
+                        </td>
+                        <td>
+                            <strong><?= rex_escape($img['filename']) ?></strong>
+                            <?php if (!empty($img['title'])): ?>
+                                <br><small class="text-muted"><?= rex_escape($img['title']) ?></small>
+                            <?php endif; ?>
+                            <br><small class="text-muted"><?= $img['width'] ?? '?' ?> × <?= $img['height'] ?? '?' ?> px</small>
+                        </td>
+                        <td>
+                            <?php if ($isMultiLang && $hasMoreLangs): ?>
+                                <div class="alt-input-group">
+                                    <span class="lang-badge"><?= strtoupper($firstLang['code']) ?></span>
+                                    <input type="text" class="form-control input-sm alt-input" 
+                                           data-filename="<?= rex_escape($img['filename']) ?>"
+                                           data-clang-id="<?= $firstLang['id'] ?>"
+                                           value=""
+                                           placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
+                                           tabindex="<?= $index + 1 ?>">
+                                    <button type="button" class="btn btn-default btn-sm lang-toggle" 
+                                            data-filename="<?= rex_escape($img['filename']) ?>" 
+                                            title="<?= $addon->i18n('alt_checker_more_languages') ?> (<?= count($otherLangs) ?>)">
+                                        <i class="fa fa-globe"></i>
+                                    </button>
+                                </div>
+                            <?php else: ?>
+                                <input type="text" class="form-control input-sm alt-input" 
+                                       data-filename="<?= rex_escape($img['filename']) ?>"
+                                       data-clang-id="<?= $currentLangId ?>"
+                                       value=""
+                                       placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
+                                       tabindex="<?= $index + 1 ?>">
+                            <?php endif; ?>
+                        </td>
+                        <td><small><?= rex_escape($categoryName) ?></small></td>
+                        <td class="text-nowrap">
+                            <?php if ($aiEnabled && !$isSvg): ?>
+                            <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
+                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
+                                <i class="fa fa-magic"></i>
+                            </button>
+                            <?php endif; ?>
+                            <button type="button" class="btn btn-success btn-xs btn-save-row" 
+                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_save') ?>">
+                                <i class="fa fa-check"></i>
+                            </button>
+                            <button type="button" class="btn btn-default btn-xs btn-ignore" 
+                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_ignore_decorative') ?>">
+                                <i class="fa fa-eye-slash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    
+                    <?php if ($hasMoreLangs): ?>
+                    <tr class="lang-row" data-filename="<?= rex_escape($img['filename']) ?>">
+                        <td></td>
+                        <td colspan="2">
+                            <div class="other-langs-container">
+                                <?php foreach ($otherLangs as $lang): ?>
+                                <div class="input-group input-group-sm" style="margin-bottom: 5px;">
+                                    <span class="input-group-addon" style="min-width: 35px;"><?= strtoupper($lang['code']) ?></span>
+                                    <input type="text" class="form-control alt-input" 
+                                           data-filename="<?= rex_escape($img['filename']) ?>"
+                                           data-clang-id="<?= $lang['id'] ?>"
+                                           value=""
+                                           placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>">
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <?php endif; ?>
+                    
+                    <tr class="preview-row" data-filename="<?= rex_escape($img['filename']) ?>">
+                        <td colspan="5">
+                            <div class="preview-container">
+                                <img src="<?= $previewSrc ?>" 
+                                     alt="" loading="lazy"<?= $isSvg ? ' style="max-width: 300px; background: #f5f5f5; padding: 10px;"' : '' ?>>
+                                <div style="margin-top: 10px;">
+                                    <a href="index.php?page=mediapool/media&file_name=<?= urlencode($img['filename']) ?>" 
+                                       target="_blank" class="btn btn-default btn-xs">
+                                        <i class="fa fa-external-link"></i> <?= $addon->i18n('alt_checker_open_mediapool') ?>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
-            
-            <div id="no-images-message" class="alert alert-success" style="display:none;">
+        </div>
+        <div class="panel-footer">
+            <?php
+            $urlProvider = new rex_context([
+                'page' => 'filepond_uploader/alt_checker',
+                'filter_filename' => $filterFilename,
+                'filter_category' => $filterCategoryId,
+                'items_per_page' => $itemsPerPage
+            ]);
+            $fragment = new rex_fragment();
+            $fragment->setVar('urlprovider', $urlProvider);
+            $fragment->setVar('pager', $pager);
+            echo $fragment->parse('core/navigations/pagination.php');
+            ?>
+        </div>
+        <?php else: ?>
+        <div class="panel-body">
+            <div class="alert alert-success">
                 <i class="fa fa-check-circle"></i> <?= $addon->i18n('alt_checker_all_complete') ?>
             </div>
         </div>
+        <?php endif; ?>
     </div>
     
     <?php endif; ?>
@@ -351,27 +520,17 @@ tr:hover .btn-save-row,
 $(document).on('rex:ready', function() {
     const AltChecker = {
         apiEndpoint: <?= json_encode($apiEndpoint) ?>,
-        categories: <?= json_encode($categories) ?>,
         isMultiLang: <?= json_encode($isMultiLang) ?>,
         languages: <?= json_encode($languages) ?>,
         currentLangId: <?= json_encode($currentLangId) ?>,
         aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
-        images: [],
         modifiedImages: new Set(),
         
         init() {
             this.bindEvents();
-            this.loadImages();
         },
         
         bindEvents() {
-            $('#alt-checker-filter-form').on('submit', (e) => {
-                e.preventDefault();
-                this.loadImages();
-            });
-            
-            $('#btn-refresh').on('click', () => this.loadImages());
-            
             $('#btn-save-all').on('click', () => this.saveAll());
             
             // Inline-Edit Events
@@ -443,226 +602,6 @@ $(document).on('rex:ready', function() {
             $('#btn-ai-generate-all').on('click', () => this.aiGenerateAll());
         },
         
-        loadImages() {
-            const $loading = $('#loading-indicator');
-            const $table = $('#images-table');
-            const $noImages = $('#no-images-message');
-            
-            $loading.show();
-            $table.hide();
-            $noImages.hide();
-            
-            const params = {
-                action: 'list',
-                filter_filename: $('#filter_filename').val(),
-                filter_category: $('#filter_category').val()
-            };
-            
-            $.getJSON(this.apiEndpoint + '&' + $.param(params))
-                .done((response) => {
-                    $loading.hide();
-                    
-                    if (response.error) {
-                        if (response.field_missing) {
-                            // Wird durch PHP-Template gehandelt
-                        } else {
-                            alert(response.error);
-                        }
-                        return;
-                    }
-                    
-                    // Statistiken aktualisieren
-                    if (response.stats) {
-                        this.updateStats(response.stats);
-                    }
-                    
-                    this.images = response.images || [];
-                    this.modifiedImages.clear();
-                    $('#image-count').text(this.images.length);
-                    this.updateSaveAllButton();
-                    
-                    // AI-Button aktivieren wenn Bilder vorhanden
-                    if (this.aiEnabled) {
-                        $('#btn-ai-generate-all').prop('disabled', this.images.length === 0);
-                    }
-                    
-                    if (this.images.length === 0) {
-                        $noImages.show();
-                        return;
-                    }
-                    
-                    this.renderTable();
-                    $table.show();
-                })
-                .fail((xhr, status, error) => {
-                    $loading.hide();
-                    alert('Fehler: ' + error);
-                });
-        },
-        
-        updateStats(stats) {
-            $('#stat-total').text(stats.total);
-            $('#stat-with-alt').text(stats.with_alt);
-            $('#stat-without-alt').text(stats.without_alt);
-            $('#progress-bar')
-                .css('width', stats.percent_complete + '%')
-                .text(stats.percent_complete + '%');
-            
-            // Farbe des Progress-Bars
-            const $bar = $('#progress-bar');
-            $bar.removeClass('progress-bar-success progress-bar-warning progress-bar-danger');
-            if (stats.percent_complete >= 90) {
-                $bar.addClass('progress-bar-success');
-            } else if (stats.percent_complete >= 50) {
-                $bar.addClass('progress-bar-warning');
-            } else {
-                $bar.addClass('progress-bar-danger');
-            }
-        },
-        
-        renderTable() {
-            const $tbody = $('#images-tbody');
-            $tbody.empty();
-            
-            const langArray = Object.values(this.languages);
-            const firstLang = langArray[0] || { id: this.currentLangId, code: 'DE', name: 'Deutsch' };
-            const otherLangs = langArray.slice(1);
-            const hasMoreLangs = this.isMultiLang && otherLangs.length > 0;
-            
-            this.images.forEach((img, index) => {
-                const categoryName = img.category_id == 0 
-                    ? '<?= rex_i18n::msg('pool_kats_no') ?>' 
-                    : (this.categories[img.category_id] || '-');
-                
-                // Alt-Text Eingabefeld generieren
-                let altInputHtml = '';
-                
-                if (this.isMultiLang && hasMoreLangs) {
-                    // Mehrsprachig: Kompaktes Layout mit Badge und Globus
-                    altInputHtml = `
-                        <div class="alt-input-group">
-                            <span class="lang-badge">${this.escapeHtml(firstLang.code.toUpperCase())}</span>
-                            <input type="text" class="form-control input-sm alt-input" 
-                                   data-filename="${this.escapeHtml(img.filename)}"
-                                   data-clang-id="${firstLang.id}"
-                                   value=""
-                                   placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
-                                   tabindex="${index + 1}">
-                            <button type="button" class="btn btn-default btn-sm lang-toggle" 
-                                    data-filename="${this.escapeHtml(img.filename)}" 
-                                    title="<?= $addon->i18n('alt_checker_more_languages') ?> (${otherLangs.length})">
-                                <i class="fa fa-globe"></i>
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    // Einsprachig: Nur Input ohne Badge
-                    altInputHtml = `
-                        <input type="text" class="form-control input-sm alt-input" 
-                               data-filename="${this.escapeHtml(img.filename)}"
-                               data-clang-id="${this.currentLangId}"
-                               value=""
-                               placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
-                               tabindex="${index + 1}">
-                    `;
-                }
-                
-                // Hauptzeile
-                const isSvg = img.filename.toLowerCase().endsWith('.svg');
-                const thumbSrc = isSvg 
-                    ? '../media/' + encodeURIComponent(img.filename)
-                    : 'index.php?rex_media_type=rex_media_small&rex_media_file=' + encodeURIComponent(img.filename);
-                
-                $tbody.append(`
-                    <tr data-filename="${this.escapeHtml(img.filename)}" class="image-row">
-                        <td>
-                            <span class="preview-toggle" data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_show_preview') ?>">
-                                <i class="fa fa-chevron-right"></i>
-                                <img src="${thumbSrc}" 
-                                     alt="" class="thumb-mini" loading="lazy">
-                            </span>
-                        </td>
-                        <td>
-                            <strong>${this.escapeHtml(img.filename)}</strong>
-                            ${img.title ? '<br><small class="text-muted">' + this.escapeHtml(img.title) + '</small>' : ''}
-                            <br><small class="text-muted">${img.width || '?'} × ${img.height || '?'} px</small>
-                        </td>
-                        <td>
-                            ${altInputHtml}
-                        </td>
-                        <td><small>${this.escapeHtml(categoryName)}</small></td>
-                        <td class="text-nowrap">
-                            ${(this.aiEnabled && !isSvg) ? `
-                            <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
-                                    data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
-                                <i class="fa fa-magic"></i>
-                            </button>
-                            ` : ''}
-                            <button type="button" class="btn btn-success btn-xs btn-save-row" 
-                                    data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_save') ?>">
-                                <i class="fa fa-check"></i>
-                            </button>
-                            <button type="button" class="btn btn-default btn-xs btn-ignore" 
-                                    data-filename="${this.escapeHtml(img.filename)}" title="<?= $addon->i18n('alt_checker_ignore_decorative') ?>">
-                                <i class="fa fa-eye-slash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `);
-                
-                // Sprach-Zeile (nur bei mehrsprachig mit weiteren Sprachen)
-                if (hasMoreLangs) {
-                    let otherLangsHtml = '';
-                    otherLangs.forEach(lang => {
-                        otherLangsHtml += `
-                            <div class="input-group input-group-sm" style="margin-bottom: 5px;">
-                                <span class="input-group-addon" style="min-width: 35px;">${this.escapeHtml(lang.code.toUpperCase())}</span>
-                                <input type="text" class="form-control alt-input" 
-                                       data-filename="${this.escapeHtml(img.filename)}"
-                                       data-clang-id="${lang.id}"
-                                       value=""
-                                       placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>">
-                            </div>
-                        `;
-                    });
-                    
-                    $tbody.append(`
-                        <tr class="lang-row" data-filename="${this.escapeHtml(img.filename)}">
-                            <td></td>
-                            <td colspan="2">
-                                <div class="other-langs-container">
-                                    ${otherLangsHtml}
-                                </div>
-                            </td>
-                            <td colspan="2"></td>
-                        </tr>
-                    `);
-                }
-                
-                // Vorschau-Zeile (Akkordeon)
-                const previewSrc = isSvg 
-                    ? '../media/' + encodeURIComponent(img.filename)
-                    : 'index.php?rex_media_type=rex_media_medium&rex_media_file=' + encodeURIComponent(img.filename);
-                
-                $tbody.append(`
-                    <tr class="preview-row" data-filename="${this.escapeHtml(img.filename)}">
-                        <td colspan="5">
-                            <div class="preview-container">
-                                <img src="${previewSrc}" 
-                                     alt="" loading="lazy"${isSvg ? ' style="max-width: 300px; background: #f5f5f5; padding: 10px;"' : ''}>
-                                <div style="margin-top: 10px;">
-                                    <a href="index.php?page=mediapool/media&file_name=${encodeURIComponent(img.filename)}" 
-                                       target="_blank" class="btn btn-default btn-xs">
-                                        <i class="fa fa-external-link"></i> <?= $addon->i18n('alt_checker_open_mediapool') ?>
-                                    </a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `);
-            });
-        },
-        
         updateSaveAllButton() {
             $('#btn-save-all').prop('disabled', this.modifiedImages.size === 0);
         },
@@ -725,16 +664,9 @@ $(document).on('rex:ready', function() {
                             $row.remove();
                             $langRow.remove();
                             $previewRow.remove();
-                            this.images = this.images.filter(i => i.filename !== filename);
-                            $('#image-count').text(this.images.length);
                             
-                            if (this.images.length === 0) {
-                                $('#images-table').hide();
-                                $('#no-images-message').show();
-                            }
-                            
-                            // Stats neu laden
-                            this.loadStats();
+                            // Stats neu laden (optional, oder einfach Seite neu laden)
+                            // this.loadStats();
                         });
                     }, 500);
                 } else {
@@ -750,8 +682,6 @@ $(document).on('rex:ready', function() {
         },
         
         saveAll() {
-            console.log('saveAll called, modifiedImages:', Array.from(this.modifiedImages));
-            
             const updates = [];
             
             this.modifiedImages.forEach(filename => {
@@ -759,8 +689,6 @@ $(document).on('rex:ready', function() {
                 const $allInputs = $(`.alt-input`).filter(function() {
                     return $(this).data('filename') === filename;
                 });
-                
-                console.log('Processing:', filename, 'found inputs:', $allInputs.length);
                 
                 // Prüfe ob mehrsprachig (mehrere Inputs pro Datei)
                 if ($allInputs.length > 1) {
@@ -785,10 +713,7 @@ $(document).on('rex:ready', function() {
                 }
             });
             
-            console.log('saveAll updates:', updates);
-            
             if (updates.length === 0) {
-                console.log('No updates to save');
                 return;
             }
             
@@ -800,8 +725,8 @@ $(document).on('rex:ready', function() {
             })
             .done((response) => {
                 if (response.success > 0) {
-                    // Tabelle neu laden
-                    this.loadImages();
+                    // Seite neu laden um Liste zu aktualisieren
+                    window.location.reload();
                 }
                 if (response.failed > 0) {
                     alert(response.failed + ' Fehler beim Speichern');
@@ -813,15 +738,6 @@ $(document).on('rex:ready', function() {
             .always(() => {
                 $('#btn-save-all').prop('disabled', false).html('<i class="fa fa-save"></i> <?= $addon->i18n('alt_checker_save_all') ?>');
             });
-        },
-        
-        loadStats() {
-            $.getJSON(this.apiEndpoint + '&action=stats')
-                .done((response) => {
-                    if (response.stats) {
-                        this.updateStats(response.stats);
-                    }
-                });
         },
         
         ignoreImage(filename) {
@@ -850,15 +766,6 @@ $(document).on('rex:ready', function() {
                         $previewRow.fadeOut(300, () => {
                             $row.remove();
                             $previewRow.remove();
-                            this.images = this.images.filter(i => i.filename !== filename);
-                            $('#image-count').text(this.images.length);
-                            
-                            if (this.images.length === 0) {
-                                $('#images-table').hide();
-                                $('#no-images-message').show();
-                            }
-                            
-                            this.loadStats();
                         });
                     }, 800);
                 } else {
@@ -939,7 +846,6 @@ $(document).on('rex:ready', function() {
                         language: langCode
                     });
                     
-                    console.log('AI Response:', response);
                     if (response.success && response.alt_text) {
                         $input.val(response.alt_text).addClass('modified').focus();
                         this.modifiedImages.add(filename);
@@ -964,21 +870,27 @@ $(document).on('rex:ready', function() {
         
         // AI: Alt-Texte für alle Bilder generieren
         async aiGenerateAll() {
-            if (this.images.length === 0) return;
-            
             const $btn = $('#btn-ai-generate-all');
             const originalHtml = $btn.html();
             $btn.prop('disabled', true);
             
-            let processed = 0;
-            const total = this.images.length;
+            // Alle sichtbaren Bilder sammeln
+            const visibleImages = [];
+            $('.image-row').each(function() {
+                visibleImages.push($(this).data('filename'));
+            });
             
-            for (const img of this.images) {
+            if (visibleImages.length === 0) return;
+            
+            let processed = 0;
+            const total = visibleImages.length;
+            
+            for (const filename of visibleImages) {
                 processed++;
                 $btn.html(`<i class="fa fa-spinner fa-spin"></i> ${processed}/${total}`);
                 
-                const $row = $(`tr.image-row[data-filename="${this.escapeHtml(img.filename)}"]`);
-                const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(img.filename)}"]`);
+                const $row = $(`tr.image-row[data-filename="${this.escapeHtml(filename)}"]`);
+                const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
                 // Alle Inputs: aus der Hauptzeile UND der Sprachzeile
                 const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
                 
@@ -997,17 +909,17 @@ $(document).on('rex:ready', function() {
                     try {
                         const response = await $.getJSON(this.apiEndpoint, {
                             action: 'ai_generate',
-                            filename: img.filename,
+                            filename: filename,
                             language: langCode
                         });
                         
                         if (response.success && response.alt_text) {
                             $input.val(response.alt_text).addClass('modified');
-                            this.modifiedImages.add(img.filename);
+                            this.modifiedImages.add(filename);
                             $row.find('.btn-save-row').addClass('visible');
                         }
                     } catch (e) {
-                        console.error('AI error for ' + img.filename + ' lang ' + langCode, e);
+                        console.error('AI error for ' + filename + ' lang ' + langCode, e);
                     }
                     
                     // Kleine Pause zwischen Requests

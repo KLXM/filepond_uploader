@@ -244,3 +244,8 @@ bulk_resize_log = Verarbeitungslog
 bulk_resize_cancel = Abbrechen
 bulk_resize_done = Fertig
 bulk_resize_finished = Verarbeitung abgeschlossen
+
+# Display Settings
+filepond_display_settings = Anzeige-Einstellungen
+filepond_settings_items_per_page = Elemente pro Seite
+filepond_settings_items_per_page_notice = Anzahl der Elemente, die in Listen (Alt-Text-Checker, Bulk Resize) pro Seite angezeigt werden (Standard: 30).
