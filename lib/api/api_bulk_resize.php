@@ -11,6 +11,11 @@ class rex_api_filepond_bulk_resize extends rex_api_function
     {
         rex_response::cleanOutputBuffers();
         
+        // Timeouts erhöhen für große Bilder
+        @ini_set('max_execution_time', '300');
+        @ini_set('max_input_time', '300');
+        @set_time_limit(300);
+        
         // Nur für Backend-Nutzer mit Admin-Rechten oder bulk_resize Berechtigung
         $user = rex::getUser();
         if (!rex::isBackend() || !$user || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[bulk_resize]'))) {
@@ -116,14 +121,19 @@ class rex_api_filepond_bulk_resize extends rex_api_function
         // Alte Batches aufräumen
         filepond_bulk_resize::cleanupOldBatches();
 
-        // Batch starten
-        $batchId = filepond_bulk_resize::startBatch($filenames, $maxWidth, $maxHeight, $quality);
-        $status = filepond_bulk_resize::getBatchStatusExtended($batchId);
+        try {
+            // Batch starten (nur Queue erstellen, nicht verarbeiten)
+            $batchId = filepond_bulk_resize::startBatch($filenames, $maxWidth, $maxHeight, $quality);
+            $status = filepond_bulk_resize::getBatchStatusExtended($batchId);
 
-        $this->sendJson([
-            'batch_id' => $batchId,
-            'batch' => $status
-        ]);
+            $this->sendJson([
+                'batch_id' => $batchId,
+                'batch' => $status
+            ]);
+        } catch (Exception $e) {
+            rex_logger::logException($e);
+            $this->sendJson(['error' => 'Fehler beim Starten: ' . $e->getMessage()]);
+        }
     }
 
     private function handleProcess(): void
@@ -134,9 +144,16 @@ class rex_api_filepond_bulk_resize extends rex_api_function
             $this->sendJson(['error' => 'Keine Batch-ID angegeben']);
         }
 
-        $result = filepond_bulk_resize::processNextBatchItems($batchId);
-        
-        $this->sendJson($result);
+        try {
+            $result = filepond_bulk_resize::processNextBatchItems($batchId);
+            $this->sendJson($result);
+        } catch (Exception $e) {
+            rex_logger::logException($e);
+            $this->sendJson([
+                'status' => 'error',
+                'error' => 'Verarbeitungsfehler: ' . $e->getMessage()
+            ]);
+        }
     }
 
     private function handleStatus(): void
