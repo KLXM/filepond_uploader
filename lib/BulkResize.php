@@ -122,12 +122,38 @@ class filepond_bulk_resize
             $where[] = 'height >= ' . intval($filters['min_height']);
         }
         
+        // Sortierung
+        $sortConfig = rex_config::get('filepond_uploader', 'bulk_resize_sort', 'createdate_desc');
+        $orderBy = 'createdate DESC';
+        
+        switch ($sortConfig) {
+            case 'createdate_asc':
+                $orderBy = 'createdate ASC';
+                break;
+            case 'filesize_desc':
+                $orderBy = 'filesize DESC';
+                break;
+            case 'filesize_asc':
+                $orderBy = 'filesize ASC';
+                break;
+            case 'filename_asc':
+                $orderBy = 'filename ASC';
+                break;
+            case 'filename_desc':
+                $orderBy = 'filename DESC';
+                break;
+            case 'createdate_desc':
+            default:
+                $orderBy = 'createdate DESC';
+                break;
+        }
+        
         $sql = rex_sql::factory();
         $query = '
             SELECT id, filename, category_id, filesize, width, height, title, createdate, createuser
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
-            ORDER BY createdate DESC
+            ORDER BY ' . $orderBy . '
         ';
 
         if ($limit > 0) {
