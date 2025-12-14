@@ -73,7 +73,7 @@ class FilePondUploadWidget extends AbstractWidget
 
         $content = sprintf('
             <div class="filepond-upload-widget">
-                <form action="index.php" method="post" class="form-horizontal">
+                <form action="index.php" method="post">
                     <input type="hidden" name="page" value="mediapool">
                     <input type="hidden" name="subpage" value="upload">
                     
