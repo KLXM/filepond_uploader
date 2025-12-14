@@ -4,6 +4,9 @@
     
     // Globale Variable für den aktuellen Dateityp
     let currentFileType = null;
+    
+    // Queue für Metadaten-Dialoge
+    let metadataDialogQueue = Promise.resolve();
 
     const initFilePond = () => {
 
@@ -402,19 +405,40 @@
             };
 
             // Create metadata dialog with SimpleModal and MetaInfo integration
-            const createMetadataDialog = async (file, existingMetadata = null) => {
-                try {
-                    // Lade MetaInfo-Felder über API
-                    const metaInfoFields = await loadMetaInfoFields();
-                    return createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
-                } catch (error) {
-                    console.warn('MetaInfo integration failed, using standard modal:', error);
-                    return createStandardMetadataDialog(file, existingMetadata);
-                }
+            const createMetadataDialog = (file, existingMetadata = null) => {
+                // Einreihen in die Queue
+                const dialogPromise = metadataDialogQueue.then(() => {
+                    return new Promise(async (resolve, reject) => {
+                        try {
+                            // Lade MetaInfo-Felder über API
+                            const metaInfoFields = await loadMetaInfoFields();
+                            const result = await createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
+                            resolve(result);
+                        } catch (error) {
+                            console.warn('MetaInfo integration failed, using standard modal:', error);
+                            try {
+                                const result = await createStandardMetadataDialog(file, existingMetadata);
+                                resolve(result);
+                            } catch (stdError) {
+                                reject(stdError);
+                            }
+                        }
+                    });
+                });
+                
+                // Queue aktualisieren, aber Fehler abfangen damit die Kette nicht bricht
+                metadataDialogQueue = dialogPromise.catch(() => {});
+                
+                return dialogPromise;
             };
             
+            // Cache für MetaInfo-Felder
+            let cachedMetaInfoFields = null;
+
             // Lädt MetaInfo-Felder über API
             const loadMetaInfoFields = async () => {
+                if (cachedMetaInfoFields) return cachedMetaInfoFields;
+
                 const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
                     method: 'GET',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
@@ -423,8 +447,12 @@
                 if (!data.success) {
                     throw new Error(data.error || 'Fehler beim Laden der MetaInfo-Felder');
                 }
+                cachedMetaInfoFields = data.fields;
                 return data.fields;
             };
+            
+            // Pre-Fetch MetaInfo Fields sofort starten
+            loadMetaInfoFields().catch(() => {});
             
             // Erweiterte MetaInfo-Dialog
             const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
