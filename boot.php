@@ -195,6 +195,11 @@ if (rex_config::get('filepond_uploader', 'enable_alt_checker', true)) {
             return;
         }
         
+        // Nur einbinden wenn med_alt Feld überhaupt vorhanden ist
+        if (!filepond_alt_text_checker::checkAltFieldExists()) {
+            return;
+        }
+        
         $pages = $ep->getSubject();
         
         if (isset($pages['mediapool'])) {
