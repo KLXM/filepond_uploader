@@ -525,7 +525,7 @@ tr:hover .btn-save-row,
 }
 </style>
 
-<script>
+<script nonce="' . rex_response::getNonce() . '">
 $(document).on('rex:ready', function() {
     const AltChecker = {
         apiEndpoint: <?= json_encode($apiEndpoint) ?>,
