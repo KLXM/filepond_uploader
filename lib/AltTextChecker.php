@@ -116,6 +116,10 @@ class filepond_alt_text_checker
      */
     public static function findImagesWithoutAlt(array $filters = [], int $limit = 0, int $offset = 0): array
     {
+        if (!self::checkAltFieldExists()) {
+            return [];
+        }
+
         // Dekorative Bilder ausschließen
         $decorativeList = self::getDecorativeList();
         
@@ -194,6 +198,16 @@ class filepond_alt_text_checker
      */
     public static function getStatistics(): array
     {
+        if (!self::checkAltFieldExists()) {
+            return [
+                'total' => 0,
+                'with_alt' => 0,
+                'without_alt' => 0,
+                'decorative' => 0,
+                'percent_complete' => 100
+            ];
+        }
+
         $sql = rex_sql::factory();
         
         // Alle Bilder laden und prüfen (wegen JSON-Format)
@@ -241,6 +255,10 @@ class filepond_alt_text_checker
      */
     public static function updateAltText(string $filename, string|array $altText): array
     {
+        if (!self::checkAltFieldExists()) {
+            return ['success' => false, 'error' => 'Feld med_alt existiert nicht'];
+        }
+
         try {
             $media = rex_media::get($filename);
             if (!$media) {
@@ -420,18 +438,26 @@ class filepond_alt_text_checker
         return $results;
     }
 
+    private static $altFieldExists = null;
+
     /**
      * Prüft ob das med_alt Feld existiert
      */
     public static function checkAltFieldExists(): bool
     {
+        if (self::$altFieldExists !== null) {
+            return self::$altFieldExists;
+        }
+
         $sql = rex_sql::factory();
         try {
             $sql->setQuery('SHOW COLUMNS FROM ' . rex::getTable('media') . ' LIKE "med_alt"');
-            return $sql->getRows() > 0;
+            self::$altFieldExists = $sql->getRows() > 0;
         } catch (Exception $e) {
-            return false;
+            self::$altFieldExists = false;
         }
+        
+        return self::$altFieldExists;
     }
 
     /**
@@ -439,6 +465,10 @@ class filepond_alt_text_checker
      */
     public static function getCategoriesWithMissingAlt(): array
     {
+        if (!self::checkAltFieldExists()) {
+            return [];
+        }
+
         $sql = rex_sql::factory();
         $sql->setQuery('
             SELECT 
