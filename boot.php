@@ -33,7 +33,8 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
 }
 
 // Alt-Text-Checker als Medienpool-Unterseite registrieren
-if (rex_config::get('filepond_uploader', 'enable_alt_checker', true)) {
+$enableAltChecker = rex_config::get('filepond_uploader', 'enable_alt_checker', '');
+if ($enableAltChecker === '|1|' || $enableAltChecker === '1') {
     rex_extension::register('PAGES_PREPARED', function (rex_extension_point $ep) {
         $user = rex::getUser();
         if (!$user) return;

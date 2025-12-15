@@ -256,6 +256,12 @@ $field->setLabel($addon->i18n('filepond_settings_alt_checker'));
 $field->addOption($addon->i18n('filepond_settings_alt_checker_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_alt_checker_notice'));
 
+// Statistik anzeigen
+$field = $form->addCheckboxField('show_alt_stats');
+$field->setLabel($addon->i18n('filepond_settings_show_alt_stats'));
+$field->addOption($addon->i18n('filepond_settings_show_alt_stats_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_show_alt_stats_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
@@ -420,18 +426,6 @@ $select->addOption($addon->i18n('filepond_sort_createdate_desc'), 'createdate_de
 $select->addOption($addon->i18n('filepond_sort_createdate_asc'), 'createdate_asc');
 $select->addOption($addon->i18n('filepond_sort_filename_asc'), 'filename_asc');
 $select->addOption($addon->i18n('filepond_sort_filename_desc'), 'filename_desc');
-
-$form->addRawField('</div>');
-$form->addRawField('</div>'); // Ende row
-
-$form->addRawField('<div class="row">');
-$form->addRawField('<div class="col-sm-6">');
-
-// Statistik anzeigen
-$field = $form->addCheckboxField('show_alt_stats');
-$field->setLabel($addon->i18n('filepond_settings_show_alt_stats'));
-$field->addOption($addon->i18n('filepond_settings_show_alt_stats_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_show_alt_stats_notice'));
 
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row

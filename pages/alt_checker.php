@@ -112,7 +112,10 @@ $currentPage = rex_be_controller::getCurrentPage();
     <?php else: ?>
     
     <!-- Statistik-Header -->
-    <?php if ($addon->getConfig('show_alt_stats', 1)): ?>
+    <?php 
+    $showStats = $addon->getConfig('show_alt_stats', '');
+    if ($showStats === '|1|' || $showStats === '1'): 
+    ?>
     <div class="panel panel-default" id="stats-panel">
         <div class="panel-heading">
             <div class="panel-title">
