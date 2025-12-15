@@ -160,7 +160,7 @@ class filepond_alt_text_checker
         
         $sql = rex_sql::factory();
         $sql->setQuery('
-            SELECT id, filename, category_id, title, med_alt, med_description, createdate, createuser, width, height
+            SELECT id, filename, category_id, title, med_alt, createdate, createuser, width, height
             FROM ' . rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
             ORDER BY ' . $orderBy . '
