@@ -331,7 +331,7 @@ $field = $form->addInputField('text', 'gemini_api_key', null, [
     'autocomplete' => 'off'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
-$field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice'));
+$field->setNotice($addon->i18n('filepond_settings_gemini_api_key_notice', '<a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>'));
 
 $form->addRawField('</div>');
 $form->addRawField('<div class="col-sm-6">');
@@ -365,7 +365,7 @@ $field = $form->addInputField('text', 'cloudflare_api_token', null, [
     'autocomplete' => 'off'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_cloudflare_token'));
-$field->setNotice($addon->i18n('filepond_settings_cloudflare_token_notice'));
+$field->setNotice($addon->i18n('filepond_settings_cloudflare_token_notice', '<a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a>'));
 
 $form->addRawField('</div>');
 $form->addRawField('<div class="col-sm-6">');
@@ -376,7 +376,7 @@ $field = $form->addInputField('text', 'cloudflare_account_id', null, [
     'autocomplete' => 'off'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_cloudflare_account_id'));
-$field->setNotice($addon->i18n('filepond_settings_cloudflare_account_id_notice'));
+$field->setNotice($addon->i18n('filepond_settings_cloudflare_account_id_notice', '<a href="https://dash.cloudflare.com/" target="_blank">Workers & Pages</a>'));
 
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row

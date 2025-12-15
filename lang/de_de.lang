@@ -155,15 +155,15 @@ filepond_settings_enable_ai_alt_notice = Nutzt KI zur automatischen Generierung 
 filepond_settings_ai_provider = AI Provider
 filepond_settings_ai_provider_notice = Wähle den AI-Dienst für die Alt-Text-Generierung.
 filepond_settings_gemini_api_key = Gemini API-Key
-filepond_settings_gemini_api_key_notice = API-Key von <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> erstellen (kostenlos)
+filepond_settings_gemini_api_key_notice = API-Key von %s erstellen (kostenlos)
 filepond_settings_gemini_model = Gemini Modell
 filepond_settings_gemini_model_notice = Flash-Modelle sind kostenlos (bis 1500 Req/Tag). Pro-Modelle erfordern einen bezahlten API-Key.
 filepond_settings_ai_max_tokens = Max. Output Tokens
 filepond_settings_ai_max_tokens_notice = Maximale Anzahl an Tokens für die Antwort. Erhöhen Sie diesen Wert, wenn Texte abgeschnitten werden (Standard: 2048).
 filepond_settings_cloudflare_token = Cloudflare API Token
-filepond_settings_cloudflare_token_notice = API-Token von <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a> erstellen. Berechtigung: Workers AI Read.
+filepond_settings_cloudflare_token_notice = API-Token von %s erstellen. Berechtigung: Workers AI Read.
 filepond_settings_cloudflare_account_id = Cloudflare Account ID
-filepond_settings_cloudflare_account_id_notice = Account ID findest du unter <a href="https://dash.cloudflare.com/" target="_blank">Workers und Pages</a> in der rechten Sidebar.
+filepond_settings_cloudflare_account_id_notice = Account ID findest du unter %s in der rechten Sidebar.
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
