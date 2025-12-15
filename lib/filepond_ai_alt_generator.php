@@ -259,7 +259,7 @@ PROMPT;
             ],
             'generationConfig' => [
                 'temperature' => 0.4,
-                'maxOutputTokens' => 500,
+                'maxOutputTokens' => (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048),
                 'topP' => 0.8,
                 'topK' => 40
             ],
@@ -368,7 +368,7 @@ PROMPT;
         $data = [
             'image' => $imageBytes,
             'prompt' => $prompt,
-            'max_tokens' => 500
+            'max_tokens' => (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048)
         ];
         
         $ch = curl_init();

@@ -287,6 +287,16 @@ foreach (filepond_ai_alt_generator::PROVIDERS as $providerId => $providerName) {
 }
 $field->setNotice($addon->i18n('filepond_settings_ai_provider_notice'));
 
+// Max Output Tokens
+$field = $form->addInputField('number', 'ai_max_tokens', null, [
+    'class' => 'form-control',
+    'min' => '100',
+    'max' => '8192',
+    'placeholder' => '2048'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_max_tokens'));
+$field->setNotice($addon->i18n('filepond_settings_ai_max_tokens_notice'));
+
 $form->addRawField('</div>');
 
 // Rechte Spalte - Custom Prompt
@@ -333,6 +343,9 @@ $field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
 
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
+
+
+
 $form->addRawField('</div>'); // Ende gemini-settings
 
 // === CLOUDFLARE SETTINGS ===

@@ -158,6 +158,8 @@ filepond_settings_gemini_api_key = Gemini API-Key
 filepond_settings_gemini_api_key_notice = API-Key von <a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a> erstellen (kostenlos)
 filepond_settings_gemini_model = Gemini Modell
 filepond_settings_gemini_model_notice = Flash-Modelle sind kostenlos (bis 1500 Req/Tag). Pro-Modelle erfordern einen bezahlten API-Key.
+filepond_settings_ai_max_tokens = Max. Output Tokens
+filepond_settings_ai_max_tokens_notice = Maximale Anzahl an Tokens für die Antwort. Erhöhen Sie diesen Wert, wenn Texte abgeschnitten werden (Standard: 2048).
 filepond_settings_cloudflare_token = Cloudflare API Token
 filepond_settings_cloudflare_token_notice = API-Token von <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a> erstellen. Berechtigung: Workers AI Read.
 filepond_settings_cloudflare_account_id = Cloudflare Account ID
