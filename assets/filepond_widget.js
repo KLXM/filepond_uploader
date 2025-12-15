@@ -1677,30 +1677,32 @@
         });
     };
 
-    // Initialize based on environment - Hier muss sichergestellt werden, dass nur einmal gestartet wird
-    // Wir zählen die Initialisierungen
-    let initCount = 0;
+    // Initialize based on environment
     const safeInitFilePond = () => {
-        // Logging hinzufügen
-        // console.log(`FilePond initialization attempt ${++initCount}`);
+        if (typeof FilePond === 'undefined') {
+            console.warn('FilePond not loaded yet, retrying...');
+            setTimeout(safeInitFilePond, 50);
+            return;
+        }
         initFilePond();
     };
 
     // jQuery hat höchste Priorität, wenn vorhanden
     if (typeof jQuery !== 'undefined') {
-        jQuery(document).one('rex:ready', safeInitFilePond);
+        // Verwende .on() statt .one(), da rex:ready mehrfach feuern kann (z.B. PJAX)
+        // Die Prüfung in initFilePond verhindert Mehrfach-Initialisierung desselben Elements
+        jQuery(document).on('rex:ready', safeInitFilePond);
     } else {
         // Ansonsten einen normalen DOMContentLoaded-Listener verwenden
         if (document.readyState !== 'loading') {
             // DOM ist bereits geladen
             safeInitFilePond();
         } else {
-            // Nur einmal initialisieren beim DOMContentLoaded
-            document.addEventListener('DOMContentLoaded', safeInitFilePond, {once: true});
+            document.addEventListener('DOMContentLoaded', safeInitFilePond);
         }
     }
 
-    // Event für manuelle Initialisierung - auch hier sicherstellen, dass es nur einmal ausgelöst wird
+    // Event für manuelle Initialisierung
     document.addEventListener('filepond:init', safeInitFilePond);
 
     // Expose initFilePond globally if needed - auch hier die sichere Variante exportieren
