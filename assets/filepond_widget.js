@@ -415,13 +415,15 @@
                             const result = await createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
                             resolve(result);
                         } catch (error) {
-                            console.warn('MetaInfo integration failed, using standard modal:', error);
-                            try {
-                                const result = await createStandardMetadataDialog(file, existingMetadata);
-                                resolve(result);
-                            } catch (stdError) {
-                                reject(stdError);
+                            // Wenn der Benutzer abgebrochen hat, Fehler weiterleiten
+                            if (error.message === 'Metadata input cancelled') {
+                                reject(error);
+                                return;
                             }
+
+                            console.error('MetaInfo integration failed:', error);
+                            // Fallback auf Standard-Modal entfernt, da für komplexe/mehrsprachige Setups ungeeignet
+                            reject(error);
                         }
                     });
                 });
