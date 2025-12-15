@@ -163,11 +163,11 @@ filepond_settings_ai_max_tokens_notice = Maximale Anzahl an Tokens für die Antw
 filepond_settings_cloudflare_token = Cloudflare API Token
 filepond_settings_cloudflare_token_notice = API-Token von <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a> erstellen. Berechtigung: Workers AI Read.
 filepond_settings_cloudflare_account_id = Cloudflare Account ID
-filepond_settings_cloudflare_account_id_notice = Account ID findest du unter <a href="https://dash.cloudflare.com/" target="_blank">Workers & Pages</a> in der rechten Sidebar.
+filepond_settings_cloudflare_account_id_notice = Account ID findest du unter <a href="https://dash.cloudflare.com/" target="_blank">Workers und Pages</a> in der rechten Sidebar.
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
-filepond_settings_gemini_usage = Limits & Verbrauch anzeigen
+filepond_settings_gemini_usage = Limits und Verbrauch anzeigen
 filepond_settings_cloudflare_usage = API Tokens verwalten
 
 # Token Settings
