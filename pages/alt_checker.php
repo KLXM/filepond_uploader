@@ -112,6 +112,7 @@ $currentPage = rex_be_controller::getCurrentPage();
     <?php else: ?>
     
     <!-- Statistik-Header -->
+    <?php if ($addon->getConfig('show_alt_stats', 1)): ?>
     <div class="panel panel-default" id="stats-panel">
         <div class="panel-heading">
             <div class="panel-title">
@@ -157,6 +158,7 @@ $currentPage = rex_be_controller::getCurrentPage();
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <!-- Filter -->
     <?php if (!$aiEnabled): ?>

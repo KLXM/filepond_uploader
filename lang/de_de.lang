@@ -202,6 +202,9 @@ filepond_sort_createdate_desc = Neueste zuerst
 filepond_sort_createdate_asc = Älteste zuerst
 filepond_sort_filename_asc = Dateiname A-Z
 filepond_sort_filename_desc = Dateiname Z-A
+filepond_settings_show_alt_stats = Statistik anzeigen
+filepond_settings_show_alt_stats_label = Barrierefreiheits-Statistik anzeigen
+filepond_settings_show_alt_stats_notice = Zeigt eine Übersicht über fehlende Alt-Texte im Alt-Text-Checker an.
 
 # Chunk Upload Messages
 filepond_chunk_upload_progress = Chunk-Upload: {current} von {total}
