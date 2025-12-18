@@ -4,6 +4,8 @@
 
 ![Screenshot](https://github.com/KLXM/filepond_uploader/blob/assets/screenshot.png?raw=true)
 
+Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
+
 ## Hauptmerkmale
 
 *   **Chunk-Upload als Kernfeature:**
