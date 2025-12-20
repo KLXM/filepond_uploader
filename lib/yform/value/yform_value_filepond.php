@@ -1,4 +1,16 @@
-<?php class rex_yform_value_filepond extends rex_yform_value_abstract
+<?php
+
+use rex_config;
+use rex_extension;
+use rex_extension_point;
+use rex_logger;
+use rex_media;
+use rex_media_manager;
+use rex_media_service;
+use rex_sql;
+use rex_yform_manager_table;
+
+class rex_yform_value_filepond extends rex_yform_value_abstract
 {
     protected static function cleanValue($value)
     {
@@ -22,6 +34,15 @@
 
     public function preValidateAction(): void
     {
+        // Nur wenn Auto-Cleanup aktiviert ist
+        if (!rex_config::get('filepond_uploader', 'auto_cleanup_enabled', 0)) {
+            return;
+        }
+        
+        if (!isset($this->params['send']) || !$this->params['send']) {
+            return;
+        }
+        
         if ($this->params['send']) {
             // Original Value aus der Datenbank holen
             $originalValue = '';
@@ -50,13 +71,42 @@
             $originalFiles = array_filter(explode(',', $originalValue));
             $newFiles = array_filter(explode(',', $newValue));
             $deletedFiles = array_diff($originalFiles, $newFiles);
+            
+            if (!empty($deletedFiles)) {
+                if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                    rex_logger::factory()->log('debug', sprintf(
+                        'FilePond Auto-Cleanup: %d Datei(en) gelöscht aus Feld "%s" in Tabelle "%s" (ID: %s)',
+                        count($deletedFiles),
+                        $this->getName(),
+                        $this->params['main_table'] ?? 'unknown',
+                        $this->params['main_id'] ?? 'unknown'
+                    ));
+                }
+            }
 
             foreach ($deletedFiles as $filename) {
                 try {
-                    if ($media = rex_media::get($filename)) {
-                        // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
-                        $inUse = false;
-                        $sql = rex_sql::factory();
+                    $media = rex_media::get($filename);
+                    if (!$media) {
+                        if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                            rex_logger::factory()->log('debug', sprintf(
+                                'FilePond Auto-Cleanup: Datei "%s" nicht im Mediapool gefunden',
+                                $filename
+                            ));
+                        }
+                        continue;
+                    }
+                    
+                    if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                        rex_logger::factory()->log('debug', sprintf(
+                            'FilePond Auto-Cleanup: Prüfe Datei "%s" auf Verwendung',
+                            $filename
+                        ));
+                    }
+                    
+                    // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
+                    $inUse = false;
+                    $sql = rex_sql::factory();
                         
                         // Alle YForm Tabellen durchsuchen
                         $yformTables = rex_yform_manager_table::getAll();
@@ -74,22 +124,95 @@
                                         $result = $sql->getArray($query, [':filename' => $filePattern, ':id' => $currentId]);
                                         if (count($result) > 0) {
                                             $inUse = true;
+                                            if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                                                rex_logger::factory()->log('debug', sprintf(
+                                                    'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung in Tabelle "%s"',
+                                                    $filename,
+                                                    $tableName
+                                                ));
+                                            }
                                             break 2;
                                         }
                                     } catch (Exception $e) {
+                                        rex_logger::factory()->log('warning', sprintf(
+                                            'FilePond Auto-Cleanup: Query-Fehler bei Tabelle "%s": %s',
+                                            $tableName,
+                                            $e->getMessage()
+                                        ));
                                         continue;
                                     }
                                 }
                             }
                         }
 
+                        // Extension Point: MEDIA_IS_IN_USE prüfen
+                        if (!$inUse) {
+                            $warnings = rex_extension::registerPoint(new rex_extension_point(
+                                'MEDIA_IS_IN_USE',
+                                [],
+                                [
+                                    'filename' => $filename,
+                                    'media' => $media,
+                                    'ignore_table' => $this->params['main_table'] ?? '',
+                                    'ignore_id' => (int)($this->params['main_id'] ?? 0),
+                                    'ignore_field' => $this->getName(),
+                                ]
+                            ));
+                            
+                            if (is_array($warnings) && !empty($warnings)) {
+                                $inUse = true;
+                                rex_logger::factory()->log('debug', sprintf(
+                                    'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung (Extension Point)',
+                                    $filename
+                                ));
+                            }
+                        }
+                        
                         // Datei löschen wenn sie nicht mehr verwendet wird
                         if (!$inUse && rex_media::get($filename)) {
-                            rex_media_service::deleteMedia($filename);
+                            rex_logger::factory()->log('debug', sprintf(
+                                'FilePond Auto-Cleanup: Lösche Datei "%s"',
+                                $filename
+                            ));
+                            
+                            // Workaround: rex_media_service::deleteMedia() ruft intern mediaIsInUse() auf
+                            // ohne ignore-Parameter. Daher setzen wir die Info in $GLOBALS
+                            $GLOBALS['filepond_cleanup_ignore'] = [
+                                'table' => $this->params['main_table'] ?? '',
+                                'id' => (int)($this->params['main_id'] ?? 0),
+                                'field' => $this->getName(),
+                            ];
+                            
+                            try {
+                                rex_media_service::deleteMedia($filename);
+                                
+                                rex_logger::factory()->log('info', sprintf(
+                                    'FilePond Auto-Cleanup: Datei "%s" aus Tabelle "%s" (ID: %s) gelöscht.',
+                                    $filename,
+                                    $this->params['main_table'] ?? 'unknown',
+                                    $this->params['main_id'] ?? 'unknown'
+                                ));
+                            } finally {
+                                // Cleanup
+                                unset($GLOBALS['filepond_cleanup_ignore']);
+                            }
+                        } else {
+                            if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                                rex_logger::factory()->log('debug', sprintf(
+                                    'FilePond Auto-Cleanup: Datei "%s" NICHT gelöscht (inUse: %s)',
+                                    $filename,
+                                    $inUse ? 'true' : 'false'
+                                ));
+                            }
                         }
                     }
                 } catch (Exception $e) {
-                    // Fehler beim Löschen werden ignoriert
+                    // Fehler beim Löschen werden geloggt aber ignoriert
+                    rex_logger::factory()->log('warning', sprintf(
+                        'FilePond Auto-Cleanup: Fehler beim Löschen von "%s": %s',
+                        $filename,
+                        $e->getMessage()
+                    ));
                 }
             }
         }
@@ -310,51 +433,155 @@
     public static function getListValue($params)
     {
         $files = array_filter(explode(',', self::cleanValue($params['subject'])));
-        $downloads = [];
-
-        if (rex::isBackend()) {
-            foreach ($files as $file) {
-                if (!empty($file)) {
-                    $media = rex_media::get($file);
-                    if ($media) {
-                        $fileName = $media->getFileName();
-                        
-                        if ($media->isImage()) {
-                            $thumb = rex_media_manager::getUrl('rex_medialistbutton_preview', $fileName);
-                            $downloads[] = sprintf(
-                                '<div class="rex-yform-value-mediafile">
-                                    <a href="%s" title="%s" target="_blank">
-                                        <img src="%s" alt="%s">
-                                        <span class="filename">%s</span>
-                                    </a>
-                                </div>',
-                                $media->getUrl(),
-                                rex_escape($fileName),
-                                $thumb,
-                                rex_escape($fileName),
-                                rex_escape($fileName)
-                            );
-                        } else {
-                            $downloads[] = sprintf(
-                                '<div class="rex-yform-value-mediafile">
-                                    <a href="%s" title="%s" target="_blank">
-                                        <span class="filename">%s</span>
-                                    </a>
-                                </div>',
-                                $media->getUrl(),
-                                rex_escape($fileName),
-                                rex_escape($fileName)
-                            );
-                        }
-                    }
+        
+        if (empty($files)) {
+            return '-';
+        }
+        
+        $fileCount = count($files);
+        
+        // Nur eine Datei: Zeige Icon/Thumbnail + Dateiname
+        if ($fileCount === 1) {
+            $filename = trim($files[0]);
+            $media = rex_media::get($filename);
+            
+            if (!$media) {
+                return '<span style="color: #999;"><i class="fa fa-ban"></i> ' . rex_escape($filename) . ' (nicht gefunden)</span>';
+            }
+            
+            $url = rex_url::backendPage('mediapool/detail', ['file_name' => $filename]);
+            
+            // Bei Bildern: Thumbnail (SVG direkt, andere über Media Manager)
+            if ($media->isImage()) {
+                $extension = mb_strtolower($media->getExtension());
+                
+                if ($extension === 'svg') {
+                    // SVG direkt ausgeben (Vektorgrafik benötigt keinen Media Manager)
+                    $imageUrl = $media->getUrl();
+                } elseif (rex_addon::get('media_manager')->isAvailable()) {
+                    // Andere Bilder über Media Manager
+                    $imageUrl = rex_media_manager::getUrl('rex_media_small', $filename);
+                } else {
+                    $imageUrl = null;
+                }
+                
+                if ($imageUrl) {
+                    $ext = mb_strtoupper($media->getExtension());
+                    $title = $media->getTitle();
+                    $displayText = !empty($title) ? $title : $ext . ' - 1 Datei';
+                    return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($filename) . '">' .
+                           '<img src="' . $imageUrl . '" class="img-thumbnail" style="width: 40px; height: 40px; margin-right: 5px;" />' .
+                           '<span>' . rex_escape($displayText) . '</span>' .
+                           '</span>';
                 }
             }
             
-            if (!empty($downloads)) {
-                return '<div class="rex-yform-value-mediafile-list">' . implode('', $downloads) . '</div>';
+            // Für andere Dateitypen: Font Awesome Icon
+            $extension = $media->getExtension();
+            $icon = self::getFileIcon($extension);
+            $extUpper = mb_strtoupper($extension);
+            $title = $media->getTitle();
+            $displayText = !empty($title) ? $title : $extUpper . ' - 1 Datei';
+            
+            return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($filename) . '">' .
+                   '<i class="fa ' . $icon . ' text-muted" style="font-size: 30px; width: 40px; text-align: center; margin-right: 5px;"></i>' .
+                   '<span>' . rex_escape($displayText) . '</span>' .
+                   '</span>';
+        }
+        
+        // Mehrere Dateien: Kompakte Ansicht mit Badge
+        $extensions = [];
+        $imageCount = 0;
+        $totalCount = 0;
+        
+        foreach ($files as $filename) {
+            $filename = trim($filename);
+            $media = rex_media::get($filename);
+            
+            if ($media) {
+                $ext = mb_strtolower($media->getExtension());
+                $extensions[$ext] = ($extensions[$ext] ?? 0) + 1;
+                $totalCount++;
+                
+                if ($media->isImage()) {
+                    $imageCount++;
+                }
             }
         }
-
-        return self::cleanValue($params['subject']);
+        
+        // Extension-Liste erstellen
+        $extList = [];
+        foreach ($extensions as $ext => $count) {
+            $extList[] = $count > 1 ? $ext . ' (×' . $count . ')' : $ext;
+        }
+        $extString = implode(', ', $extList);
+        
+        $title = $fileCount . ' Dateien: ' . $extString;
+        
+        // Icon basierend auf Datei-Typen wählen
+        if ($imageCount > 0) {
+            // Bilder enthalten (einzeln oder gemischt)
+            $iconClass = 'fa-solid fa-images';
+        } else {
+            // Nur Dokumente
+            $iconClass = 'fa-solid fa-folder';
+        }
+        
+        $multiIcon = '<i class="' . $iconClass . ' text-muted" style="font-size: 30px; width: 40px; text-align: center; margin-right: 5px;"></i>';
+        
+        return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($title) . '">' .
+               $multiIcon .
+               '<strong>' . $fileCount . '</strong>&nbsp;' . ($fileCount === 1 ? 'Datei' : 'Dateien') .
+               ' <small class="text-muted">(' . rex_escape($extString) . ')</small>' .
+               '</span>';
+    }
+    
+    /**
+     * Gibt passendes Font Awesome Icon für Dateityp zurück
+     */
+    private static function getFileIcon(string $extension): string
+    {
+        $extension = mb_strtolower($extension);
+        
+        $iconMap = [
+            // Dokumente
+            'pdf' => 'fa-file-pdf-o',
+            'doc' => 'fa-file-word-o',
+            'docx' => 'fa-file-word-o',
+            'xls' => 'fa-file-excel-o',
+            'xlsx' => 'fa-file-excel-o',
+            'ppt' => 'fa-file-powerpoint-o',
+            'pptx' => 'fa-file-powerpoint-o',
+            'txt' => 'fa-file-text-o',
+            'rtf' => 'fa-file-text-o',
+            'csv' => 'fa-file-text-o',
+            
+            // Bilder
+            'jpg' => 'fa-file-image-o',
+            'jpeg' => 'fa-file-image-o',
+            'png' => 'fa-file-image-o',
+            'gif' => 'fa-file-image-o',
+            'svg' => 'fa-file-image-o',
+            'webp' => 'fa-file-image-o',
+            
+            // Video
+            'mp4' => 'fa-file-video-o',
+            'mov' => 'fa-file-video-o',
+            'avi' => 'fa-file-video-o',
+            'webm' => 'fa-file-video-o',
+            
+            // Audio
+            'mp3' => 'fa-file-audio-o',
+            'wav' => 'fa-file-audio-o',
+            'ogg' => 'fa-file-audio-o',
+            
+            // Archive
+            'zip' => 'fa-file-archive-o',
+            'rar' => 'fa-file-archive-o',
+            'tar' => 'fa-file-archive-o',
+            'gz' => 'fa-file-archive-o',
+        ];
+        
+        return $iconMap[$extension] ?? 'fa-file-o';
     }
 }

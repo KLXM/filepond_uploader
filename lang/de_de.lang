@@ -189,6 +189,16 @@ filepond_maintenance_cleanup_running = Lösche temporäre Dateien...
 filepond_maintenance_cleanup_error = Fehler beim Löschen der temporären Dateien
 filepond_maintenance_cleanup_success = Temporäre Dateien wurden erfolgreich gelöscht
 
+# Auto Cleanup
+filepond_auto_cleanup = Automatisches Löschen ungenutzter Medien
+filepond_auto_cleanup_notice = Wenn aktiviert, werden Mediendateien automatisch gelöscht, wenn sie aus einem YForm-FilePond-Feld entfernt werden und nirgendwo sonst verwendet werden.
+filepond_auto_cleanup_enabled_label = Aktiviert
+filepond_auto_cleanup_disabled = Deaktiviert
+
+filepond_enable_debug_logging = Debug-Logging aktivieren
+filepond_enable_debug_logging_label = Debug-Logs aktivieren
+filepond_enable_debug_logging_notice = Aktiviert ausführliche Debug-Logs. Erfordert zusätzlich den REDAXO Debug-Modus (System).
+
 # General Settings
 filepond_general_settings = Allgemeine Einstellungen
 filepond_save = Speichern

@@ -244,6 +244,20 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
+// Auto-Cleanup für ungenutzte Medien
+$field = $form->addSelectField('auto_cleanup_enabled');
+$field->setLabel($addon->i18n('filepond_auto_cleanup'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_auto_cleanup_disabled'), '0');
+$select->addOption($addon->i18n('filepond_auto_cleanup_enabled_label'), '1');
+$field->setNotice($addon->i18n('filepond_auto_cleanup_notice'));
+
+// Debug-Logging aktivieren
+$field = $form->addCheckboxField('enable_debug_logging');
+$field->setLabel($addon->i18n('filepond_enable_debug_logging'));
+$field->addOption($addon->i18n('filepond_enable_debug_logging_label'), 1);
+$field->setNotice($addon->i18n('filepond_enable_debug_logging_notice'));
+
 // Medienpool ersetzen
 $field = $form->addCheckboxField('replace_mediapool');
 $field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));

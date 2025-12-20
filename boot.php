@@ -1,6 +1,11 @@
 <?php
 
+use FriendsOfRedaxo\FilePond\FilePondMediaCleanup;
+
 rex_yform::addTemplatePath($this->getPath('ytemplates'));
+
+// MEDIA_IS_IN_USE Extension Point registrieren für bessere Kontrolle
+rex_extension::register('MEDIA_IS_IN_USE', [FilePondMediaCleanup::class, 'isMediaInUse']);
 
 if (rex::isBackend() && rex::getUser()) {
     // Einbindung über Static-Properties sicherstellen
