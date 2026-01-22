@@ -1,3 +1,16 @@
+# FilePond Uploader 2.3.0
+
+**Feature-Update** - OpenAi (und kompatible) Provider supported, z.B. OpenWebUi
+
+### ✨ NEU: 
+
+- Provider-Registry
+- Abfrage der verfügbaren Modelle OpenAi
+- Verbesserte Performance, kleineres Datenaufkommen durch Bildverkleinerung bei Übergabe
+- API-Kommunikation verbessert. 
+
+ ---
+
 # FilePond Uploader 2.2.0
 
 **Feature-Update** - Vollständige Integration von MetaInfo-Feldern & UI Overhaul.
