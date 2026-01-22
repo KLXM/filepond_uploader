@@ -341,8 +341,11 @@
                 
                 const icon = document.createElement('div');
                 icon.className = 'simple-modal-file-icon';
-                icon.style.cssText = 'width: 80px; height: 80px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
-                icon.innerHTML = `<i class="fa fa-solid ${iconClass} fa-5x"></i>`;
+                // Icon Container
+                icon.style.cssText = 'width: 120px; height: 120px; background: var(--modal-color-footer, #f8f9fa); border: 1px solid var(--modal-color-border, #ddd); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: var(--modal-color-text, #666);';
+                
+                // Icon kleiner skalieren und line-height normalisieren
+                icon.innerHTML = `<i class="fa ${iconClass}" style="font-size: 60px; line-height: 1; display: block; text-align: center;"></i>`;
                 container.appendChild(icon);
             };
 
@@ -717,83 +720,85 @@
                 const translatedLabel = getFieldTranslation(field.name) || field.label;
                 
                 if (field.multilingual && field.languages && field.languages.length > 0) {
-                    // Mehrsprachiges Feld - zeige erste Sprache sichtbar, andere über Globus
-                    const firstLang = field.languages[0];
-                    const otherLangs = field.languages.slice(1);
-                    const firstLangValue = existingMetadata?.[field.name]?.[firstLang.code] || '';
+                    // Mehrsprachiges Feld mit Tabs
+                    const uniqueFieldId = modalId ? `${field.name}_${modalId}` : field.name;
                     
                     html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
-                    html += `<label for="${fieldId}" class="simple-modal-label">${translatedLabel}</label>`;
+                    html += `<label class="simple-modal-label">`;
+                    html += `<i class="fa fa-globe"></i> ${translatedLabel}`;
+                    html += `</label>`;
                     
-                    // Globale dekorative Checkbox für ALT-Felder bei Bildern (gilt für alle Sprachen)
+                    // Globale dekorative Checkbox für ALT-Felder bei Bildern
                     if (field.name === 'med_alt' && isImage) {
                         const decorativeCheckboxId = `decorative_global`;
                         html += `<div class="decorative-checkbox-group">`;
                         html += `<label for="${decorativeCheckboxId}" class="simple-modal-checkbox-label">`;
                         html += `<input type="checkbox" id="${decorativeCheckboxId}" class="decorative-checkbox-global">`;
-                        html += `${translations.de_de.decorativeLabel}`;
+                        html += `${translations.de_de.decorativeLabel}`; // Fallback auf de_de, besser wäre widget.translations... aber t.decorativeLabel ist oben definiert? Nein, t ist in createMetadataDialog scope.
+                        // Wir haben keinen Zugriff auf t hier, da createFieldHTML nicht im Scope von t ist?
+                        // Warte, createFieldHTML ist im IIFE scope definiert. t wäre im createMetadataDialog scope.
+                        // Aber createFieldHTML wird in createEnhancedMetadataDialog aufgerufen, welches auch nicht im Scope von t ist?
+                        // DOCH! createEnhancedMetadataDialog ist im InitFilePond Scope. t ist im InitFilePond definiert.
+                        // createFieldHTML ist im initFilePond definiert. Also sollte t verfügbar sein?
+                        // Ja, wenn t im Outer Scope definiert ist.
+                        // Aber ich sehe const t = ... am Anfang von initFilePond.
+                        // Und createFieldHTML ist am Ende.
                         html += `</label>`;
                         html += `</div>`;
                     }
                     
-                    // Erste Sprache (immer sichtbar)
-                    // Required-Attribut bestimmen
-                    let isRequired = '';
-                    if (field.name === 'med_alt' && isImage) {
-                        isRequired = 'required';
-                    } else if (field.name === 'med_title_lang') {
-                        // Mehrsprachige Titel-Felder sind immer required
-                        isRequired = 'required';
-                    }
+                    // Tabs Container
+                    html += `<div class="fp-tabs-container" style="border: 1px solid var(--modal-color-border, #ccc); border-radius: 4px; margin-top: 5px;">`;
                     
-                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                    // Tabs Navigation
+                    html += `<div class="fp-tabs-nav" style="display: flex; border-bottom: 1px solid var(--modal-color-border, #ccc); background: var(--modal-color-footer, rgba(0,0,0,0.05));">`;
                     
-                    if (field.type === 'textarea') {
-                        html += `<textarea id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" data-lang="${firstLang.code}" rows="3" ${isRequired} ${isDisabled}>${firstLangValue}</textarea>`;
-                    } else {
-                        html += `<input type="text" id="${fieldId}" name="${field.name}[${firstLang.code}]" class="simple-modal-input" `;
-                        html += `data-field="${field.name}" data-lang="${firstLang.code}" value="${firstLangValue}" ${isRequired} ${isDisabled}>`;
-                    }
-                    
-                    // Weitere Sprachen (über Globus einblendbar)
-                    if (otherLangs.length > 0) {
-                        html += `<div class="lang-field-container">`;
-                        html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${uniqueFieldId}">`;
-                        html += `<i class="fa fa-globe"></i> Weitere Sprachen (${otherLangs.length})`;
+                    field.languages.forEach((lang, index) => {
+                        const isActive = index === 0 ? 'active' : '';
+                        // Inline styles für Buttons mit CSS Variables
+                        const activeStyle = index === 0 ? 
+                            'font-weight: bold; background: var(--modal-color-bg, #fff); border-bottom: 2px solid #4b9ad9; color: var(--modal-color-text, inherit); opacity: 1;' : 
+                            'opacity: 0.7; border-bottom: 2px solid transparent; color: var(--modal-color-text, inherit);';
+                        
+                        html += `<button type="button" class="fp-tab-btn ${isActive}" data-group="${uniqueFieldId}" data-lang="${lang.code}" style="border: none; background: transparent; padding: 8px 12px; cursor: pointer; font-size: 12px; margin-bottom: -1px; ${activeStyle}">`;
+                        html += lang.code.toUpperCase();
                         html += `</button>`;
-                        html += `<div class="lang-fields fp-lang-fields" id="lang-fields-${uniqueFieldId}">`;
+                    });
+                    
+                    html += `</div>`; // .fp-tabs-nav
+                    
+                    // Tabs Content
+                    html += `<div class="fp-tabs-content" style="padding: 10px;">`;
+                    
+                    for (const lang of field.languages) {
+                        const displayStyle = field.languages.indexOf(lang) === 0 ? 'block' : 'none';
+                        const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
                         
-                        for (const lang of otherLangs) {
-                            const langValue = existingMetadata?.[field.name]?.[lang.code] || '';
-                            html += `<div class="form-group">`;
-                            html += `<label class="control-label">${lang.name}</label>`;
-                            
-                            // Keine individuelle Checkbox mehr - nutze globale dekorative Checkbox
-                            
-                            // Required-Attribut für verschiedene Felder
-                            let langRequired = '';
-                            if (field.name === 'med_title_lang') {
-                                langRequired = 'required'; // Mehrsprachige Titel sind immer required
-                            } else if (field.name === 'med_alt' && isImage) {
-                                langRequired = 'required';
-                            }
-                            const langDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
-                            
-                            if (field.type === 'textarea') {
-                                html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
-                                html += `data-field="${field.name}" data-lang="${lang.code}" rows="3" ${langRequired} ${langDisabled}>${langValue}</textarea>`;
-                            } else {
-                                html += `<input type="text" class="simple-modal-input" name="${field.name}[${lang.code}]" `;
-                                html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}" ${langRequired} ${langDisabled}>`;
-                            }
-                            html += `</div>`;
+                        html += `<div class="fp-tab-pane" id="tab_${uniqueFieldId}_${lang.code}" style="display: ${displayStyle};">`;
+                        
+                        // Required-Attribut Logic
+                        let langRequired = '';
+                        if (field.name === 'med_title_lang') {
+                            langRequired = 'required'; 
+                        } else if (field.name === 'med_alt' && isImage) {
+                            langRequired = 'required';
                         }
+                        const langDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
                         
-                        html += `</div></div>`;
+                        if (field.type === 'textarea') {
+                            html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                            html += `data-field="${field.name}" data-lang="${lang.code}" rows="3" ${langRequired} ${langDisabled}>${langValue}</textarea>`;
+                        } else {
+                            html += `<input type="text" class="simple-modal-input" name="${field.name}[${lang.code}]" `;
+                            html += `data-field="${field.name}" data-lang="${lang.code}" value="${langValue}" ${langRequired} ${langDisabled}>`;
+                        }
+                        html += `</div>`;
                     }
                     
-                    html += `</div>`;
+                    html += `</div>`; // .fp-tabs-content
+                    html += `</div>`; // .fp-tabs-container
+                    html += `</div>`; // .simple-modal-form-group
+
                 } else {
                     // Standard-Feld
                     html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
@@ -849,34 +854,47 @@
                     titleField.value = nameWithoutExt;
                 }
                 
-                // Toggle-Buttons für mehrsprachige Felder
-                form.querySelectorAll('.lang-toggle').forEach(button => {
+
+                // Tab-Switching Logic (Framework-unabhängig)
+                form.querySelectorAll('.fp-tab-btn').forEach(button => {
                     button.addEventListener('click', (e) => {
                         e.preventDefault();
-                        e.stopPropagation(); // Verhindere Event-Bubbling
-                        const target = button.getAttribute('data-target');
+                        e.stopPropagation();
                         
-                        // Suche nur innerhalb des gleichen Modals
-                        const modalContainer = button.closest('.simple-modal-content') || button.closest('.simple-modal');
-                        const container = modalContainer ? 
-                            modalContainer.querySelector(`#lang-fields-${target}`) : 
-                            document.getElementById(`lang-fields-${target}`);
+                        const group = button.getAttribute('data-group');
+                        const lang = button.getAttribute('data-lang');
                         
-                        const icon = button.querySelector('i');
+                        // Active State
+                        const tabsNav = button.closest('.fp-tabs-nav');
+                        tabsNav.querySelectorAll('.fp-tab-btn').forEach(btn => {
+                            btn.classList.remove('active');
+                            // Reset styles for non-active
+                            btn.style.fontWeight = 'normal';
+                            btn.style.background = 'transparent';
+                            btn.style.borderBottomColor = 'transparent';
+                            btn.style.opacity = '0.7';
+                        });
                         
-                        if (container) {
-                            if (container.style.display === 'none') {
-                                container.style.display = 'block';
-                                icon.className = 'fa fa-globe';
-                                // Text bleibt gleich
-                            } else {
-                                container.style.display = 'none';
-                                icon.className = 'fa fa-globe';
-                                // Text bleibt gleich
-                            }
+                        button.classList.add('active');
+                        // Set styles for active
+                        button.style.fontWeight = 'bold';
+                        button.style.background = 'var(--modal-color-bg, #fff)';
+                        button.style.borderBottomColor = '#4b9ad9';
+                        button.style.opacity = '1';
+                        
+                        // Switch Content
+                        const tabsContainer = button.closest('.fp-tabs-container');
+                        tabsContainer.querySelectorAll('.fp-tab-pane').forEach(pane => {
+                            pane.style.display = 'none';
+                        });
+                        
+                        const activePane = tabsContainer.querySelector(`#tab_${group}_${lang}`);
+                        if (activePane) {
+                            activePane.style.display = 'block';
                         }
                     });
                 });
+
                 
                 // Globale dekorative Bild-Checkbox für ALT-Felder
                 const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');

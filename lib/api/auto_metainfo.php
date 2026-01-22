@@ -48,44 +48,74 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     
     /**
      * Automatische Erkennung aller relevanten MetaInfo-Felder
+     * Lädt dynamisch alle Felder, die mit "med_" beginnen, filtert aber ausgeblendete Felder.
      */
     private function getMetaInfoFields()
     {
         try {
             $fields = [];
             
-            // Standard-Felder für Medien
-            $standardFields = ['title', 'med_alt', 'med_copyright'];
-            
-            // Prüfe auch auf med_title_lang
-            if ($this->fieldExists('med_title_lang')) {
-                $standardFields[] = 'med_title_lang';
-            }
-            
-            // Weitere häufige Felder
-            $optionalFields = ['med_description', 'med_keywords', 'med_source'];
-            
-            foreach ($optionalFields as $field) {
-                if ($this->fieldExists($field)) {
-                    $standardFields[] = $field;
+            // Konfigurierte Blacklist laden
+            $excludedFields = rex_config::get('filepond_uploader', 'excluded_metadata_fields', []);
+            if (!is_array($excludedFields)) {
+                // rex_config_form speichert Arrays oft als pipe-separierten String (|value|value|)
+                if (is_string($excludedFields) && strpos($excludedFields, '|') !== false) {
+                     $excludedFields = array_filter(explode('|', $excludedFields));
+                } elseif (is_string($excludedFields)) {
+                     // Fallback, falls CSV
+                     $excludedFields = explode(',', $excludedFields);
+                } else {
+                     $excludedFields = [];
                 }
             }
             
-            // Für jedes Feld prüfen ob es existiert und mehrsprachig ist
-            foreach ($standardFields as $fieldName) {
-                $fieldInfo = $this->analyzeField($fieldName);
-                if ($fieldInfo) {
-                    $fields[] = $fieldInfo;
+            // 1. Titel ist immer dabei (REDAXO Standard)
+            // Nur hinzufügen wenn nicht ausgeschlossen
+            if (!in_array('title', $excludedFields)) {
+                $fields[] = $this->analyzeField('title');
+            }
+            
+            // 2. Prüfen ob MetaInfo Addon verfügbar ist
+            $hasMetaInfo = rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable();
+
+            if (!$hasMetaInfo) {
+                // Fallback ohne MetaInfo: Nur die absoluten Standardfelder annehmen
+                $defaults = ['med_alt', 'med_copyright', 'med_description'];
+                foreach ($defaults as $f) {
+                    if (!in_array($f, $excludedFields)) {
+                        $fields[] = $this->analyzeField($f);
+                    }
+                }
+            } else {
+                // 3. Dynamisch ALLE med_ Felder aus MetaInfo laden
+                $sql = rex_sql::factory();
+                // Wir holen alle Felder, die mit med_ beginnen, sortiert nach Priorität
+                $sql->setQuery('SELECT name FROM ' . rex::getTable('metainfo_field') . ' WHERE name LIKE "med_%" ORDER BY priority');
+                
+                foreach ($sql as $row) {
+                    $name = $row->getValue('name');
+                    if (!in_array($name, $excludedFields)) {
+                        $fields[] = $this->analyzeField($name);
+                    }
+                }
+            }
+
+            // Duplikate entfernen
+            $uniqueFields = [];
+            $seenNames = [];
+            foreach ($fields as $field) {
+                if (!in_array($field['name'], $seenNames)) {
+                    $seenNames[] = $field['name'];
+                    $uniqueFields[] = $field;
                 }
             }
             
             $this->sendResponse([
                 'success' => true,
-                'fields' => $fields
+                'fields' => $uniqueFields
             ]);
             
         } catch (Exception $e) {
-            // Log the exception internally for debugging
             rex_logger::logException($e);
             
             $this->sendResponse([
@@ -120,6 +150,26 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     }
     
     /**
+     * Prüft ob ein Feld ein Pflichtfeld ist
+     */
+    private function isFieldRequired($fieldName)
+    {
+        // 1. Prüfe alten Schalter für Titel
+        if ($fieldName === 'title' && rex_config::get('filepond_uploader', 'title_required_default', 0)) {
+            return true;
+        }
+
+        // 2. Prüfe neue kommaseparierte Liste
+        $requiredFields = rex_config::get('filepond_uploader', 'required_metadata_fields', '');
+        if (empty($requiredFields)) {
+            return false;
+        }
+
+        $fields = array_map('trim', explode(',', $requiredFields));
+        return in_array($fieldName, $fields);
+    }
+
+    /**
      * Analysiert ein Feld auf Typ und Mehrsprachigkeit
      */
     private function analyzeField($fieldName)
@@ -130,7 +180,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             'label' => $this->getFieldLabel($fieldName),
             'type' => $this->getFieldType($fieldName),
             'multilingual' => $this->isMultilingual($fieldName),
-            'required' => false, // Required wird nur auf Upload-Seite über PHP gesteuert
+            'required' => $this->isFieldRequired($fieldName),
             'languages' => []
         ];
         
@@ -147,33 +197,43 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
      */
     private function getFieldLabel($fieldName)
     {
+        $label = ucfirst($fieldName);
+
+        // 1. Standard Labels (Fallback)
         $labels = [
             'title' => 'Titel',
             'med_alt' => 'Alt-Text',
             'med_copyright' => 'Copyright',
             'med_description' => 'Beschreibung',
-            'med_title_lang' => 'Mehrsprachiger Titel',
-            'med_keywords' => 'Schlüsselwörter',
-            'med_source' => 'Quelle'
         ];
-        
-        // Prüfe auch in MetaInfo für custom Labels
+
+        if (isset($labels[$fieldName])) {
+            $label = $labels[$fieldName];
+        }
+
+        // 2. MetaInfo Labels (Database) - Hat Vorrang
         if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
             try {
                 $sql = rex_sql::factory();
-                $sql->setQuery('SELECT title FROM rex_metainfo_field WHERE name = ?', [$fieldName]);
+                $sql->setQuery('SELECT title FROM ' . rex::getTable('metainfo_field') . ' WHERE name = ?', [$fieldName]);
                 if ($sql->getRows() > 0) {
                     $customLabel = $sql->getValue('title');
                     if (!empty($customLabel)) {
-                        return $customLabel;
+                        $label = $customLabel;
                     }
                 }
             } catch (Exception $e) {
-                // Fallback zu Standard-Label
+                // Ignore
             }
         }
         
-        return $labels[$fieldName] ?? ucfirst($fieldName);
+        // 3. Translate if needed (rex_i18n)
+        if (strpos($label, 'translate:') === 0) {
+            $key = substr($label, 10);
+            return rex_i18n::msg($key);
+        }
+        
+        return $label;
     }
     
     /**
@@ -181,18 +241,52 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
      */
     private function getFieldType($fieldName)
     {
-        // Standard-Typen
-        $types = [
-            'title' => 'text',
-            'med_alt' => 'text',
-            'med_copyright' => 'text',
-            'med_title_lang' => 'text',
-            'med_description' => 'textarea',
-            'med_keywords' => 'text',
-            'med_source' => 'text'
-        ];
+        // 1. Hardcoded Standard-Types
+        // Title ist speziell und fix
+        if ($fieldName === 'title') {
+            return 'text';
+        }
+
+        // 2. Datenbank-Lookup via MetaInfo
+        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+            try {
+                $sql = rex_sql::factory();
+                // Wir holen Label UND ID vom Typ, um auch lang_textarea erkennen zu können
+                $sql->setQuery('
+                    SELECT mf.type_id, mt.label as type_label
+                    FROM ' . rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    WHERE mf.name = ?
+                ', [$fieldName]);
+                
+                if ($sql->getRows() > 0) {
+                    $typeId = (int) $sql->getValue('type_id');
+                    $typeLabel = $sql->getValue('type_label');
+                    
+                    // 1=Text, 2=Textarea (Standard MetaInfo)
+                    if ($typeId === 2) {
+                        return 'textarea';
+                    }
+                    
+                    // Check for specialized types (like lang_textarea_all)
+                    if (!empty($typeLabel) && strpos($typeLabel, 'textarea') !== false) {
+                        return 'textarea';
+                    }
+                    
+                    // Default to text
+                    return 'text';
+                }
+            } catch (Exception $e) {
+                // Ignore errors
+            }
+        }
         
-        return $types[$fieldName] ?? 'text';
+        // Fallbacks für Standard-Felder wenn MetaInfo-Lookup fehlschlägt/nicht existiert
+        if ($fieldName === 'med_description') {
+            return 'textarea';
+        }
+        
+        return 'text';
     }
     
     /**
@@ -214,9 +308,9 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             // Prüfe den Feldtyp in der MetaInfo-Konfiguration
             $sql = rex_sql::factory();
             $sql->setQuery('
-                SELECT mf.type_id, mt.label as type_label 
-                FROM rex_metainfo_field mf 
-                LEFT JOIN rex_metainfo_type mt ON mf.type_id = mt.id 
+                SELECT mt.label as type_label 
+                FROM ' . rex::getTable('metainfo_field') . ' mf 
+                LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id 
                 WHERE mf.name = ?
             ', [$fieldName]);
             

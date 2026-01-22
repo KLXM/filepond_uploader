@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '2.0.6'
+version: '2.2.0'
 author: 'KLXM Crossmedia GmbH Thomas Skerbis'
 supportpage: https://github.com/KLXM/filepond_uploader
 requires:
@@ -26,6 +26,8 @@ page:
             itemClass: 'pull-right' 
         }
 default_config:
+    excluded_metadata_fields: |
+        []
     allowed_types: 'image/*,video/*,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation'
     max_filesize: 200
     max_files: 30
@@ -54,6 +56,7 @@ default_config:
     cloudflare_api_token: null
     cloudflare_account_id: null
     items_per_page: 30
+    required_metadata_fields: ''
     alt_checker_sort: 'createdate_desc'
 installer_ignore:
     - node_modules

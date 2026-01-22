@@ -38,16 +38,17 @@ class SimpleModal {
                     }
                 }
                 
-                // Dark Mode via REDAXO Theme Class
-                .rex-theme-dark .simple-modal {
-                    --modal-color-bg: #32373c;
-                    --modal-color-text: #f5f5f5;
-                    --modal-color-border: #404448;
-                    --modal-color-header: #202528;
-                    --modal-color-footer: #282c30;
-                    --modal-color-input: #32373c;
-                    --modal-color-input-border: #404448;
-                    --modal-backdrop: rgba(0, 0, 0, 0.9);
+                /* Dark Mode via REDAXO Theme Class */
+                body.rex-theme-dark .simple-modal {
+                    --modal-color-bg: #202528;
+                    --modal-color-text: #dfe3e6;
+                    --modal-color-border: #333b41;
+                    --modal-color-header: #15191c;
+                    --modal-color-header-text: #fff;
+                    --modal-color-footer: #202528;
+                    --modal-color-input: #15191c;
+                    --modal-color-input-border: #333b41;
+                    --modal-backdrop: rgba(0, 0, 0, 0.85);
                 }
 
                 .simple-modal {

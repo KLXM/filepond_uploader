@@ -287,27 +287,32 @@ class FilePondAutoMetaInfo {
         let html = '';
         
         if (field.multilingual) {
-            // Mehrsprachiges Feld
+            // Mehrsprachiges Feld mit Tabs (Framework-unabhängig)
             html += `<div class="simple-modal-form-group" data-field="${field.name}">`;
             html += `<label class="control-label">`;
             html += `<i class="fa fa-globe"></i> ${field.label}`;
             html += `</label>`;
             
-            // "Alle Sprachen" Button mit eindeutiger ID
-            html += `<div class="lang-field-container">`;
-            html += `<button type="button" class="btn btn-default btn-xs lang-toggle" data-target="${uniqueFieldId}">`;
-            html += `<i class="fa fa-caret-right"></i> Alle Sprachen bearbeiten`;
-            html += `</button>`;
+            html += `<div class="fp-tabs-container">`;
             
-            // Sprachfelder (initial versteckt) mit eindeutiger ID
-            html += `<div class="lang-fields fp-lang-fields" id="lang-fields-${uniqueFieldId}">`;
-            
-            for (const lang of field.languages) {
+            // Custom Tab Navigation
+            html += `<div class="fp-tabs-nav">`;
+            field.languages.forEach((lang, index) => {
+                const isActive = index === 0 ? 'active' : '';
+                html += `<button type="button" class="fp-tab-btn ${isActive}" data-group="${uniqueFieldId}" data-lang="${lang.code}">`;
+                html += lang.code.toUpperCase();
+                html += `</button>`;
+            });
+            html += `</div>`;
+
+            // Tab Content
+            html += `<div class="fp-tabs-content">`;
+            field.languages.forEach((lang, index) => {
+                const displayStyle = index === 0 ? 'block' : 'none';
                 const langValue = existingMetadata[field.name] && existingMetadata[field.name][lang.code] 
                     ? existingMetadata[field.name][lang.code] : '';
                 
-                html += `<div class="form-group">`;
-                html += `<label class="control-label">${lang.name}</label>`;
+                html += `<div class="fp-tab-pane" id="tab_${uniqueFieldId}_${lang.code}" style="display: ${displayStyle};">`;
                 
                 if (field.type === 'textarea') {
                     html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
@@ -318,9 +323,11 @@ class FilePondAutoMetaInfo {
                 }
                 
                 html += `</div>`;
-            }
+            });
+            html += `</div>`; // .fp-tabs-content
             
-            html += `</div></div></div>`;
+            html += `</div>`; // .fp-tabs-container
+            html += `</div>`; // .simple-modal-form-group
             
         } else {
             // Standard-Feld
@@ -365,53 +372,41 @@ class FilePondAutoMetaInfo {
             }
         }
         
-        // Toggle-Buttons für mehrsprachige Felder (nur in diesem Container)
-        container.querySelectorAll('.lang-toggle').forEach(button => {
-            // Erstelle einen bound handler für jeden Button
-            const boundHandler = (e) => {
+        // Tab-Switching Logic (Framework-unabhängig)
+        container.querySelectorAll('.fp-tab-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
                 e.preventDefault();
-                e.stopPropagation(); // Verhindere Event-Bubbling
-                this.toggleLanguageFields(button);
-            };
-            
-            // Entferne eventuell vorhandene Event-Listener
-            if (button.boundToggleHandler) {
-                button.removeEventListener('click', button.boundToggleHandler);
-            }
-            
-            // Speichere den Handler am Button Element
-            button.boundToggleHandler = boundHandler;
-            button.addEventListener('click', boundHandler);
+                e.stopPropagation();
+                
+                const group = button.getAttribute('data-group');
+                const lang = button.getAttribute('data-lang');
+                
+                // Active State für Buttons aktualisieren (nur in diesem Modal)
+                const tabsNav = button.closest('.fp-tabs-nav');
+                tabsNav.querySelectorAll('.fp-tab-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+                
+                // Panels umschalten
+                const tabsContainer = button.closest('.fp-tabs-container');
+                tabsContainer.querySelectorAll('.fp-tab-pane').forEach(pane => {
+                    pane.style.display = 'none';
+                });
+                
+                const activePane = tabsContainer.querySelector(`#tab_${group}_${lang}`);
+                if (activePane) {
+                    activePane.style.display = 'block';
+                }
+            });
         });
     }
     
     /**
-     * Toggle für Sprach-Felder
+     * Helper für Tabs
      */
     toggleLanguageFields(button) {
-        const target = button.getAttribute('data-target');
-        
-        // Suche nur innerhalb des gleichen Modal-Containers
-        const modalContainer = button.closest('.simple-modal-content') || button.closest('.simple-modal');
-        const container = modalContainer ? 
-            modalContainer.querySelector(`#lang-fields-${target}`) : 
-            document.getElementById(`lang-fields-${target}`);
-        
-        const icon = button.querySelector('i');
-        
-        if (container) {
-            if (container.style.display === 'none') {
-                container.style.display = 'block';
-                icon.className = 'fa fa-caret-down';
-                button.innerHTML = button.innerHTML.replace('bearbeiten', 'ausblenden');
-            } else {
-                container.style.display = 'none';
-                icon.className = 'fa fa-caret-right';
-                button.innerHTML = button.innerHTML.replace('ausblenden', 'bearbeiten');
-            }
-        } else {
-            console.warn('Language fields container not found for target:', target, '(modalId:', this.currentModalId + ')');
-        }
+        // Deprecated - kept for compatibility
     }
     
     /**
@@ -460,42 +455,60 @@ class FilePondAutoMetaInfo {
     }
 }
 
-// CSS für mehrsprachige Felder
+// CSS für mehrsprachige Felder und Tabs
 const style = document.createElement('style');
 style.textContent = `
-.lang-field-container {
+.fp-tabs-container {
     margin-top: 5px;
-}
-
-.lang-toggle {
-    font-size: 12px;
-    padding: 2px 8px;
-    margin-bottom: 5px;
-}
-
-.lang-fields {
-    border: 1px solid var(--modal-color-border);
+    border: 1px solid var(--modal-color-border, #ddd);
     border-radius: 4px;
-    padding: 10px;
+    background: var(--modal-color-bg, #fff);
+}
+
+.fp-tabs-nav {
+    display: flex;
+    background: rgba(0,0,0,0.03);
+    border-bottom: 1px solid var(--modal-color-border, #ddd);
+    padding: 0 5px;
+}
+
+.fp-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: inherit;
+    opacity: 0.7;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.fp-tab-btn:hover {
+    opacity: 1;
     background: rgba(0,0,0,0.02);
 }
 
-.rex-theme-dark .lang-fields {
+.fp-tab-btn.active {
+    opacity: 1;
+    border-bottom: 2px solid #5b9bd5; /* Rex Blue fallback */
+    background: var(--modal-color-bg, #fff);
+    font-weight: bold;
+}
+
+.fp-tabs-content {
+    padding: 10px;
+}
+
+/* Dark Mode Adjustments */
+.rex-theme-dark .fp-tabs-container {
     background: rgba(255,255,255,0.02);
 }
 
-.lang-fields .form-group {
-    margin-bottom: 10px;
-}
-
-.lang-fields .form-group:last-child {
-    margin-bottom: 0;
-}
-
-.lang-fields label {
-    font-size: 12px;
-    font-weight: normal;
-    margin-bottom: 5px;
+.rex-theme-dark .fp-tab-btn.active {
+    background: transparent;
+    border-bottom-color: #4b9ad9;
 }
 `;
 document.head.appendChild(style);

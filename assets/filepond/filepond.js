@@ -1,5 +1,5 @@
 /*!
- * FilePond 4.32.1
+ * FilePond 4.32.11
  * Licensed under MIT, https://opensource.org/licenses/MIT/
  * Please visit https://pqina.nl/filepond/ for details.
  */
@@ -7226,6 +7226,11 @@
                     processNext();
                 });
 
+                // abort function
+                item.onOnce('process-abort', function() {
+                    processNext();
+                });
+
                 // start file processing
                 var options = state.options;
                 item.process(
@@ -9025,8 +9030,8 @@
     var getItemHeight = function getItemHeight(child) {
         return (
             child.rect.element.height +
-            child.rect.element.marginBottom * 0.5 +
-            child.rect.element.marginTop * 0.5
+            child.rect.element.marginBottom +
+            child.rect.element.marginTop
         );
     };
     var getItemWidth = function getItemWidth(child) {
@@ -9454,7 +9459,6 @@
     var create$a = function create(_ref) {
         var root = _ref.root,
             props = _ref.props;
-
         // set id so can be referenced from outside labels
         root.element.id = 'filepond--browser-' + props.id;
 
@@ -9569,6 +9573,19 @@
         if (root.query('GET_TOTAL_ITEMS') > 0) {
             attrToggle(element, 'required', false);
             attrToggle(element, 'name', false);
+
+            // still has items
+            var activeItems = root.query('GET_ACTIVE_ITEMS');
+            var hasInvalidField = false;
+            for (var i = 0; i < activeItems.length; i++) {
+                if (activeItems[i].status === ItemStatus.LOAD_ERROR) {
+                    hasInvalidField = true;
+                }
+            }
+            // set validity status
+            root.element.setCustomValidity(
+                hasInvalidField ? root.query('GET_LABEL_INVALID_FIELD') : ''
+            );
         } else {
             // add name attribute
             attrToggle(element, 'name', true, root.query('GET_NAME'));
@@ -9822,7 +9839,10 @@
 
     var create$c = function create(_ref) {
         var root = _ref.root;
-        return (root.ref.fields = {});
+        root.ref.fields = {};
+        var legend = document.createElement('legend');
+        legend.textContent = 'Files';
+        root.element.appendChild(legend);
     };
 
     var getField = function getField(root, id) {
@@ -10526,7 +10546,8 @@
         var isActiveElementEditable =
             activeEl &&
             (/textarea|input/i.test(activeEl.nodeName) ||
-                activeEl.getAttribute('contenteditable') === 'true');
+                activeEl.getAttribute('contenteditable') === 'true' ||
+                activeEl.getAttribute('contenteditable') === '');
 
         if (isActiveElementEditable) {
             // test textarea or input is contained in filepond root
@@ -10884,7 +10905,7 @@
             frag.href = credits[0];
             frag.tabIndex = -1;
             frag.target = '_blank';
-            frag.rel = 'noopener noreferrer';
+            frag.rel = 'noopener noreferrer nofollow';
             frag.textContent = credits[1];
             root.element.appendChild(frag);
             root.ref.credits = frag;

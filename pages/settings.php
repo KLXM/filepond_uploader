@@ -187,8 +187,49 @@ $field->setLabel($addon->i18n('filepond_settings_title_required'));
 $field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
 
+// Erforderliche Metadaten-Felder
+$field = $form->addTextField('required_metadata_fields');
+$field->setLabel($addon->i18n('filepond_settings_required_fields'));
+$field->setNotice($addon->i18n('filepond_settings_required_fields_notice'));
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
+
+// Ausgeschlossene Felder (Blacklist)
+$form->addRawField('<div class="row"><div class="col-sm-12">');
+
+$field = $form->addSelectField('excluded_metadata_fields');
+$field->setLabel($addon->i18n('filepond_settings_excluded_fields'));
+$field->setAttribute('multiple', 'multiple');
+$field->setAttribute('class', 'form-control selectpicker');
+$field->setNotice($addon->i18n('filepond_settings_excluded_fields_notice'));
+
+$select = $field->getSelect();
+
+// Standardfelder
+$standardFields = ['title' => 'Titel (title)', 'med_alt' => 'Alt-Text (med_alt)', 'med_copyright' => 'Copyright (med_copyright)', 'med_description' => 'Beschreibung (med_description)'];
+
+// Custom Metainfo Felder
+if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+    $sql = rex_sql::factory();
+    $sql->setQuery('SELECT name, title FROM ' . rex::getTable('metainfo_field') . ' WHERE name LIKE "med_%" ORDER BY priority');
+    foreach ($sql as $row) {
+        $name = $row->getValue('name');
+        if (!isset($standardFields[$name])) {
+             $label = $row->getValue('title');
+             if (strpos($label, 'translate:') === 0) {
+                 $label = rex_i18n::msg(substr($label, 10));
+             }
+             $standardFields[$name] = ($label ?: ucfirst($name)) . ' (' . $name . ')';
+        }
+    }
+}
+
+foreach ($standardFields as $key => $label) {
+    $select->addOption($label, $key);
+}
+
+$form->addRawField('</div></div>');
 
 // ============================================================================
 // 4. MEDIENPOOL-INTEGRATION

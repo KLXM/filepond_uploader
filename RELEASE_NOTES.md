@@ -1,3 +1,45 @@
+# FilePond Uploader 2.2.0
+
+**Feature-Update** - Vollständige Integration von MetaInfo-Feldern & UI Overhaul.
+
+---
+
+## Was ist neu in 2.2.0
+
+### ✨ Features
+- **Dynamische Metadaten:** Automatische Erkennung und Anzeige aller `med_*` Felder aus dem MetaInfo-AddOn.
+- **Multilinguale Tabs:** Neue, Tab-basierte Benutzeroberfläche für mehrsprachige Metadatenfelder (Framework-unabhängig).
+- **Blacklist-Konfiguration:** Neue Einstellung `excluded_metadata_fields`, um spezifische Metadaten-Felder im Dialog auszublenden.
+
+### 🎨 UI & UX Improvements
+- **Dark Mode Support:** Vollständige Anpassung des Metadaten-Modals an den REDAXO Dark Mode.
+- **Verbesserte Icons:** Optimierte Darstellung von Datei-Symbolen (PDF, Office, etc.) im Modal.
+- **Performance:** Leichtgewichtiges, Framework-unabhängiges Tab-System ersetzt Bootstrap-Abhängigkeit im Modal.
+
+### 🐛 Bugfixes
+- **UI-Interaktion:** Problem behoben, bei dem die Sprach-Umschaltung einen Doppelklick erforderte.
+- **Darstellung:** Fixes für abgeschnittene Icons und Layout-Probleme.
+
+### 📦 Dependencies
+- **FilePond Update:** Core Library auf Version 4.32.11 aktualisiert für bessere Stabilität und Performance.
+- **Plugin Updates:** Alle FilePond-Plugins auf den neuesten Stand gebracht.
+
+---
+
+# FilePond Uploader 2.1.0
+
+**Feature-Update** - Konfigurierbare Pflichtfelder für Metadaten.
+
+---
+
+## Was ist neu in 2.1.0
+
+### ✨ Features
+- **Konfigurierbare Pflichtfelder:** Neue Einstellung `required_metadata_fields`, um festzulegen, welche Metadaten-Felder (z.B. user, med_alt, med_copyright) beim Upload zwingend ausgefüllt werden müssen.
+- **Rückwärtskompatibilität:** Die bestehende Einstellung "Titel als Pflichtfeld" funktioniert weiterhin wie gewohnt.
+
+---
+
 # FilePond Uploader 2.0.6
 
 **Feature-Update** - AI Alt-Text Generierung & Verbesserungen.
