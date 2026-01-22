@@ -437,6 +437,53 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 $form->addRawField('</div>'); // Ende cloudflare-settings
 
+// === OPENWEBUI SETTINGS ===
+$form->addRawField('<div id="openwebui-settings" class="ai-provider-settings" style="display:none;">');
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Base URL
+$field = $form->addInputField('text', 'openwebui_base_url', null, [
+    'class' => 'form-control',
+    'placeholder' => 'http://localhost:3000'
+]);
+$field->setLabel($addon->i18n('filepond_settings_openwebui_base_url'));
+$field->setNotice($addon->i18n('filepond_settings_openwebui_base_url_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('<div class="col-sm-6">');
+
+// API Key
+$field = $form->addInputField('text', 'openwebui_api_key', null, [
+    'class' => 'form-control',
+    'autocomplete' => 'off'
+]);
+$field->setLabel($addon->i18n('filepond_settings_openwebui_api_key'));
+$field->setNotice($addon->i18n('filepond_settings_openwebui_api_key_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Model Name
+$field = $form->addInputField('text', 'openwebui_model', null, [
+    'class' => 'form-control',
+    'placeholder' => 'llava'
+]);
+$field->setLabel($addon->i18n('filepond_settings_openwebui_model'));
+$field->setNotice($addon->i18n('filepond_settings_openwebui_model_notice'));
+
+$form->addRawField('</div>');
+
+$form->addRawField('</div>'); // Ende row
+$form->addRawField('</div>'); // Ende openwebui-settings
+
 // API-Verbindungstest Button
 $form->addRawField('
     <div class="form-group">
@@ -449,6 +496,9 @@ $form->addRawField('
         </a>
         <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" class="btn btn-link" id="cloudflare-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_cloudflare_usage') . '">
             <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_cloudflare_usage') . '
+        </a>
+        <a href="https://docs.openwebui.com/" target="_blank" class="btn btn-link" id="openwebui-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_openwebui_usage') . '">
+            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_openwebui_usage') . '
         </a>
     </div>
 ');
@@ -693,19 +743,30 @@ echo $fragment->parse('core/page/section.php');
             const provider = providerSelect.value;
             const geminiSettings = document.getElementById('gemini-settings');
             const cloudflareSettings = document.getElementById('cloudflare-settings');
+            const openwebuiSettings = document.getElementById('openwebui-settings');
+            
             const geminiUsageLink = document.getElementById('gemini-usage-link');
             const cloudflareUsageLink = document.getElementById('cloudflare-usage-link');
+            const openwebuiUsageLink = document.getElementById('openwebui-usage-link');
+            
+            // Alles resetten
+            if (geminiSettings) geminiSettings.style.display = 'none';
+            if (cloudflareSettings) cloudflareSettings.style.display = 'none';
+            if (openwebuiSettings) openwebuiSettings.style.display = 'none';
+            
+            if (geminiUsageLink) geminiUsageLink.style.display = 'none';
+            if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'none';
+            if (openwebuiUsageLink) openwebuiUsageLink.style.display = 'none';
             
             if (provider === 'cloudflare') {
-                if (geminiSettings) geminiSettings.style.display = 'none';
                 if (cloudflareSettings) cloudflareSettings.style.display = 'block';
-                if (geminiUsageLink) geminiUsageLink.style.display = 'none';
                 if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'inline';
+            } else if (provider === 'openwebui') {
+                if (openwebuiSettings) openwebuiSettings.style.display = 'block';
+                if (openwebuiUsageLink) openwebuiUsageLink.style.display = 'inline';
             } else {
                 if (geminiSettings) geminiSettings.style.display = 'block';
-                if (cloudflareSettings) cloudflareSettings.style.display = 'none';
                 if (geminiUsageLink) geminiUsageLink.style.display = 'inline';
-                if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'none';
             }
         }
         

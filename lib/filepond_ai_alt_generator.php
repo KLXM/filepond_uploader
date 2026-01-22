@@ -13,11 +13,13 @@ class filepond_ai_alt_generator
     private string $apiKey;
     private string $model;
     private string $accountId; // Für Cloudflare
+    private string $baseUrl; // Für OpenWebUI
     
     // Verfügbare Provider
     public const PROVIDERS = [
         'gemini' => 'Google Gemini',
-        'cloudflare' => 'Cloudflare Workers AI'
+        'cloudflare' => 'Cloudflare Workers AI',
+        'openwebui' => 'OpenWebUI / OpenAI Compatible'
     ];
     
     // Verfügbare Gemini-Modelle (Stand: Dezember 2025)
@@ -51,6 +53,10 @@ class filepond_ai_alt_generator
             $this->apiKey = rex_config::get('filepond_uploader', 'cloudflare_api_token', '');
             $this->accountId = rex_config::get('filepond_uploader', 'cloudflare_account_id', '');
             $this->model = rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf');
+        } elseif ($this->provider === 'openwebui') {
+            $this->apiKey = rex_config::get('filepond_uploader', 'openwebui_api_key', '');
+            $this->baseUrl = rtrim(rex_config::get('filepond_uploader', 'openwebui_base_url', 'http://localhost:3000'), '/');
+            $this->model = rex_config::get('filepond_uploader', 'openwebui_model', 'llava');
         } else {
             $this->apiKey = rex_config::get('filepond_uploader', 'gemini_api_key', '');
             $this->model = rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash');
@@ -77,6 +83,11 @@ class filepond_ai_alt_generator
             $token = rex_config::get('filepond_uploader', 'cloudflare_api_token', '');
             $accountId = rex_config::get('filepond_uploader', 'cloudflare_account_id', '');
             return !empty($token) && !empty($accountId);
+        }
+        
+        if ($provider === 'openwebui') {
+            $baseUrl = rex_config::get('filepond_uploader', 'openwebui_base_url', '');
+            return !empty($baseUrl);
         }
         
         $apiKey = rex_config::get('filepond_uploader', 'gemini_api_key', '');
@@ -145,10 +156,18 @@ class filepond_ai_alt_generator
             ];
         }
         
-        // Bild als Base64 kodieren
-        $imageData = file_get_contents($filePath);
-        $base64Image = base64_encode($imageData);
-        $mimeType = $media->getType();
+        // Bild vorbereiten (Resize & Encoding)
+        try {
+            $prepared = $this->prepareImage($filePath, true);
+            $base64Image = $prepared['data'];
+            $mimeType = $prepared['mime'];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => $e->getMessage()
+            ];
+        }
         
         // Prompt zusammenstellen
         $prompt = $this->buildPrompt($language);
@@ -157,6 +176,8 @@ class filepond_ai_alt_generator
         try {
             if ($this->provider === 'cloudflare') {
                 $result = $this->callCloudflareApi($base64Image, $mimeType, $prompt);
+            } elseif ($this->provider === 'openwebui') {
+                $result = $this->callOpenWebUIApi($base64Image, $mimeType, $prompt);
             } else {
                 $result = $this->callGeminiApi($base64Image, $mimeType, $prompt);
             }
@@ -177,6 +198,82 @@ class filepond_ai_alt_generator
     }
     
     /**
+     * Generiert einen Alt-Text für eine Datei anhand des Pfades
+     * 
+     * @param string $filePath Absoluter Pfad zur Datei
+     * @param string $language Zielsprache
+     * @return array ['success' => bool, 'alt_text' => string, 'error' => string|null]
+     */
+    public function generateAltTextFromPath(string $filePath, string $language = 'de'): array
+    {
+        if (empty($this->apiKey)) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => 'API-Key nicht konfiguriert'
+            ];
+        }
+        
+        if (!file_exists($filePath)) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => 'Datei nicht gefunden'
+            ];
+        }
+        
+        // Mime-Type prüfen
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($filePath);
+        
+        if (strpos($mimeType, 'image/') !== 0) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => 'Keine Bilddatei'
+            ];
+        }
+        
+        if ($mimeType === 'image/svg+xml') {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => 'SVG-Dateien werden nicht unterstützt'
+            ];
+        }
+        
+        // Prompt zusammenstellen
+        $prompt = $this->buildPrompt($language);
+        
+        try {
+            // Bild vorbereiten (Resize & Encoding)
+            $prepared = $this->prepareImage($filePath, true);
+            
+            if ($this->provider === 'cloudflare') {
+                $result = $this->callCloudflareApi($prepared['data'], $prepared['mime'], $prompt);
+            } elseif ($this->provider === 'openwebui') {
+                $result = $this->callOpenWebUIApi($prepared['data'], $prepared['mime'], $prompt);
+            } else {
+                $result = $this->callGeminiApi($prepared['data'], $prepared['mime'], $prompt);
+            }
+            
+            return [
+                'success' => true,
+                'alt_text' => $result['text'],
+                'tokens' => $result['tokens'] ?? null,
+                'error' => null
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'tokens' => null,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
      * Generiert Alt-Texte für mehrere Bilder (Bulk)
      * 
      * @param array $filenames Array von Dateinamen
@@ -195,6 +292,75 @@ class filepond_ai_alt_generator
         }
         
         return $results;
+    }
+
+    /**
+     * Bereitet das Bild für die AI vor (Resize auf max. 1024px & Formatierung)
+     * 
+     * @param string $path Pfad zum Bild oder Bild-Daten
+     * @param bool $isPath True wenn $path ein Dateipfad ist
+     * @return array ['data' => base64_string, 'mime' => mime_string]
+     * @throws Exception
+     */
+    private function prepareImage(string $path, bool $isPath = true): array
+    {
+        $maxDimension = 1024;
+        
+        // Original laden
+        $imageData = $isPath ? @file_get_contents($path) : $path;
+        if ($imageData === false) {
+             throw new Exception('Konnte Bilddatei nicht lesen');
+        }
+
+        // Mime Type ermitteln
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($imageData);
+        
+        // Wenn kein Bild, direkt Abbruch
+        if (strpos($mimeType, 'image/') !== 0) {
+             throw new Exception('Ungültiges Bildformat: ' . $mimeType);
+        }
+        
+        // Versuchen zu resizen mit GD
+        if (extension_loaded('gd') && $mimeType !== 'image/gif') {
+            $image = @imagecreatefromstring($imageData);
+            if ($image) {
+                $width = imagesx($image);
+                $height = imagesy($image);
+                
+                // Nur resizen wenn größer als Max
+                if ($width > $maxDimension || $height > $maxDimension) {
+                    $ratio = $width / $height;
+                    if ($width > $height) {
+                        $newWidth = $maxDimension;
+                        $newHeight = (int)($maxDimension / $ratio);
+                    } else {
+                        $newHeight = $maxDimension;
+                        $newWidth = (int)($maxDimension * $ratio);
+                    }
+                    
+                    $newImage = imagescale($image, $newWidth, $newHeight);
+                    if ($newImage) {
+                        imagedestroy($image);
+                        $image = $newImage;
+                    }
+                }
+                
+                // Als JPEG exportieren (kompatibel & kleiner)
+                ob_start();
+                // 85% Qualität ist ein guter Kompromiss für AI-Analyse
+                imagejpeg($image, null, 85); 
+                $imageData = ob_get_clean();
+                $mimeType = 'image/jpeg';
+                
+                imagedestroy($image);
+            }
+        }
+        
+        return [
+            'data' => base64_encode($imageData),
+            'mime' => $mimeType
+        ];
     }
     
     /**
@@ -241,6 +407,11 @@ PROMPT;
         $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
         $url = $baseUrl . $this->model . ':generateContent?key=' . $this->apiKey;
         
+        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        if ($maxTokens <= 0) {
+            $maxTokens = 2048;
+        }
+
         $data = [
             'contents' => [
                 [
@@ -259,7 +430,7 @@ PROMPT;
             ],
             'generationConfig' => [
                 'temperature' => 0.4,
-                'maxOutputTokens' => (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048),
+                'maxOutputTokens' => $maxTokens,
                 'topP' => 0.8,
                 'topK' => 40
             ],
@@ -365,10 +536,15 @@ PROMPT;
         // Cloudflare erwartet die Bilddaten als Array von Byte-Werten (0-255)
         $imageBytes = array_values(unpack('C*', base64_decode($base64Image)));
         
+        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        if ($maxTokens <= 0) {
+            $maxTokens = 2048;
+        }
+
         $data = [
             'image' => $imageBytes,
             'prompt' => $prompt,
-            'max_tokens' => (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048)
+            'max_tokens' => $maxTokens
         ];
         
         $ch = curl_init();
@@ -435,6 +611,91 @@ PROMPT;
     }
     
     /**
+     * Ruft eine OpenWebUI / OpenAI Kompatible API auf
+     */
+    private function callOpenWebUIApi(string $base64Image, string $mimeType, string $prompt): array
+    {
+        $url = $this->baseUrl . '/api/chat/completions';
+        
+        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        if ($maxTokens <= 0) {
+            $maxTokens = 2048;
+        }
+
+        $data = [
+            'model' => $this->model,
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $prompt
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => 'data:' . $mimeType . ';base64,' . $base64Image
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            'max_tokens' => $maxTokens,
+            'temperature' => 0.4
+        ];
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $this->apiKey
+            ],
+            CURLOPT_TIMEOUT => 60
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) {
+            throw new Exception('cURL Error: ' . $error);
+        }
+        
+        if ($httpCode !== 200) {
+             throw new Exception('API Error (' . $httpCode . '): ' . $response);
+        }
+        
+        $result = json_decode($response, true);
+        
+        if (!isset($result['choices'][0]['message']['content'])) {
+             throw new Exception('Unerwartete API-Antwort: ' . substr($response, 0, 200));
+        }
+        
+        $altText = trim($result['choices'][0]['message']['content']);
+        $altText = trim($altText, '"\'');
+        
+        $tokens = null;
+        if (isset($result['usage'])) {
+            $tokens = [
+                 'prompt' => $result['usage']['prompt_tokens'] ?? 0,
+                 'response' => $result['usage']['completion_tokens'] ?? 0,
+                 'total' => $result['usage']['total_tokens'] ?? 0
+            ];
+        }
+        
+        return [
+            'text' => $altText,
+            'tokens' => $tokens
+        ];
+    }
+    
+    /**
      * Gibt den Sprachnamen für den Prompt zurück
      */
     private function getLanguageName(string $code): string
@@ -469,10 +730,52 @@ PROMPT;
         if ($this->provider === 'cloudflare') {
             return $this->testCloudflareConnection();
         }
+        if ($this->provider === 'openwebui') {
+            return $this->testOpenWebUIConnection();
+        }
         
         return $this->testGeminiConnection();
     }
     
+    /**
+     * Testet die OpenWebUI API-Verbindung
+     */
+    private function testOpenWebUIConnection(): array
+    {
+        if (empty($this->baseUrl)) {
+            return ['success' => false, 'message' => 'Base URL nicht konfiguriert'];
+        }
+
+        // Test via GET /api/models (einfacher Check)
+        $url = $this->baseUrl . '/api/models';
+        
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => [
+                'Authorization: Bearer ' . $this->apiKey,
+                'Content-Type: application/json'
+            ],
+            CURLOPT_TIMEOUT => 10
+        ]);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($error) return ['success' => false, 'message' => 'Verbindungsfehler: ' . $error];
+        
+        if ($httpCode === 200) {
+            $data = json_decode($response, true);
+            $count = isset($data['data']) ? count($data['data']) : 0;
+            return ['success' => true, 'message' => "Verbindung OK! OpenWebUI erreichbar ($count Modelle gefunden)."];
+        }
+        
+        return ['success' => false, 'message' => "HTTP Error $httpCode - " . substr(strip_tags($response), 0, 100)];
+    }
+
     /**
      * Testet die Gemini API-Verbindung
      */
