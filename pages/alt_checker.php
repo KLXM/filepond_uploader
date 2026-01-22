@@ -359,9 +359,15 @@ $currentPage = rex_be_controller::getCurrentPage();
         </div>
         <?php else: ?>
         <div class="panel-body">
-            <div class="alert alert-success">
-                <i class="fa fa-check-circle"></i> <?= $addon->i18n('alt_checker_all_complete') ?>
-            </div>
+            <?php if (!empty($filters)): ?>
+                <div class="alert alert-warning"> <!-- Warning color usually better for "no results found" than info or success -->
+                    <i class="fa fa-search"></i> <?= $addon->i18n('alt_checker_no_results') ?>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-success">
+                    <i class="fa fa-check-circle"></i> <?= $addon->i18n('alt_checker_all_complete') ?>
+                </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>

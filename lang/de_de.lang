@@ -31,6 +31,7 @@ alt_checker_filter_filename = Dateiname filtern...
 alt_checker_search = Suchen
 alt_checker_loading = Bilder werden geladen...
 alt_checker_all_complete = Alle Bilder haben einen Alt-Text. Sehr gut für die Barrierefreiheit!
+alt_checker_no_results = Keine Bilder gefunden, die den Suchkriterien entsprechen.
 alt_checker_enter_alt = Alt-Text eingeben...
 alt_checker_save = Speichern (Enter)
 alt_checker_save_all = Alle speichern
@@ -171,6 +172,7 @@ filepond_settings_cloudflare_account_id_notice = Account ID findest du unter %s 
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen
+filepond_settings_test_connection_hint = Testet die Verbindung und zeigt bei Erfolg eine Liste der verfügbaren Modelle an.
 filepond_settings_gemini_usage = Limits und Verbrauch anzeigen
 filepond_settings_cloudflare_usage = API Tokens verwalten
 

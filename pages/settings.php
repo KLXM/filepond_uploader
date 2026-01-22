@@ -487,19 +487,25 @@ $form->addRawField('</div>'); // Ende openwebui-settings
 // API-Verbindungstest Button
 $form->addRawField('
     <div class="form-group">
-        <button type="button" class="btn btn-default" id="btn-test-ai-connection">
-            <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
-        </button>
-        <span id="ai-connection-result" style="margin-left: 10px;"></span>
-        <a href="https://aistudio.google.com/usage?tab=rate-limit" target="_blank" class="btn btn-link" id="gemini-usage-link" title="' . $addon->i18n('filepond_settings_gemini_usage') . '">
-            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_gemini_usage') . '
-        </a>
-        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" class="btn btn-link" id="cloudflare-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_cloudflare_usage') . '">
-            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_cloudflare_usage') . '
-        </a>
-        <a href="https://docs.openwebui.com/" target="_blank" class="btn btn-link" id="openwebui-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_openwebui_usage') . '">
-            <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_openwebui_usage') . '
-        </a>
+        <div style="margin-bottom: 10px;">
+            <button type="button" class="btn btn-default" id="btn-test-ai-connection">
+                <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
+            </button>
+            <span id="ai-connection-result" style="margin-left: 10px;"></span>
+        </div>
+        <p class="help-block small"><i class="fa fa-info-circle"></i> ' . $addon->i18n('filepond_settings_test_connection_hint') . '</p>
+        
+        <div style="margin-top: 5px;">
+            <a href="https://aistudio.google.com/usage?tab=rate-limit" target="_blank" class="btn btn-link" id="gemini-usage-link" title="' . $addon->i18n('filepond_settings_gemini_usage') . '">
+                <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_gemini_usage') . '
+            </a>
+            <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" class="btn btn-link" id="cloudflare-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_cloudflare_usage') . '">
+                <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_cloudflare_usage') . '
+            </a>
+            <a href="https://docs.openwebui.com/" target="_blank" class="btn btn-link" id="openwebui-usage-link" style="display:none;" title="' . $addon->i18n('filepond_settings_openwebui_usage') . '">
+                <i class="fa fa-external-link"></i> ' . $addon->i18n('filepond_settings_openwebui_usage') . '
+            </a>
+        </div>
     </div>
 ');
 

@@ -2,18 +2,14 @@
 /**
  * AI Alt-Text Generator für REDAXO
  * 
- * Unterstützt Google Gemini und Cloudflare Workers AI
+ * Unterstützt Google Gemini, Cloudflare Workers AI und OpenWebUI (OpenAI Compatible)
  * 
  * @package filepond_uploader
  */
 
 class filepond_ai_alt_generator
 {
-    private string $provider;
-    private string $apiKey;
-    private string $model;
-    private string $accountId; // Für Cloudflare
-    private string $baseUrl; // Für OpenWebUI
+    private filepond_ai_provider_interface $provider;
     
     // Verfügbare Provider
     public const PROVIDERS = [
@@ -23,6 +19,7 @@ class filepond_ai_alt_generator
     ];
     
     // Verfügbare Gemini-Modelle (Stand: Dezember 2025)
+    // Diese werden für die Settings-Seite benötigt
     public const GEMINI_MODELS = [
         // Kostenlose Modelle (Free Tier)
         'gemini-2.5-flash' => 'Gemini 2.5 Flash - Kostenlos ⭐',
@@ -47,20 +44,33 @@ class filepond_ai_alt_generator
      */
     public function __construct()
     {
-        $this->provider = rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
+        $providerKey = rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
         
-        if ($this->provider === 'cloudflare') {
-            $this->apiKey = rex_config::get('filepond_uploader', 'cloudflare_api_token', '');
-            $this->accountId = rex_config::get('filepond_uploader', 'cloudflare_account_id', '');
-            $this->model = rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf');
-        } elseif ($this->provider === 'openwebui') {
-            $this->apiKey = rex_config::get('filepond_uploader', 'openwebui_api_key', '');
-            $this->baseUrl = rtrim(rex_config::get('filepond_uploader', 'openwebui_base_url', 'http://localhost:3000'), '/');
-            $this->model = rex_config::get('filepond_uploader', 'openwebui_model', 'llava');
-        } else {
-            $this->apiKey = rex_config::get('filepond_uploader', 'gemini_api_key', '');
-            $this->model = rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash');
-            $this->accountId = '';
+        // Provider Factory Logic
+        switch ($providerKey) {
+            case 'cloudflare':
+                $this->provider = new filepond_ai_provider_cloudflare(
+                    rex_config::get('filepond_uploader', 'cloudflare_api_token', ''),
+                    rex_config::get('filepond_uploader', 'cloudflare_account_id', ''),
+                    rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf')
+                );
+                break;
+                
+            case 'openwebui':
+                $this->provider = new filepond_ai_provider_openai_compatible(
+                    rex_config::get('filepond_uploader', 'openwebui_api_key', ''),
+                    rex_config::get('filepond_uploader', 'openwebui_base_url', 'http://localhost:3000'),
+                    rex_config::get('filepond_uploader', 'openwebui_model', 'llava')
+                );
+                break;
+                
+            case 'gemini':
+            default:
+                $this->provider = new filepond_ai_provider_gemini(
+                    rex_config::get('filepond_uploader', 'gemini_api_key', ''),
+                    rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash')
+                );
+                break;
         }
     }
     
@@ -77,21 +87,10 @@ class filepond_ai_alt_generator
      */
     public static function isAvailable(): bool
     {
-        $provider = self::getProvider();
-        
-        if ($provider === 'cloudflare') {
-            $token = rex_config::get('filepond_uploader', 'cloudflare_api_token', '');
-            $accountId = rex_config::get('filepond_uploader', 'cloudflare_account_id', '');
-            return !empty($token) && !empty($accountId);
-        }
-        
-        if ($provider === 'openwebui') {
-            $baseUrl = rex_config::get('filepond_uploader', 'openwebui_base_url', '');
-            return !empty($baseUrl);
-        }
-        
-        $apiKey = rex_config::get('filepond_uploader', 'gemini_api_key', '');
-        return !empty($apiKey);
+        // Wir erstellen eine Instanz, um die Konfiguration zu prüfen
+        // Das ist sauberer als hier die Config-Logik zu duplizieren
+        $generator = new self();
+        return $generator->provider->isConfigured();
     }
     
     /**
@@ -111,11 +110,11 @@ class filepond_ai_alt_generator
      */
     public function generateAltText(string $filename, string $language = 'de'): array
     {
-        if (empty($this->apiKey)) {
+        if (!$this->provider->isConfigured()) {
             return [
                 'success' => false,
                 'alt_text' => '',
-                'error' => 'API-Key nicht konfiguriert'
+                'error' => 'AI Provider nicht korrekt konfiguriert'
             ];
         }
         
@@ -137,7 +136,7 @@ class filepond_ai_alt_generator
             ];
         }
         
-        // SVG nicht unterstützt (Gemini kann SVG nicht analysieren)
+        // SVG nicht unterstützt (noch nicht)
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         if ($extension === 'svg') {
             return [
@@ -156,45 +155,7 @@ class filepond_ai_alt_generator
             ];
         }
         
-        // Bild vorbereiten (Resize & Encoding)
-        try {
-            $prepared = $this->prepareImage($filePath, true);
-            $base64Image = $prepared['data'];
-            $mimeType = $prepared['mime'];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'alt_text' => '',
-                'error' => $e->getMessage()
-            ];
-        }
-        
-        // Prompt zusammenstellen
-        $prompt = $this->buildPrompt($language);
-        
-        // API Request je nach Provider
-        try {
-            if ($this->provider === 'cloudflare') {
-                $result = $this->callCloudflareApi($base64Image, $mimeType, $prompt);
-            } elseif ($this->provider === 'openwebui') {
-                $result = $this->callOpenWebUIApi($base64Image, $mimeType, $prompt);
-            } else {
-                $result = $this->callGeminiApi($base64Image, $mimeType, $prompt);
-            }
-            return [
-                'success' => true,
-                'alt_text' => $result['text'],
-                'tokens' => $result['tokens'] ?? null,
-                'error' => null
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'alt_text' => '',
-                'tokens' => null,
-                'error' => $e->getMessage()
-            ];
-        }
+        return $this->executeGeneration($filePath, $language);
     }
     
     /**
@@ -206,11 +167,11 @@ class filepond_ai_alt_generator
      */
     public function generateAltTextFromPath(string $filePath, string $language = 'de'): array
     {
-        if (empty($this->apiKey)) {
+        if (!$this->provider->isConfigured()) {
             return [
                 'success' => false,
                 'alt_text' => '',
-                'error' => 'API-Key nicht konfiguriert'
+                'error' => 'AI Provider nicht korrekt konfiguriert'
             ];
         }
         
@@ -242,20 +203,37 @@ class filepond_ai_alt_generator
             ];
         }
         
+        return $this->executeGeneration($filePath, $language);
+    }
+
+    /**
+     * Interne Methode zur Ausführung der Generierung
+     */
+    private function executeGeneration(string $filePath, string $language): array
+    {
+        // Bild vorbereiten (Resize & Encoding)
+        try {
+            $prepared = $this->prepareImage($filePath, true);
+            $base64Image = $prepared['data'];
+            $mimeType = $prepared['mime'];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'alt_text' => '',
+                'error' => $e->getMessage()
+            ];
+        }
+        
         // Prompt zusammenstellen
         $prompt = $this->buildPrompt($language);
         
+        // Max Tokens holen
+        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        if ($maxTokens <= 0) $maxTokens = 2048;
+        
+        // API Request via Provider
         try {
-            // Bild vorbereiten (Resize & Encoding)
-            $prepared = $this->prepareImage($filePath, true);
-            
-            if ($this->provider === 'cloudflare') {
-                $result = $this->callCloudflareApi($prepared['data'], $prepared['mime'], $prompt);
-            } elseif ($this->provider === 'openwebui') {
-                $result = $this->callOpenWebUIApi($prepared['data'], $prepared['mime'], $prompt);
-            } else {
-                $result = $this->callGeminiApi($prepared['data'], $prepared['mime'], $prompt);
-            }
+            $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
             
             return [
                 'success' => true,
@@ -400,302 +378,6 @@ PROMPT;
     }
     
     /**
-     * Ruft die Gemini API auf
-     */
-    private function callGeminiApi(string $base64Image, string $mimeType, string $prompt): array
-    {
-        $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
-        $url = $baseUrl . $this->model . ':generateContent?key=' . $this->apiKey;
-        
-        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
-        if ($maxTokens <= 0) {
-            $maxTokens = 2048;
-        }
-
-        $data = [
-            'contents' => [
-                [
-                    'parts' => [
-                        [
-                            'text' => $prompt
-                        ],
-                        [
-                            'inline_data' => [
-                                'mime_type' => $mimeType,
-                                'data' => $base64Image
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature' => 0.4,
-                'maxOutputTokens' => $maxTokens,
-                'topP' => 0.8,
-                'topK' => 40
-            ],
-            'safetySettings' => [
-                [
-                    'category' => 'HARM_CATEGORY_HARASSMENT',
-                    'threshold' => 'BLOCK_NONE'
-                ],
-                [
-                    'category' => 'HARM_CATEGORY_HATE_SPEECH',
-                    'threshold' => 'BLOCK_NONE'
-                ],
-                [
-                    'category' => 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-                    'threshold' => 'BLOCK_NONE'
-                ],
-                [
-                    'category' => 'HARM_CATEGORY_DANGEROUS_CONTENT',
-                    'threshold' => 'BLOCK_NONE'
-                ]
-            ]
-        ];
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json'
-            ],
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_SSL_VERIFYPEER => true
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) {
-            throw new Exception('cURL Error: ' . $error);
-        }
-        
-        if ($httpCode !== 200) {
-            $errorData = json_decode($response, true);
-            $errorMessage = $errorData['error']['message'] ?? 'HTTP Error ' . $httpCode;
-            
-            // Benutzerfreundliche Meldung bei Rate-Limit
-            if ($httpCode === 429 || stripos($errorMessage, 'quota') !== false || stripos($errorMessage, 'rate') !== false) {
-                $waitTime = '';
-                if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches)) {
-                    $seconds = ceil((float)$matches[1]);
-                    $waitTime = " Bitte in {$seconds} Sekunden erneut versuchen.";
-                }
-                throw new Exception('Rate-Limit erreicht! Kostenloses Kontingent aufgebraucht.' . $waitTime);
-            }
-            
-            throw new Exception('API Error: ' . $errorMessage);
-        }
-        
-        $result = json_decode($response, true);
-        
-        // Debug: finishReason prüfen
-        $finishReason = $result['candidates'][0]['finishReason'] ?? 'UNKNOWN';
-        if ($finishReason !== 'STOP' && $finishReason !== 'END_TURN') {
-            rex_logger::factory()->log('warning', 'Gemini finishReason: ' . $finishReason . ' - Response: ' . substr($response, 0, 500));
-        }
-        
-        if (!isset($result['candidates'][0]['content']['parts'][0]['text'])) {
-            throw new Exception('Unerwartete API-Antwort (finishReason: ' . $finishReason . ')');
-        }
-        
-        $altText = trim($result['candidates'][0]['content']['parts'][0]['text']);
-        
-        // Anführungszeichen am Anfang/Ende entfernen falls vorhanden
-        $altText = trim($altText, '"\'');
-        
-        // Token-Nutzung extrahieren
-        $tokens = null;
-        if (isset($result['usageMetadata'])) {
-            $tokens = [
-                'prompt' => $result['usageMetadata']['promptTokenCount'] ?? 0,
-                'response' => $result['usageMetadata']['candidatesTokenCount'] ?? 0,
-                'total' => $result['usageMetadata']['totalTokenCount'] ?? 0
-            ];
-        }
-        
-        return [
-            'text' => $altText,
-            'tokens' => $tokens
-        ];
-    }
-    
-    /**
-     * Ruft die Cloudflare Workers AI API auf
-     */
-    private function callCloudflareApi(string $base64Image, string $mimeType, string $prompt): array
-    {
-        $url = "https://api.cloudflare.com/client/v4/accounts/{$this->accountId}/ai/run/{$this->model}";
-        
-        // Cloudflare erwartet die Bilddaten als Array von Byte-Werten (0-255)
-        $imageBytes = array_values(unpack('C*', base64_decode($base64Image)));
-        
-        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
-        if ($maxTokens <= 0) {
-            $maxTokens = 2048;
-        }
-
-        $data = [
-            'image' => $imageBytes,
-            'prompt' => $prompt,
-            'max_tokens' => $maxTokens
-        ];
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey
-            ],
-            CURLOPT_TIMEOUT => 60, // Längerer Timeout für große Bilder
-            CURLOPT_SSL_VERIFYPEER => true
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) {
-            throw new Exception('cURL Error: ' . $error);
-        }
-        
-        $result = json_decode($response, true);
-        
-        // Debug: Response loggen bei Problemen
-        if ($httpCode !== 200 || !($result['success'] ?? false)) {
-            $errorMessage = $result['errors'][0]['message'] ?? ($result['error'] ?? 'HTTP Error ' . $httpCode);
-            
-            // Detailliertere Fehlermeldung
-            if (isset($result['errors']) && is_array($result['errors'])) {
-                $errorMessage = implode(', ', array_column($result['errors'], 'message'));
-            }
-            
-            // Rate-Limit Erkennung
-            if ($httpCode === 429) {
-                throw new Exception('Rate-Limit erreicht! Bitte später erneut versuchen.');
-            }
-            
-            throw new Exception('Cloudflare API Error: ' . $errorMessage);
-        }
-        
-        // Response-Struktur: result.description
-        if (!isset($result['result']['description'])) {
-            // Fallback: Vielleicht in result direkt?
-            if (is_string($result['result'] ?? null)) {
-                return [
-                    'text' => trim($result['result'], '"\''),
-                    'tokens' => null
-                ];
-            }
-            throw new Exception('Unerwartete API-Antwort: ' . substr(json_encode($result), 0, 200));
-        }
-        
-        $altText = trim($result['result']['description']);
-        $altText = trim($altText, '"\'');
-        
-        return [
-            'text' => $altText,
-            'tokens' => null // Cloudflare gibt keine Token-Info zurück
-        ];
-    }
-    
-    /**
-     * Ruft eine OpenWebUI / OpenAI Kompatible API auf
-     */
-    private function callOpenWebUIApi(string $base64Image, string $mimeType, string $prompt): array
-    {
-        $url = $this->baseUrl . '/api/chat/completions';
-        
-        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
-        if ($maxTokens <= 0) {
-            $maxTokens = 2048;
-        }
-
-        $data = [
-            'model' => $this->model,
-            'messages' => [
-                [
-                    'role' => 'user',
-                    'content' => [
-                        [
-                            'type' => 'text',
-                            'text' => $prompt
-                        ],
-                        [
-                            'type' => 'image_url',
-                            'image_url' => [
-                                'url' => 'data:' . $mimeType . ';base64,' . $base64Image
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            'max_tokens' => $maxTokens,
-            'temperature' => 0.4
-        ];
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey
-            ],
-            CURLOPT_TIMEOUT => 60
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) {
-            throw new Exception('cURL Error: ' . $error);
-        }
-        
-        if ($httpCode !== 200) {
-             throw new Exception('API Error (' . $httpCode . '): ' . $response);
-        }
-        
-        $result = json_decode($response, true);
-        
-        if (!isset($result['choices'][0]['message']['content'])) {
-             throw new Exception('Unerwartete API-Antwort: ' . substr($response, 0, 200));
-        }
-        
-        $altText = trim($result['choices'][0]['message']['content']);
-        $altText = trim($altText, '"\'');
-        
-        $tokens = null;
-        if (isset($result['usage'])) {
-            $tokens = [
-                 'prompt' => $result['usage']['prompt_tokens'] ?? 0,
-                 'response' => $result['usage']['completion_tokens'] ?? 0,
-                 'total' => $result['usage']['total_tokens'] ?? 0
-            ];
-        }
-        
-        return [
-            'text' => $altText,
-            'tokens' => $tokens
-        ];
-    }
-    
-    /**
      * Gibt den Sprachnamen für den Prompt zurück
      */
     private function getLanguageName(string $code): string
@@ -727,212 +409,6 @@ PROMPT;
      */
     public function testConnection(): array
     {
-        if ($this->provider === 'cloudflare') {
-            return $this->testCloudflareConnection();
-        }
-        if ($this->provider === 'openwebui') {
-            return $this->testOpenWebUIConnection();
-        }
-        
-        return $this->testGeminiConnection();
-    }
-    
-    /**
-     * Testet die OpenWebUI API-Verbindung
-     */
-    private function testOpenWebUIConnection(): array
-    {
-        if (empty($this->baseUrl)) {
-            return ['success' => false, 'message' => 'Base URL nicht konfiguriert'];
-        }
-
-        // Test via GET /api/models (einfacher Check)
-        $url = $this->baseUrl . '/api/models';
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Type: application/json'
-            ],
-            CURLOPT_TIMEOUT => 10
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
-        
-        if ($error) return ['success' => false, 'message' => 'Verbindungsfehler: ' . $error];
-        
-        if ($httpCode === 200) {
-            $data = json_decode($response, true);
-            $count = isset($data['data']) ? count($data['data']) : 0;
-            return ['success' => true, 'message' => "Verbindung OK! OpenWebUI erreichbar ($count Modelle gefunden)."];
-        }
-        
-        return ['success' => false, 'message' => "HTTP Error $httpCode - " . substr(strip_tags($response), 0, 100)];
-    }
-
-    /**
-     * Testet die Gemini API-Verbindung
-     */
-    private function testGeminiConnection(): array
-    {
-        if (empty($this->apiKey)) {
-            return [
-                'success' => false,
-                'message' => 'Gemini API-Key nicht konfiguriert'
-            ];
-        }
-        
-        $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
-        $url = $baseUrl . $this->model . ':generateContent?key=' . $this->apiKey;
-        
-        $data = [
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => 'Antworte mit: OK']
-                    ]
-                ]
-            ]
-        ];
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_SSL_VERIFYHOST => 2
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        $curlErrno = curl_errno($ch);
-        curl_close($ch);
-        
-        if ($curlErrno) {
-            return $this->formatCurlError($curlErrno, $curlError, 'Google');
-        }
-        
-        if ($httpCode === 200) {
-            $responseData = json_decode($response, true);
-            $tokenInfo = '';
-            if (isset($responseData['usageMetadata'])) {
-                $usage = $responseData['usageMetadata'];
-                $tokenInfo = sprintf(
-                    ' | Tokens: %d (Prompt) + %d (Antwort) = %d',
-                    $usage['promptTokenCount'] ?? 0,
-                    $usage['candidatesTokenCount'] ?? 0,
-                    $usage['totalTokenCount'] ?? 0
-                );
-            }
-            
-            return [
-                'success' => true,
-                'message' => 'Gemini Verbindung erfolgreich! Modell: ' . $this->model . $tokenInfo
-            ];
-        }
-        
-        $errorData = json_decode($response, true);
-        $errorMessage = $errorData['error']['message'] ?? 'HTTP Error ' . $httpCode;
-        
-        if ($httpCode === 429 || stripos($errorMessage, 'quota') !== false || stripos($errorMessage, 'rate') !== false) {
-            $waitTime = '';
-            if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches)) {
-                $seconds = ceil((float)$matches[1]);
-                $waitTime = " (Wartezeit: ca. {$seconds} Sekunden)";
-            }
-            return [
-                'success' => false,
-                'message' => 'Rate-Limit erreicht!' . $waitTime . ' Bitte später erneut versuchen.',
-                'retryable' => true
-            ];
-        }
-        
-        return ['success' => false, 'message' => 'API-Fehler: ' . $errorMessage];
-    }
-    
-    /**
-     * Testet die Cloudflare API-Verbindung
-     */
-    private function testCloudflareConnection(): array
-    {
-        if (empty($this->apiKey)) {
-            return ['success' => false, 'message' => 'Cloudflare API-Token nicht konfiguriert'];
-        }
-        
-        if (empty($this->accountId)) {
-            return ['success' => false, 'message' => 'Cloudflare Account ID nicht konfiguriert'];
-        }
-        
-        // Token verifizieren
-        $url = 'https://api.cloudflare.com/client/v4/user/tokens/verify';
-        
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Type: application/json'
-            ],
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_SSL_VERIFYPEER => true
-        ]);
-        
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        $curlErrno = curl_errno($ch);
-        curl_close($ch);
-        
-        if ($curlErrno) {
-            return $this->formatCurlError($curlErrno, $curlError, 'Cloudflare');
-        }
-        
-        $result = json_decode($response, true);
-        
-        if ($httpCode === 200 && ($result['success'] ?? false)) {
-            $status = $result['result']['status'] ?? 'unknown';
-            if ($status === 'active') {
-                return [
-                    'success' => true,
-                    'message' => 'Cloudflare Verbindung erfolgreich! Token aktiv. Modell: ' . $this->model
-                ];
-            }
-            return ['success' => false, 'message' => 'Token Status: ' . $status];
-        }
-        
-        $errorMessage = $result['errors'][0]['message'] ?? 'HTTP Error ' . $httpCode;
-        return ['success' => false, 'message' => 'API-Fehler: ' . $errorMessage];
-    }
-    
-    /**
-     * Formatiert cURL-Fehler
-     */
-    private function formatCurlError(int $errno, string $error, string $provider): array
-    {
-        $errorDetails = 'cURL Error #' . $errno . ': ' . $error;
-        
-        if ($errno === 60 || $errno === 77) {
-            $errorDetails .= ' (SSL-Zertifikatsproblem)';
-        } elseif ($errno === 6) {
-            $errorDetails .= ' (DNS-Auflösung fehlgeschlagen)';
-        } elseif ($errno === 7) {
-            $errorDetails .= ' (Verbindung zu ' . $provider . '-Servern fehlgeschlagen)';
-        } elseif ($errno === 28) {
-            $errorDetails .= ' (Timeout)';
-        }
-        
-        return ['success' => false, 'message' => $errorDetails];
+        return $this->provider->testConnection();
     }
 }
