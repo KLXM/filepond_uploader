@@ -206,9 +206,9 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                             }
                         }
                     }
-                } catch (Exception $e) {
-                    // Fehler beim Löschen werden geloggt aber ignoriert
-                    rex_logger::factory()->log('warning', sprintf(
+                    } catch (Exception $e) {
+                        // Fehler beim Löschen werden geloggt aber ignoriert
+                        rex_logger::factory()->log('warning', sprintf(
                         'FilePond Auto-Cleanup: Fehler beim Löschen von "%s": %s',
                         $filename,
                         $e->getMessage()
