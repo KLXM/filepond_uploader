@@ -1,24 +1,25 @@
 <?php
 
-use rex_config;
-use rex_extension;
-use rex_extension_point;
-use rex_logger;
-use rex_media;
-use rex_media_manager;
-use rex_media_service;
-use rex_sql;
-use rex_yform_manager_table;
-
 class rex_yform_value_filepond extends rex_yform_value_abstract
 {
-    protected static function cleanValue($value)
+    /**
+     * @param string $value
+     * @return string
+     */
+    protected static function cleanValue(string $value): string
     {
-        return implode(',', array_filter(array_map('trim', explode(',', str_replace('"', '', $value))), 'strlen'));
+        return implode(',', array_filter(array_map('trim', explode(',', str_replace('"', '', $value))), static function (string $v): bool {
+            return $v !== '';
+        }));
     }
 
-    // Hilfsfunktion, die Original-Dateinamen zu Medienpool-Dateinamen zuordnet
-    protected static function getMediapoolFilename($originalFilename) {
+    /**
+     * Hilfsfunktion, die Original-Dateinamen zu Medienpool-Dateinamen zuordnet.
+     *
+     * @param string $originalFilename
+     * @return string
+     */
+    protected static function getMediapoolFilename(string $originalFilename): string {
         $sql = rex_sql::factory();
         $result = $sql->getArray('SELECT filename FROM ' . rex::getTable('media') . ' WHERE originalname = ?', [$originalFilename]);
         
@@ -26,7 +27,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             // Wenn mehrere Dateien mit dem gleichen Originalnamen existieren, 
             // nehmen wir die neueste (höchste ID)
             $sql->setQuery('SELECT filename FROM ' . rex::getTable('media') . ' WHERE originalname = ? ORDER BY id DESC LIMIT 1', [$originalFilename]);
-            return $sql->getValue('filename');
+            return (string) $sql->getValue('filename');
         }
         
         return $originalFilename; // Fallback auf den Originalnamen
@@ -35,212 +36,221 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
     public function preValidateAction(): void
     {
         // Nur wenn Auto-Cleanup aktiviert ist
-        if (!rex_config::get('filepond_uploader', 'auto_cleanup_enabled', 0)) {
+        if ((int) rex_config::get('filepond_uploader', 'auto_cleanup_enabled', 0) === 0) {
             return;
         }
         
-        if (!isset($this->params['send']) || !$this->params['send']) {
+        if (!isset($this->params['send']) || $this->params['send'] !== true) {
             return;
         }
+
+        // Original Value aus der Datenbank holen
+        $originalValue = '';
+        if (isset($this->params['main_id']) && $this->params['main_id'] > 0) {
+            $sql = rex_sql::factory();
+            $sql->setQuery('SELECT ' . $sql->escapeIdentifier($this->getName()) . 
+                          ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) . 
+                          ' WHERE id = ' . (int)$this->params['main_id']);
+            if ($sql->getRows() > 0) {
+                $originalValue = self::cleanValue((string) $sql->getValue($this->getName()));
+            }
+        }
+
+        // Neuen Wert aus dem Formular holen
+        $newValue = '';
+        /** @var array<int, array<int, string>> $formData */
+        $formData = rex_request::request('FORM', 'array', []);
+        if (count($formData) > 0) {
+            foreach ($formData as $form) {
+                if (isset($form[$this->getId()])) {
+                    $newValue = self::cleanValue($form[$this->getId()]);
+                    break;
+                }
+            }
+        }
+
+        // Gelöschte Dateien ermitteln und verarbeiten
+        $originalFiles = array_filter(explode(',', $originalValue), static function (string $v): bool {
+            return $v !== '';
+        });
+        $newFiles = array_filter(explode(',', $newValue), static function (string $v): bool {
+            return $v !== '';
+        });
+        $deletedFiles = array_diff($originalFiles, $newFiles);
         
-        if ($this->params['send']) {
-            // Original Value aus der Datenbank holen
-            $originalValue = '';
-            if (isset($this->params['main_id']) && $this->params['main_id'] > 0) {
-                $sql = rex_sql::factory();
-                $sql->setQuery('SELECT ' . $sql->escapeIdentifier($this->getName()) . 
-                              ' FROM ' . $sql->escapeIdentifier($this->params['main_table']) . 
-                              ' WHERE id = ' . (int)$this->params['main_id']);
-                if ($sql->getRows() > 0) {
-                    $originalValue = self::cleanValue($sql->getValue($this->getName()));
-                }
+        if (count($deletedFiles) > 0) {
+            if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                rex_logger::factory()->log('debug', sprintf(
+                    'FilePond Auto-Cleanup: %d Datei(en) gelöscht aus Feld "%s" in Tabelle "%s" (ID: %s)',
+                    count($deletedFiles),
+                    $this->getName(),
+                    $this->params['main_table'] ?? 'unknown',
+                    $this->params['main_id'] ?? 'unknown'
+                ));
             }
+        }
 
-            // Neuen Wert aus dem Formular holen
-            $newValue = '';
-            if (isset($_REQUEST['FORM'])) {
-                foreach ($_REQUEST['FORM'] as $form) {
-                    if (isset($form[$this->getId()])) {
-                        $newValue = self::cleanValue($form[$this->getId()]);
-                        break;
-                    }
-                }
-            }
-
-            // Gelöschte Dateien ermitteln und verarbeiten
-            $originalFiles = array_filter(explode(',', $originalValue));
-            $newFiles = array_filter(explode(',', $newValue));
-            $deletedFiles = array_diff($originalFiles, $newFiles);
-            
-            if (!empty($deletedFiles)) {
-                if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
-                    rex_logger::factory()->log('debug', sprintf(
-                        'FilePond Auto-Cleanup: %d Datei(en) gelöscht aus Feld "%s" in Tabelle "%s" (ID: %s)',
-                        count($deletedFiles),
-                        $this->getName(),
-                        $this->params['main_table'] ?? 'unknown',
-                        $this->params['main_id'] ?? 'unknown'
-                    ));
-                }
-            }
-
-            foreach ($deletedFiles as $filename) {
-                try {
-                    $media = rex_media::get($filename);
-                    if (!$media) {
-                        if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
-                            rex_logger::factory()->log('debug', sprintf(
-                                'FilePond Auto-Cleanup: Datei "%s" nicht im Mediapool gefunden',
-                                $filename
-                            ));
-                        }
-                        continue;
-                    }
-                    
-                    if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+        foreach ($deletedFiles as $filename) {
+            try {
+                $media = rex_media::get($filename);
+                if ($media === null) {
+                    if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
                         rex_logger::factory()->log('debug', sprintf(
-                            'FilePond Auto-Cleanup: Prüfe Datei "%s" auf Verwendung',
+                            'FilePond Auto-Cleanup: Datei "%s" nicht im Mediapool gefunden',
                             $filename
                         ));
                     }
-                    
-                    // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
-                    $inUse = false;
-                    $sql = rex_sql::factory();
-                        
-                        // Alle YForm Tabellen durchsuchen
-                        $yformTables = rex_yform_manager_table::getAll();
-                        foreach ($yformTables as $table) {
-                            foreach ($table->getFields() as $field) {
-                                if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
-                                    $tableName = $table->getTableName();
-                                    $fieldName = $field->getName();
-                                    $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
-                                    $currentId = (int)$this->params['main_id'];
-
-                                    $query = "SELECT id FROM $tableName WHERE $fieldName LIKE :filename AND id != :id";
-                                    
-                                    try {
-                                        $result = $sql->getArray($query, [':filename' => $filePattern, ':id' => $currentId]);
-                                        if (count($result) > 0) {
-                                            $inUse = true;
-                                            if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
-                                                rex_logger::factory()->log('debug', sprintf(
-                                                    'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung in Tabelle "%s"',
-                                                    $filename,
-                                                    $tableName
-                                                ));
-                                            }
-                                            break 2;
-                                        }
-                                    } catch (Exception $e) {
-                                        rex_logger::factory()->log('warning', sprintf(
-                                            'FilePond Auto-Cleanup: Query-Fehler bei Tabelle "%s": %s',
-                                            $tableName,
-                                            $e->getMessage()
-                                        ));
-                                        continue;
-                                    }
-                                }
-                            }
-                        }
-
-                        // Extension Point: MEDIA_IS_IN_USE prüfen
-                        if (!$inUse) {
-                            $warnings = rex_extension::registerPoint(new rex_extension_point(
-                                'MEDIA_IS_IN_USE',
-                                [],
-                                [
-                                    'filename' => $filename,
-                                    'media' => $media,
-                                    'ignore_table' => $this->params['main_table'] ?? '',
-                                    'ignore_id' => (int)($this->params['main_id'] ?? 0),
-                                    'ignore_field' => $this->getName(),
-                                ]
-                            ));
-                            
-                            if (is_array($warnings) && !empty($warnings)) {
-                                $inUse = true;
-                                rex_logger::factory()->log('debug', sprintf(
-                                    'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung (Extension Point)',
-                                    $filename
-                                ));
-                            }
-                        }
-                        
-                        // Datei löschen wenn sie nicht mehr verwendet wird
-                        if (!$inUse && rex_media::get($filename)) {
-                            rex_logger::factory()->log('debug', sprintf(
-                                'FilePond Auto-Cleanup: Lösche Datei "%s"',
-                                $filename
-                            ));
-                            
-                            // Workaround: rex_media_service::deleteMedia() ruft intern mediaIsInUse() auf
-                            // ohne ignore-Parameter. Daher setzen wir die Info in $GLOBALS
-                            $GLOBALS['filepond_cleanup_ignore'] = [
-                                'table' => $this->params['main_table'] ?? '',
-                                'id' => (int)($this->params['main_id'] ?? 0),
-                                'field' => $this->getName(),
-                            ];
-                            
-                            try {
-                                rex_media_service::deleteMedia($filename);
-                                
-                                rex_logger::factory()->log('info', sprintf(
-                                    'FilePond Auto-Cleanup: Datei "%s" aus Tabelle "%s" (ID: %s) gelöscht.',
-                                    $filename,
-                                    $this->params['main_table'] ?? 'unknown',
-                                    $this->params['main_id'] ?? 'unknown'
-                                ));
-                            } finally {
-                                // Cleanup
-                                unset($GLOBALS['filepond_cleanup_ignore']);
-                            }
-                        } else {
-                            if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
-                                rex_logger::factory()->log('debug', sprintf(
-                                    'FilePond Auto-Cleanup: Datei "%s" NICHT gelöscht (inUse: %s)',
-                                    $filename,
-                                    $inUse ? 'true' : 'false'
-                                ));
-                            }
-                        }
-                    } catch (Exception $e) {
-                        // Fehler beim Löschen werden geloggt aber ignoriert
-                        rex_logger::factory()->log('warning', sprintf(
-                        'FilePond Auto-Cleanup: Fehler beim Löschen von "%s": %s',
-                        $filename,
-                        $e->getMessage()
+                    continue;
+                }
+                
+                if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                    rex_logger::factory()->log('debug', sprintf(
+                        'FilePond Auto-Cleanup: Prüfe Datei "%s" auf Verwendung',
+                        $filename
                     ));
                 }
+                
+                // Prüfen ob die Datei noch von anderen Datensätzen verwendet wird
+                $inUse = false;
+                $sql = rex_sql::factory();
+
+                // Alle YForm Tabellen durchsuchen
+                $yformTables = rex_yform_manager_table::getAll();
+                foreach ($yformTables as $table) {
+                    foreach ($table->getFields() as $field) {
+                        if ($field->getType() === 'value' && $field->getTypeName() === 'filepond') {
+                            $tableName = $table->getTableName();
+                            $fieldName = $field->getName();
+                            $filePattern = '%' . str_replace(['%', '_'], ['\%', '\_'], $filename) . '%';
+                            $currentId = (int)$this->params['main_id'];
+
+                            $query = "SELECT id FROM $tableName WHERE $fieldName LIKE :filename AND id != :id";
+
+                            try {
+                                $result = $sql->getArray($query, [':filename' => $filePattern, ':id' => $currentId]);
+                                if (count($result) > 0) {
+                                    $inUse = true;
+                                    if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                                        rex_logger::factory()->log('debug', sprintf(
+                                            'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung in Tabelle "%s"',
+                                            $filename,
+                                            $tableName
+                                        ));
+                                    }
+                                    break 2;
+                                }
+                            } catch (Exception $e) {
+                                rex_logger::factory()->log('warning', sprintf(
+                                    'FilePond Auto-Cleanup: Query-Fehler bei Tabelle "%s": %s',
+                                    $tableName,
+                                    $e->getMessage()
+                                ));
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                // Extension Point: MEDIA_IS_IN_USE prüfen
+                if (!$inUse) {
+                    /** @var mixed $warnings */
+                    $warnings = rex_extension::registerPoint(new rex_extension_point(
+                        'MEDIA_IS_IN_USE',
+                        [],
+                        [
+                            'filename' => $filename,
+                            'media' => $media,
+                            'ignore_table' => $this->params['main_table'] ?? '',
+                            'ignore_id' => (int)($this->params['main_id'] ?? 0),
+                            'ignore_field' => $this->getName(),
+                        ]
+                    ));
+
+                    if (is_array($warnings) && count($warnings) > 0) {
+                        $inUse = true;
+                        rex_logger::factory()->log('debug', sprintf(
+                            'FilePond Auto-Cleanup: Datei "%s" noch in Verwendung (Extension Point)',
+                            $filename
+                        ));
+                    }
+                }
+
+                // Datei löschen wenn sie nicht mehr verwendet wird
+                if (!$inUse && rex_media::get($filename) !== null) {
+                    rex_logger::factory()->log('debug', sprintf(
+                        'FilePond Auto-Cleanup: Lösche Datei "%s"',
+                        $filename
+                    ));
+
+                    // Workaround: rex_media_service::deleteMedia() ruft intern mediaIsInUse() auf
+                    // ohne ignore-Parameter. Daher setzen wir die Info in $GLOBALS
+                    $GLOBALS['filepond_cleanup_ignore'] = [
+                        'table' => $this->params['main_table'] ?? '',
+                        'id' => (int)($this->params['main_id'] ?? 0),
+                        'field' => $this->getName(),
+                    ];
+
+                    try {
+                        rex_media_service::deleteMedia($filename);
+
+                        rex_logger::factory()->log('info', sprintf(
+                            'FilePond Auto-Cleanup: Datei "%s" aus Tabelle "%s" (ID: %s) gelöscht.',
+                            $filename,
+                            $this->params['main_table'] ?? 'unknown',
+                            $this->params['main_id'] ?? 'unknown'
+                        ));
+                    } finally {
+                        // Cleanup
+                        unset($GLOBALS['filepond_cleanup_ignore']);
+                    }
+                } else {
+                    if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                        rex_logger::factory()->log('debug', sprintf(
+                            'FilePond Auto-Cleanup: Datei "%s" NICHT gelöscht (inUse: %s)',
+                            $filename,
+                            $inUse ? 'true' : 'false'
+                        ));
+                    }
+                }
+            } catch (Exception $e) {
+                // Fehler beim Löschen werden geloggt aber ignoriert
+                rex_logger::factory()->log('warning', sprintf(
+                    'FilePond Auto-Cleanup: Fehler beim Löschen von "%s": %s',
+                    $filename,
+                    $e->getMessage()
+                ));
             }
         }
     }
 
-    public function enterObject()
+    public function enterObject(): void
     {
         $this->setValue($this->getValue());
 
-        if ($this->params['send']) {
+        if ($this->params['send'] === true) {
             $value = '';
-            
-            if (isset($_REQUEST['FORM'])) {
-                foreach ($_REQUEST['FORM'] as $form) {
+
+            /** @var array<int, array<int, string>> $formData */
+            $formData = rex_request::request('FORM', 'array', []);
+            if (count($formData) > 0) {
+                foreach ($formData as $form) {
                     if (isset($form[$this->getId()])) {
                         $value = $form[$this->getId()];
                         break;
                     }
                 }
-            } elseif ($this->params['real_field_names']) {
-                if (isset($_REQUEST[$this->getName()])) {
-                    $value = $_REQUEST[$this->getName()];
+            } elseif (isset($this->params['real_field_names']) && $this->params['real_field_names'] === true) {
+                $requestValue = rex_request($this->getName(), 'string', '');
+                if ($requestValue !== '') {
+                    $value = $requestValue;
                     $this->setValue($value);
                 }
             }
 
             $errors = [];
-            if ($this->getElement('required') == 1 && $value == '') {
-                $errors[] = $this->getElement('empty_value', 'Bitte wählen Sie eine Datei aus.');
+            if ((int) $this->getElement('required') === 1 && $value === '') {
+                $emptyValue = $this->getElement('empty_value');
+                $errors[] = ($emptyValue !== null && $emptyValue !== '') ? (string) $emptyValue : 'Bitte wählen Sie eine Datei aus.';
             }
 
             if (count($errors) > 0) {
@@ -249,14 +259,16 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             }
 
             // Hier konvertieren wir Original-Dateinamen in Medienpool-Dateinamen
-            if ($value) {
-                $fileNames = array_filter(explode(',', self::cleanValue($value)));
+            if ($value !== '') {
+                $fileNames = array_filter(explode(',', self::cleanValue($value)), static function (string $v): bool {
+                    return $v !== '';
+                });
                 $convertedFileNames = [];
                 
                 foreach ($fileNames as $fileName) {
                     // Prüfen ob es sich um einen Original-Dateinamen handelt,
                     // der im Medienpool anders heißt
-                    if (!file_exists(rex_path::media($fileName))) {
+                    if (!is_file(rex_path::media($fileName))) {
                         $mediaFileName = self::getMediapoolFilename($fileName);
                         if ($mediaFileName !== $fileName) {
                             $convertedFileNames[] = $mediaFileName;
@@ -276,7 +288,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             
             // Wert immer in die value_pools schreiben, auch wenn leer
             $this->params['value_pool']['email'][$this->getName()] = $value;
-            if ($this->saveInDb()) {
+            if ($this->saveInDB()) {
                 $this->params['value_pool']['sql'][$this->getName()] = $value;
             }
         }
@@ -284,29 +296,29 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         $files = [];
         $value = $this->getValue();
         
-        if ($value) {
+        if ($value !== null && $value !== '') {
             $value = trim($value, '"');
             $fileNames = explode(',', $value);
             
             foreach ($fileNames as $fileName) {
                 $fileName = trim($fileName);
-                if ($fileName && file_exists(rex_path::media($fileName))) {
+                if ($fileName !== '' && is_file(rex_path::media($fileName))) {
                     $files[] = $fileName;
                 }
             }
         }
 
         // Globale Einstellung für Meta-Dialog prüfen
-        $alwaysShowMeta = rex_config::get('filepond_uploader', 'always_show_meta', false);
+        $alwaysShowMeta = (bool) rex_config::get('filepond_uploader', 'always_show_meta', false);
         $skipMeta = false;
         
         // Element-Einstellung hat höhere Priorität als globale Einstellung
-        if ($this->getElement('skip_meta') !== null && !$alwaysShowMeta) {
-            $skipMeta = (bool)$this->getElement('skip_meta');
+        if ($this->getElement('skip_meta') !== null && $alwaysShowMeta === false) {
+            $skipMeta = (bool) $this->getElement('skip_meta');
         }
         
         // Session-Wert prüfen (hat höchste Priorität, außer bei always_show_meta)
-        if (rex_session('filepond_no_meta') && !$alwaysShowMeta) {
+        if ((bool) rex_session('filepond_no_meta') && $alwaysShowMeta === false) {
             $skipMeta = true;
         }
         
@@ -317,8 +329,9 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         // Verzögerter Upload-Modus
         $delayedUpload = $this->getElement('delayed_upload');
 
+        $categoryElement = $this->getElement('category');
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
-            'category_id' => $this->getElement('category') ?: rex_config::get('filepond_uploader', 'category_id', 0),
+            'category_id' => ($categoryElement !== null && $categoryElement !== '') ? $categoryElement : rex_config::get('filepond_uploader', 'category_id', 0),
             'value' => $this->getValue(),
             'files' => $files,
             'chunk_enabled' => $enableChunks,
@@ -337,6 +350,9 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         - delayed_upload[0,1,2]: 0=Sofortiger Upload, 1=Upload-Button, 2=Upload beim Formular-Submit';
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getDefinitions(): array
     {
         return [
@@ -398,7 +414,10 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
     }
 
 
-    public static function getSearchField($params)
+    /**
+     * @param array<string, mixed> $params
+     */
+    public static function getSearchField(array $params): void
     {
         $params['searchForm']->setValueField('text', [
             'name' => $params['field']->getName(),
@@ -407,16 +426,20 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         ]);
     }
 
-    public static function getSearchFilter($params)
+    /**
+     * @param array<string, mixed> $params
+     * @return string
+     */
+    public static function getSearchFilter(array $params): string
     {
         $sql = rex_sql::factory();
-        $value = $params['value'];
+        $value = (string) $params['value'];
         $field = $params['field']->getName();
 
-        if ($value == '(empty)') {
+        if ($value === '(empty)') {
             return ' (' . $sql->escapeIdentifier($field) . ' = "" or ' . $sql->escapeIdentifier($field) . ' IS NULL) ';
         }
-        if ($value == '!(empty)') {
+        if ($value === '!(empty)') {
             return ' (' . $sql->escapeIdentifier($field) . ' <> "" and ' . $sql->escapeIdentifier($field) . ' IS NOT NULL) ';
         }
 
@@ -429,11 +452,17 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         return $sql->escapeIdentifier($field) . ' = ' . $sql->escape($value);
     }
 
-    public static function getListValue($params)
+    /**
+     * @param array<string, mixed> $params
+     * @return string
+     */
+    public static function getListValue(array $params): string
     {
-        $files = array_filter(explode(',', self::cleanValue($params['subject'])));
+        $files = array_filter(explode(',', self::cleanValue((string) $params['subject'])), static function (string $v): bool {
+            return $v !== '';
+        });
         
-        if (empty($files)) {
+        if (count($files) === 0) {
             return '-';
         }
         
@@ -444,7 +473,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $filename = trim($files[0]);
             $media = rex_media::get($filename);
             
-            if (!$media) {
+            if ($media === null) {
                 return '<span style="color: #999;"><i class="fa fa-ban"></i> ' . rex_escape($filename) . ' (nicht gefunden)</span>';
             }
             
@@ -464,10 +493,10 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     $imageUrl = null;
                 }
                 
-                if ($imageUrl) {
+                if ($imageUrl !== null) {
                     $ext = mb_strtoupper($media->getExtension());
                     $title = $media->getTitle();
-                    $displayText = !empty($title) ? $title : $ext . ' - 1 Datei';
+                    $displayText = ($title !== '') ? $title : $ext . ' - 1 Datei';
                     return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($filename) . '">' .
                            '<img src="' . $imageUrl . '" class="img-thumbnail" style="width: 40px; height: 40px; margin-right: 5px;" />' .
                            '<span>' . rex_escape($displayText) . '</span>' .
@@ -480,7 +509,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $icon = self::getFileIcon($extension);
             $extUpper = mb_strtoupper($extension);
             $title = $media->getTitle();
-            $displayText = !empty($title) ? $title : $extUpper . ' - 1 Datei';
+            $displayText = ($title !== '') ? $title : $extUpper . ' - 1 Datei';
             
             return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($filename) . '">' .
                    '<i class="fa ' . $icon . ' text-muted" style="font-size: 30px; width: 40px; text-align: center; margin-right: 5px;"></i>' .
@@ -497,7 +526,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $filename = trim($filename);
             $media = rex_media::get($filename);
             
-            if ($media) {
+            if ($media !== null) {
                 $ext = mb_strtolower($media->getExtension());
                 $extensions[$ext] = ($extensions[$ext] ?? 0) + 1;
                 $totalCount++;
@@ -530,7 +559,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
         
         return '<span style="display: inline-flex; align-items: center;" title="' . rex_escape($title) . '">' .
                $multiIcon .
-               '<strong>' . $fileCount . '</strong>&nbsp;' . ($fileCount === 1 ? 'Datei' : 'Dateien') .
+               '<strong>' . $fileCount . '</strong>&nbsp;' . 'Dateien' .
                ' <small class="text-muted">(' . rex_escape($extString) . ')</small>' .
                '</span>';
     }
