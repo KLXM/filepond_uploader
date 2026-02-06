@@ -25,7 +25,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
     
     public function isConfigured(): bool
     {
-        return !empty($this->baseUrl);
+        return $this->baseUrl !== '';
     }
     
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array
@@ -81,7 +81,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
@@ -93,10 +93,14 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
             $this->handleCurlError($ch);
         }
         curl_close($ch);
+        
+        if (!is_string($response)) {
+            throw new Exception('Empty response from API');
+        }
         
         if ($httpCode !== 200) {
              throw new Exception('API Error (' . $httpCode . '): ' . $response);
@@ -161,7 +165,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
              try {
                 $this->handleCurlError($ch);
              } catch (Exception $e) {
@@ -170,6 +174,10 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         }
         
         curl_close($ch);
+        
+        if (!is_string($response)) {
+            return ['success' => false, 'message' => 'Empty response from API'];
+        }
         
         if ($httpCode === 200) {
             $data = json_decode($response, true);
@@ -186,7 +194,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
             }
             
             $msg = "Verbindung OK! $count Modelle gefunden.";
-            if (!empty($modelList)) {
+            if ($modelList !== []) {
                 $msg .= ' Verfügbare Modelle: <br><code>' . implode('</code>, <code>', $modelList) . '</code>';
             }
             

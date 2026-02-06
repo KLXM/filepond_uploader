@@ -7,15 +7,15 @@ class rex_api_filepond_alt_checker extends rex_api_function
 {
     protected $published = false;  // Nur für eingeloggte Backend-User
 
-    public function execute()
+    public function execute(): rex_api_result
     {
         rex_response::cleanOutputBuffers();
         
         // Berechtigung prüfen
         $user = rex::getUser();
-        if (!rex::isBackend() || !$user || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[alt_checker]'))) {
+        if (!rex::isBackend() || $user === null || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[alt_checker]'))) {
             $this->sendJson(['error' => 'Zugriff verweigert']);
-            return;
+            return new rex_api_result(false);
         }
 
         $action = rex_request('action', 'string');
@@ -45,12 +45,16 @@ class rex_api_filepond_alt_checker extends rex_api_function
             default:
                 $this->sendJson(['error' => 'Unbekannte Aktion']);
         }
+        return new rex_api_result(true);
     }
 
-    private function sendJson(array $data): void
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function sendJson(array $data): never
     {
         rex_response::setHeader('Content-Type', 'application/json');
-        rex_response::sendContent(json_encode($data, JSON_UNESCAPED_UNICODE));
+        rex_response::sendContent((string) json_encode($data, JSON_UNESCAPED_UNICODE));
         exit;
     }
 
@@ -60,7 +64,7 @@ class rex_api_filepond_alt_checker extends rex_api_function
         $filterCategory = rex_request('filter_category', 'int', -1);
 
         $filters = [];
-        if (!empty($filterFilename)) {
+        if ($filterFilename !== '') {
             $filters['filename'] = $filterFilename;
         }
         if ($filterCategory >= 0) {
@@ -119,7 +123,7 @@ class rex_api_filepond_alt_checker extends rex_api_function
         $decorative = rex_request('decorative', 'bool', false);
         $isMultilang = rex_request('is_multilang', 'bool', false);
 
-        if (empty($filename)) {
+        if ($filename === '') {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
             return;
         }
@@ -129,7 +133,7 @@ class rex_api_filepond_alt_checker extends rex_api_function
             $result = filepond_alt_text_checker::markAsDecorative($filename);
         } else {
             // Mehrsprachig: JSON-String zu Array konvertieren
-            if ($isMultilang && !empty($altText)) {
+            if ($isMultilang && $altText !== '') {
                 $altData = json_decode($altText, true);
                 if (is_array($altData)) {
                     $result = filepond_alt_text_checker::updateAltText($filename, $altData);
@@ -148,13 +152,13 @@ class rex_api_filepond_alt_checker extends rex_api_function
     {
         $updatesRaw = rex_request('updates', 'string', '');
         
-        if (!empty($updatesRaw) && $updatesRaw[0] === '[') {
-            $updates = json_decode($updatesRaw, true) ?: [];
+        if ($updatesRaw !== '' && $updatesRaw[0] === '[') {
+            $updates = json_decode($updatesRaw, true) ?? [];
         } else {
             $updates = rex_request('updates', 'array', []);
         }
 
-        if (empty($updates)) {
+        if ($updates === []) {
             $this->sendJson(['error' => 'Keine Updates angegeben']);
             return;
         }
@@ -176,7 +180,7 @@ class rex_api_filepond_alt_checker extends rex_api_function
         $filename = rex_request('filename', 'string', '');
         $language = rex_request('language', 'string', 'de');
         
-        if (empty($filename)) {
+        if ($filename === '') {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
             return;
         }
@@ -200,13 +204,13 @@ class rex_api_filepond_alt_checker extends rex_api_function
         $filenamesRaw = rex_request('filenames', 'string', '');
         $language = rex_request('language', 'string', 'de');
         
-        if (!empty($filenamesRaw) && $filenamesRaw[0] === '[') {
-            $filenames = json_decode($filenamesRaw, true) ?: [];
+        if ($filenamesRaw !== '' && $filenamesRaw[0] === '[') {
+            $filenames = json_decode($filenamesRaw, true) ?? [];
         } else {
             $filenames = rex_request('filenames', 'array', []);
         }
         
-        if (empty($filenames)) {
+        if ($filenames === []) {
             $this->sendJson(['error' => 'Keine Dateinamen angegeben']);
             return;
         }

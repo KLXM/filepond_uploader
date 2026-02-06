@@ -25,7 +25,7 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
     
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey) && !empty($this->accountId);
+        return $this->apiKey !== '' && $this->accountId !== '';
     }
     
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array
@@ -33,7 +33,15 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         $url = "https://api.cloudflare.com/client/v4/accounts/{$this->accountId}/ai/run/{$this->model}";
         
         // Cloudflare expects image bytes (int array)
-        $imageBytes = array_values(unpack('C*', base64_decode($base64Image)));
+        $decoded = base64_decode($base64Image, true);
+        if ($decoded === false) {
+            throw new Exception('Invalid base64 image data');
+        }
+        $unpacked = unpack('C*', $decoded);
+        if ($unpacked === false) {
+            throw new Exception('Failed to unpack image data');
+        }
+        $imageBytes = array_values($unpacked);
         
         $data = [
             'image' => $imageBytes,
@@ -45,7 +53,7 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json',
@@ -58,14 +66,18 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
             $this->handleCurlError($ch);
         }
         curl_close($ch);
         
+        if (!is_string($response)) {
+            throw new Exception('Empty response from API');
+        }
+        
         $result = json_decode($response, true);
         
-        if ($httpCode !== 200 || !($result['success'] ?? false)) {
+        if ($httpCode !== 200 || ($result['success'] ?? false) !== true) {
             $errorMessage = $result['errors'][0]['message'] ?? ($result['error'] ?? 'HTTP Error ' . $httpCode);
             if (isset($result['errors']) && is_array($result['errors'])) {
                 $errorMessage = implode(', ', array_column($result['errors'], 'message'));
@@ -80,7 +92,7 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
             if (is_string($result['result'] ?? null)) {
                  return ['text' => $this->cleanText($result['result']), 'tokens' => null];
             }
-            throw new Exception('Unerwartete API-Antwort: ' . substr(json_encode($result), 0, 200));
+            throw new Exception('Unerwartete API-Antwort: ' . substr((string) json_encode($result), 0, 200));
         }
         
         return [
@@ -112,7 +124,7 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
              try {
                  $this->handleCurlError($ch);
              } catch (Exception $e) {
@@ -121,9 +133,13 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         }
         curl_close($ch);
         
+        if (!is_string($response)) {
+            return ['success' => false, 'message' => 'Empty response from API'];
+        }
+        
         $result = json_decode($response, true);
         
-        if ($httpCode === 200 && ($result['success'] ?? false)) {
+        if ($httpCode === 200 && ($result['success'] ?? false) === true) {
             $status = $result['result']['status'] ?? 'unknown';
             if ($status === 'active') {
                 return ['success' => true, 'message' => 'Cloudflare Verbindung OK. Modell: ' . $this->model];

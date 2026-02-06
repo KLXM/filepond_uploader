@@ -23,7 +23,7 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
     
     public function isConfigured(): bool
     {
-        return !empty($this->apiKey);
+        return $this->apiKey !== '';
     }
     
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array
@@ -77,7 +77,7 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => [
                 'Content-Type: application/json'
@@ -91,10 +91,14 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
         
         // Error Handling delegated mainly to logic below, but using helper for basic curl
         // Here we handle HTTP logic specific to Gemini
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
             $this->handleCurlError($ch);
         }
         curl_close($ch);
+        
+        if (!is_string($response)) {
+            throw new Exception('Empty response from API');
+        }
         
         if ($httpCode !== 200) {
             $errorData = json_decode($response, true);
@@ -102,7 +106,7 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
             
             if ($httpCode === 429 || stripos($errorMessage, 'quota') !== false || stripos($errorMessage, 'rate') !== false) {
                 $waitTime = '';
-                if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches)) {
+                if (preg_match('/retry in (\d+\.?\d*)/i', $errorMessage, $matches) === 1) {
                     $seconds = ceil((float)$matches[1]);
                     $waitTime = " Bitte in {$seconds} Sekunden erneut versuchen.";
                 }
@@ -156,7 +160,7 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($data),
+            CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_TIMEOUT => 15,
@@ -166,7 +170,7 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         
-        if (curl_errno($ch)) {
+        if (curl_errno($ch) !== 0) {
              try {
                  $this->handleCurlError($ch);
              } catch (Exception $e) {
@@ -174,6 +178,10 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
              }
         }
         curl_close($ch);
+        
+        if (!is_string($response)) {
+            return ['success' => false, 'message' => 'Empty response from API'];
+        }
         
         if ($httpCode === 200) {
             $responseData = json_decode($response, true);

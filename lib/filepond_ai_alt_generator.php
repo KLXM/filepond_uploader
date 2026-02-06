@@ -98,7 +98,7 @@ class filepond_ai_alt_generator
      */
     public static function isEnabled(): bool
     {
-        return rex_config::get('filepond_uploader', 'enable_ai_alt', false) && self::isAvailable();
+        return (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false) && self::isAvailable();
     }
     
     /**
@@ -106,7 +106,7 @@ class filepond_ai_alt_generator
      * 
      * @param string $filename Der Dateiname im Medienpool
      * @param string $language Zielsprache (de, en, etc.)
-     * @return array ['success' => bool, 'alt_text' => string, 'error' => string|null]
+     * @return array{success: bool, alt_text: string, error: string|null}
      */
     public function generateAltText(string $filename, string $language = 'de'): array
     {
@@ -119,7 +119,7 @@ class filepond_ai_alt_generator
         }
         
         $media = rex_media::get($filename);
-        if (!$media) {
+        if ($media === null) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -163,7 +163,7 @@ class filepond_ai_alt_generator
      * 
      * @param string $filePath Absoluter Pfad zur Datei
      * @param string $language Zielsprache
-     * @return array ['success' => bool, 'alt_text' => string, 'error' => string|null]
+     * @return array{success: bool, alt_text: string, error: string|null}
      */
     public function generateAltTextFromPath(string $filePath, string $language = 'de'): array
     {
@@ -187,7 +187,7 @@ class filepond_ai_alt_generator
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filePath);
         
-        if (strpos($mimeType, 'image/') !== 0) {
+        if (!is_string($mimeType) || strpos($mimeType, 'image/') !== 0) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -208,6 +208,8 @@ class filepond_ai_alt_generator
 
     /**
      * Interne Methode zur Ausführung der Generierung
+     *
+     * @return array{success: bool, alt_text: string, error: string|null, tokens?: array{prompt: int, response: int, total: int}|null}
      */
     private function executeGeneration(string $filePath, string $language): array
     {
@@ -254,9 +256,9 @@ class filepond_ai_alt_generator
     /**
      * Generiert Alt-Texte für mehrere Bilder (Bulk)
      * 
-     * @param array $filenames Array von Dateinamen
+     * @param list<string> $filenames Array von Dateinamen
      * @param string $language Zielsprache
-     * @return array Array mit Ergebnissen pro Datei
+     * @return array<string, array{success: bool, alt_text: string, error: string|null}> Array mit Ergebnissen pro Datei
      */
     public function generateBulk(array $filenames, string $language = 'de'): array
     {
@@ -277,7 +279,7 @@ class filepond_ai_alt_generator
      * 
      * @param string $path Pfad zum Bild oder Bild-Daten
      * @param bool $isPath True wenn $path ein Dateipfad ist
-     * @return array ['data' => base64_string, 'mime' => mime_string]
+     * @return array{data: string, mime: string}
      * @throws Exception
      */
     private function prepareImage(string $path, bool $isPath = true): array
@@ -295,14 +297,14 @@ class filepond_ai_alt_generator
         $mimeType = $finfo->buffer($imageData);
         
         // Wenn kein Bild, direkt Abbruch
-        if (strpos($mimeType, 'image/') !== 0) {
+        if (!is_string($mimeType) || strpos($mimeType, 'image/') !== 0) {
              throw new Exception('Ungültiges Bildformat: ' . $mimeType);
         }
         
         // Versuchen zu resizen mit GD
         if (extension_loaded('gd') && $mimeType !== 'image/gif') {
             $image = @imagecreatefromstring($imageData);
-            if ($image) {
+            if ($image !== false) {
                 $width = imagesx($image);
                 $height = imagesy($image);
                 
@@ -318,7 +320,7 @@ class filepond_ai_alt_generator
                     }
                     
                     $newImage = imagescale($image, $newWidth, $newHeight);
-                    if ($newImage) {
+                    if ($newImage !== false) {
                         imagedestroy($image);
                         $image = $newImage;
                     }
@@ -328,7 +330,10 @@ class filepond_ai_alt_generator
                 ob_start();
                 // 85% Qualität ist ein guter Kompromiss für AI-Analyse
                 imagejpeg($image, null, 85); 
-                $imageData = ob_get_clean();
+                $obResult = ob_get_clean();
+                if (is_string($obResult)) {
+                    $imageData = $obResult;
+                }
                 $mimeType = 'image/jpeg';
                 
                 imagedestroy($image);
@@ -349,7 +354,7 @@ class filepond_ai_alt_generator
         // Custom Prompt aus Einstellungen laden
         $customPrompt = rex_config::get('filepond_uploader', 'ai_alt_prompt', '');
         
-        if (!empty($customPrompt)) {
+        if ($customPrompt !== '' && is_string($customPrompt)) {
             // Platzhalter ersetzen
             return str_replace(
                 ['{language}', '{lang}'],
@@ -405,7 +410,7 @@ PROMPT;
     /**
      * Testet die API-Verbindung
      * 
-     * @return array ['success' => bool, 'message' => string]
+     * @return array{success: bool, message: string}
      */
     public function testConnection(): array
     {

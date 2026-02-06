@@ -24,7 +24,7 @@ interface filepond_ai_provider_interface
      * @param string $mimeType Mime-Type des Bildes
      * @param string $prompt Der Prompt für die Generierung
      * @param int $maxTokens Maximale Anzahl Tokens
-     * @return array ['text' => string, 'tokens' => ?array]
+     * @return array{text: string, tokens: ?array{prompt: int, response: int, total: int}}
      * @throws Exception
      */
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array;
@@ -32,7 +32,7 @@ interface filepond_ai_provider_interface
     /**
      * Testet die Verbindung zur API
      * 
-     * @return array ['success' => bool, 'message' => string]
+     * @return array{success: bool, message: string}
      */
     public function testConnection(): array;
 }

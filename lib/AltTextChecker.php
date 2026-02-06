@@ -38,7 +38,7 @@ class filepond_alt_text_checker
                 
                 // Prüfe ob es ein mehrsprachiger Feldtyp ist
                 $multilingualTypes = ['lang_text', 'lang_textarea', 'lang_text_all', 'lang_textarea_all'];
-                return in_array($typeLabel, $multilingualTypes);
+                return in_array($typeLabel, $multilingualTypes, true);
             }
             
             return false;
@@ -53,7 +53,7 @@ class filepond_alt_text_checker
      */
     public static function hasAltText(?string $value): bool
     {
-        if (empty($value)) {
+        if ($value === null || $value === '') {
             return false;
         }
         
@@ -62,7 +62,7 @@ class filepond_alt_text_checker
             $langData = json_decode($value, true);
             if (is_array($langData)) {
                 foreach ($langData as $entry) {
-                    if (!empty($entry['value'])) {
+                    if (isset($entry['value']) && $entry['value'] !== '') {
                         return true;
                     }
                 }
@@ -79,7 +79,7 @@ class filepond_alt_text_checker
      */
     public static function getAltTextForLang(?string $value, ?int $clangId = null): string
     {
-        if (empty($value)) {
+        if ($value === null || $value === '') {
             return '';
         }
         
@@ -92,13 +92,13 @@ class filepond_alt_text_checker
             $langData = json_decode($value, true);
             if (is_array($langData)) {
                 foreach ($langData as $entry) {
-                    if (isset($entry['clang_id']) && $entry['clang_id'] == $clangId) {
+                    if (isset($entry['clang_id']) && (int) $entry['clang_id'] === $clangId) {
                         return $entry['value'] ?? '';
                     }
                 }
                 // Fallback: erste verfügbare Sprache
                 foreach ($langData as $entry) {
-                    if (!empty($entry['value'])) {
+                    if (isset($entry['value']) && $entry['value'] !== '') {
                         return $entry['value'];
                     }
                 }
@@ -113,6 +113,9 @@ class filepond_alt_text_checker
     /**
      * Findet alle Bilder ohne Alt-Text
      * Dekorative Bilder (aus Negativ-Liste) werden ausgeschlossen
+     *
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
      */
     public static function findImagesWithoutAlt(array $filters = [], int $limit = 0, int $offset = 0): array
     {
@@ -126,12 +129,12 @@ class filepond_alt_text_checker
         // Zusätzliche Filter
         $where = ['filetype LIKE "image/%"'];
         
-        if (!empty($decorativeList)) {
+        if ($decorativeList !== []) {
             $escapedList = array_map(fn($f) => rex_sql::factory()->escape($f), $decorativeList);
             $where[] = 'filename NOT IN (' . implode(',', $escapedList) . ')';
         }
         
-        if (!empty($filters['filename'])) {
+        if (isset($filters['filename']) && $filters['filename'] !== '') {
             $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
         }
         if (isset($filters['category_id']) && $filters['category_id'] >= 0) {
@@ -171,7 +174,7 @@ class filepond_alt_text_checker
         // Filter: Nur Bilder ohne Alt-Text (berücksichtigt JSON-Format)
         $imagesWithoutAlt = [];
         foreach ($allImages as $image) {
-            if (!self::hasAltText($image['med_alt'])) {
+            if (!self::hasAltText((string) ($image['med_alt'] ?? ''))) {
                 $imagesWithoutAlt[] = $image;
             }
         }
@@ -186,6 +189,8 @@ class filepond_alt_text_checker
 
     /**
      * Zählt alle Bilder ohne Alt-Text
+     *
+     * @param array<string, mixed> $filters
      */
     public static function countImagesWithoutAlt(array $filters = []): int
     {
@@ -195,6 +200,8 @@ class filepond_alt_text_checker
     /**
      * Zählt Bilder mit und ohne Alt-Text
      * Dekorative Bilder (aus Negativ-Liste) zählen als "mit Alt-Text"
+     *
+     * @return array{total: int, with_alt: int, without_alt: int, decorative: int, percent_complete: float|int}
      */
     public static function getStatistics(): array
     {

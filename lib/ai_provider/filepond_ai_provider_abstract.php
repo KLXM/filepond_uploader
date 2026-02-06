@@ -5,12 +5,12 @@ abstract class filepond_ai_provider_abstract implements filepond_ai_provider_int
     /**
      * Helper für cURL-Error-Handling
      */
-    protected function handleCurlError($ch, $response = false): void
+    protected function handleCurlError(\CurlHandle $ch, string|false $response = false): void
     {
         $error = curl_error($ch);
         $errno = curl_errno($ch);
         
-        if ($error || $errno) {
+        if ($error !== '' || $errno !== 0) {
             curl_close($ch);
             throw new Exception('cURL Error #' . $errno . ': ' . $error);
         }
