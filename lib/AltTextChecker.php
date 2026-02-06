@@ -229,13 +229,13 @@ class filepond_alt_text_checker
             $filename = $row->getValue('filename');
             
             // Dekorative Bilder zählen als "mit Alt-Text"
-            if (in_array($filename, $decorativeList)) {
+            if (in_array($filename, $decorativeList, true)) {
                 $withAlt++;
                 continue;
             }
             
             // Prüfen ob Alt-Text vorhanden (auch JSON)
-            if (self::hasAltText($row->getValue('med_alt'))) {
+            if (self::hasAltText((string) ($row->getValue('med_alt') ?? ''))) {
                 $withAlt++;
             }
         }
@@ -258,7 +258,8 @@ class filepond_alt_text_checker
      * Unterstützt mehrsprachiges Format wenn metainfo_lang_fields aktiv ist
      * 
      * @param string $filename Dateiname
-     * @param string|array $altText Alt-Text (String oder Array mit clang_id => value)
+     * @param string|array<int|string, string> $altText Alt-Text (String oder Array mit clang_id => value)
+     * @return array{success: bool, error?: string, filename?: string, alt_text?: string|false}
      */
     public static function updateAltText(string $filename, string|array $altText): array
     {
@@ -268,7 +269,7 @@ class filepond_alt_text_checker
 
         try {
             $media = rex_media::get($filename);
-            if (!$media) {
+            if ($media === null) {
                 return ['success' => false, 'error' => 'Medium nicht gefunden'];
             }
             
@@ -283,25 +284,25 @@ class filepond_alt_text_checker
                         'value' => $value
                     ];
                 }
-                $valueToSave = json_encode($langData, JSON_UNESCAPED_UNICODE);
+                $valueToSave = (string) json_encode($langData, JSON_UNESCAPED_UNICODE);
             }
             // Wenn mehrsprachig aktiv und ein String übergeben wurde, in aktuelle Sprache speichern
-            elseif (self::isMultiLangField() && is_string($altText)) {
+            elseif (self::isMultiLangField()) {
                 // Bestehenden Wert laden und updaten
                 $sql = rex_sql::factory();
                 $sql->setQuery('SELECT med_alt FROM ' . rex::getTable('media') . ' WHERE filename = ?', [$filename]);
-                $currentValue = $sql->getValue('med_alt');
+                $currentValue = (string) ($sql->getValue('med_alt') ?? '');
                 
                 $langData = [];
-                if ($currentValue && str_starts_with(trim($currentValue), '[')) {
-                    $langData = json_decode($currentValue, true) ?: [];
+                if ($currentValue !== '' && str_starts_with(trim($currentValue), '[')) {
+                    $langData = json_decode($currentValue, true) ?? [];
                 }
                 
                 // Aktuelle Sprache updaten oder hinzufügen
                 $currentClangId = rex_clang::getCurrentId();
                 $found = false;
                 foreach ($langData as &$entry) {
-                    if (isset($entry['clang_id']) && $entry['clang_id'] == $currentClangId) {
+                    if (isset($entry['clang_id']) && (int) $entry['clang_id'] === $currentClangId) {
                         $entry['value'] = $altText;
                         $found = true;
                         break;
@@ -314,13 +315,13 @@ class filepond_alt_text_checker
                     ];
                 }
                 
-                $valueToSave = json_encode($langData, JSON_UNESCAPED_UNICODE);
+                $valueToSave = (string) json_encode($langData, JSON_UNESCAPED_UNICODE);
             }
             
             $sql = rex_sql::factory();
             $sql->setTable(rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
-            $sql->setValue('med_alt', $valueToSave);
+            $sql->setValue('med_alt', (string) $valueToSave);
             $sql->update();
             
             // Cache löschen
@@ -339,17 +340,19 @@ class filepond_alt_text_checker
     
     /**
      * Markiert ein Bild als dekorativ (Negativ-Liste)
+     *
+     * @return array{success: bool, error?: string, filename?: string, decorative?: bool}
      */
     public static function markAsDecorative(string $filename): array
     {
         try {
             $media = rex_media::get($filename);
-            if (!$media) {
+            if ($media === null) {
                 return ['success' => false, 'error' => 'Medium nicht gefunden'];
             }
             
             $decorativeList = self::getDecorativeList();
-            if (!in_array($filename, $decorativeList)) {
+            if (!in_array($filename, $decorativeList, true)) {
                 $decorativeList[] = $filename;
                 rex_config::set('filepond_uploader', 'decorative_images', json_encode($decorativeList));
             }
@@ -367,6 +370,8 @@ class filepond_alt_text_checker
     
     /**
      * Entfernt ein Bild aus der Dekorativ-Liste
+     *
+     * @return array{success: bool, error?: string, filename?: string, decorative?: bool}
      */
     public static function unmarkDecorative(string $filename): array
     {
@@ -391,11 +396,13 @@ class filepond_alt_text_checker
      */
     public static function isDecorative(string $filename): bool
     {
-        return in_array($filename, self::getDecorativeList());
+        return in_array($filename, self::getDecorativeList(), true);
     }
     
     /**
      * Holt die Liste der dekorativen Bilder
+     *
+     * @return list<string>
      */
     public static function getDecorativeList(): array
     {
@@ -406,6 +413,9 @@ class filepond_alt_text_checker
 
     /**
      * Bulk-Update für mehrere Bilder
+     *
+     * @param list<array{filename?: string, lang_texts?: array<int|string, string>, alt_text?: string}> $updates
+     * @return array{success: int, failed: int, errors: array<string, string>}
      */
     public static function bulkUpdateAltText(array $updates): array
     {
@@ -416,7 +426,9 @@ class filepond_alt_text_checker
         ];
         
         foreach ($updates as $update) {
-            if (empty($update['filename'])) continue;
+            if (!isset($update['filename']) || $update['filename'] === '') {
+                continue;
+            }
             
             // Mehrsprachige Updates
             if (isset($update['lang_texts']) && is_array($update['lang_texts'])) {
@@ -445,7 +457,7 @@ class filepond_alt_text_checker
         return $results;
     }
 
-    private static $altFieldExists = null;
+    private static ?bool $altFieldExists = null;
 
     /**
      * Prüft ob das med_alt Feld existiert
@@ -469,6 +481,8 @@ class filepond_alt_text_checker
 
     /**
      * Holt Kategorien mit Anzahl fehlender Alt-Texte
+     *
+     * @return list<array<string, mixed>>
      */
     public static function getCategoriesWithMissingAlt(): array
     {
