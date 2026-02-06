@@ -5,10 +5,9 @@ namespace KLXM\InfoCenter\Widgets;
 use KLXM\InfoCenter\AbstractWidget;
 use rex;
 use rex_addon;
-use rex_i18n;
-use rex_csrf_token;
-use rex_request;
-use rex_view;
+use rex_media_category_select;
+
+use function sprintf;
 
 class FilePondUploadWidget extends AbstractWidget
 {
@@ -17,7 +16,7 @@ class FilePondUploadWidget extends AbstractWidget
     public function __construct()
     {
         parent::__construct();
-        $this->title = '📤 ' . 'FilePond Upload';
+        $this->title = '📤 FilePond Upload';
         $this->priority = 100; // Higher priority = shown more prominently
     }
 
@@ -32,7 +31,7 @@ class FilePondUploadWidget extends AbstractWidget
         if (!rex_addon::exists('filepond_uploader')) {
             return $this->wrapContent('<p class="text-muted">FilePond Uploader Addon nicht installiert</p>');
         }
-        
+
         $filepond = rex_addon::get('filepond_uploader');
         if (!$filepond->isAvailable()) {
             return $this->wrapContent('<p class="text-muted">FilePond Uploader Addon nicht verfügbar</p>');
@@ -40,12 +39,12 @@ class FilePondUploadWidget extends AbstractWidget
 
         // Generate unique ID for this widget instance
         $widgetId = 'filepond-widget-' . uniqid();
-        
+
         // Get current MediaPool category (default to root)
         $currentCategory = rex_request('rex_file_category', 'int', 0);
-        
+
         // Generate the category select like in the upload page
-        $selMedia = new \rex_media_category_select($checkPerm = true);
+        $selMedia = new rex_media_category_select($checkPerm = true);
         $selMedia->setId($widgetId . '-category-select');
         $selMedia->setName('category_id');
         $selMedia->setSize(1);
@@ -54,11 +53,11 @@ class FilePondUploadWidget extends AbstractWidget
         if (rex::getUser()->getComplexPerm('media')->hasAll()) {
             $selMedia->addOption('Root-Kategorie', '0');
         }
-        
+
         // Get current user language
         $currentUser = rex::getUser();
-        $langCode = ($currentUser !== null) ? $currentUser->getLanguage() : 'de_de';
-        
+        $langCode = (null !== $currentUser) ? $currentUser->getLanguage() : 'de_de';
+
         // Get addon config values
         $addon = rex_addon::get('filepond_uploader');
         $maxFiles = $addon->getConfig('max_files', 30);
@@ -67,7 +66,7 @@ class FilePondUploadWidget extends AbstractWidget
         $skipMeta = (bool) $addon->getConfig('upload_skip_meta', false);
         $delayedUpload = (bool) $addon->getConfig('delayed_upload_mode', false);
         $titleRequired = (bool) $addon->getConfig('title_required_default', false);
-        $clientResize = ($addon->getConfig('create_thumbnails', '') === '|1|');
+        $clientResize = ('|1|' === $addon->getConfig('create_thumbnails', ''));
         $maxPixel = $addon->getConfig('max_pixel', 2100);
         $imageQuality = $addon->getConfig('image_quality', 90);
 
@@ -143,7 +142,7 @@ class FilePondUploadWidget extends AbstractWidget
             $maxPixel,
             $imageQuality,
             $widgetId,
-            $widgetId
+            $widgetId,
         );
 
         return $this->wrapContent($content);

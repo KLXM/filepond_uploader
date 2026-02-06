@@ -1,21 +1,24 @@
 <?php
-class filepond_helper {
+
+class filepond_helper
+{
     // Tracking variables for scripts and styles
     private static bool $scriptsIncluded = false;
     private static bool $stylesIncluded = false;
-    
+
     /**
-     * Get JavaScript files
+     * Get JavaScript files.
      * @return string Returns HTML string in frontend, empty string in backend after adding scripts via rex_view
      */
-    public static function getScripts(): string {
+    public static function getScripts(): string
+    {
         // Return if already included
         if (self::$scriptsIncluded) {
             return '';
         }
-        
+
         $addon = rex_addon::get('filepond_uploader');
-        
+
         $jsFiles = [
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-file-validate-type.js'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-file-validate-size.js'),
@@ -26,11 +29,11 @@ class filepond_helper {
             $addon->getAssetsUrl('filepond/filepond.js'),
             $addon->getAssetsUrl('filepond_modal.js'),
             $addon->getAssetsUrl('filepond_widget.js'),
-            $addon->getAssetsUrl('filepond_auto_metainfo.js')  // Unser neues MetaInfo JavaScript
+            $addon->getAssetsUrl('filepond_auto_metainfo.js'),  // Unser neues MetaInfo JavaScript
         ];
 
         if (rex::isBackend()) {
-            foreach($jsFiles as $file) {
+            foreach ($jsFiles as $file) {
                 rex_view::addJsFile($file);
             }
             self::$scriptsIncluded = true;
@@ -39,36 +42,37 @@ class filepond_helper {
 
         self::$scriptsIncluded = true;
         return implode(PHP_EOL, array_map(
-            fn(string $file): string => sprintf(
+            static fn (string $file): string => sprintf(
                 '<script type="text/javascript" src="%s" defer></script>',
-                $file
+                $file,
             ),
-            $jsFiles
+            $jsFiles,
         ));
     }
 
     /**
-     * Get CSS files
+     * Get CSS files.
      * @return string Returns HTML string in frontend, empty string in backend after adding styles via rex_view
      */
-    public static function getStyles(): string {
+    public static function getStyles(): string
+    {
         // Return if already included
         if (self::$stylesIncluded) {
             return '';
         }
-        
+
         $addon = rex_addon::get('filepond_uploader');
-        
+
         $cssFiles = [
             $addon->getAssetsUrl('filepond/filepond.css'),
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-image-preview.css'),
             $addon->getAssetsUrl('filepond_widget.css'),
             $addon->getAssetsUrl('filepond-custom-styles.css'), // Unsere neue CSS-Datei mit benutzerdefinierten Button-Stilen
-            $addon->getAssetsUrl('filepond_metainfo_lang.css')  // MetaInfo Lang Fields Styles
+            $addon->getAssetsUrl('filepond_metainfo_lang.css'),  // MetaInfo Lang Fields Styles
         ];
 
         if (rex::isBackend()) {
-            foreach($cssFiles as $file) {
+            foreach ($cssFiles as $file) {
                 rex_view::addCssFile($file);
             }
             self::$stylesIncluded = true;
@@ -77,11 +81,11 @@ class filepond_helper {
 
         self::$stylesIncluded = true;
         return implode(PHP_EOL, array_map(
-            fn(string $file): string => sprintf(
+            static fn (string $file): string => sprintf(
                 '<link rel="stylesheet" type="text/css" href="%s">',
-                $file
+                $file,
             ),
-            $cssFiles
+            $cssFiles,
         ));
     }
 }
