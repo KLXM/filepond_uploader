@@ -9,10 +9,10 @@ class rex_api_filepond_ai_generate extends rex_api_function
 {
     protected $published = true;
 
-    public function execute()
+    public function execute(): rex_api_result
     {
         // Berechtigung prüfen
-        if (!rex::getUser()) {
+        if (rex::getUser() === null) {
             rex_response::setStatus(rex_response::HTTP_UNAUTHORIZED);
             rex_response::sendJson(['error' => 'Unauthorized']);
             exit;
@@ -34,7 +34,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
 
         try {
             // Fall 1: Existierendes Bild im Medienpool
-            if (!empty($mediaName)) {
+            if ($mediaName !== '') {
                 $result = $generator->generateAltText($mediaName, $language);
             }
             // Fall 2: Temporärer Upload (FilePond)
@@ -42,16 +42,18 @@ class rex_api_filepond_ai_generate extends rex_api_function
                 $filePath = '';
                 
                 // Check direct file upload (Client-side file)
-                if (!empty($_FILES['file']['tmp_name'])) {
-                    $filePath = $_FILES['file']['tmp_name'];
+                /** @var array<string, array{tmp_name?: string}> $files */
+                $files = rex_request::files('file', 'array', []);
+                if (isset($files['tmp_name']) && is_string($files['tmp_name']) && $files['tmp_name'] !== '') {
+                    $filePath = $files['tmp_name'];
                 } 
                 // Check existing file by ID (Server-side file)
-                elseif (!empty($fileId)) {
+                elseif ($fileId !== '') {
                     $baseDir = rex_path::addonData('filepond_uploader', 'upload');
                     $filePath = $baseDir . $fileId;
                 }
                 
-                if (!empty($filePath)) {
+                if ($filePath !== '') {
                     $result = $generator->generateAltTextFromPath($filePath, $language);
                 } else {
                     $result = ['success' => false, 'error' => 'No file provided'];

@@ -2,6 +2,8 @@
 
 namespace FriendsOfRedaxo\FilePond;
 
+use rex;
+use rex_config;
 use rex_extension_point;
 use rex_logger;
 use rex_sql;
@@ -16,8 +18,8 @@ class FilePondMediaCleanup
     /**
      * Prüft ob ein Medium in YForm-Tabellen verwendet wird
      *
-     * @param rex_extension_point $ep
-     * @return array Liste von Warnungen
+     * @param rex_extension_point<list<string>> $ep
+     * @return list<string> Liste von Warnungen
      */
     public static function isMediaInUse(rex_extension_point $ep): array
     {
@@ -27,7 +29,7 @@ class FilePondMediaCleanup
         }
 
         $filename = $ep->getParam('filename');
-        if (!$filename) {
+        if ($filename === null || $filename === '') {
             return $warnings;
         }
 
@@ -37,8 +39,8 @@ class FilePondMediaCleanup
         $ignoreField = $ep->getParam('ignore_field');
 
         // Fallback auf $GLOBALS wenn EP-Parameter leer (für internen deleteMedia()-Aufruf)
-        if (!$ignoreTable && isset($GLOBALS['filepond_cleanup_ignore'])) {
-            if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+        if ($ignoreTable === null && isset($GLOBALS['filepond_cleanup_ignore'])) {
+            if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
                 rex_logger::factory()->debug('FilePondMediaCleanup: Verwende globale ignore-Parameter für ' . $filename);
             }
             $ignoreTable = $GLOBALS['filepond_cleanup_ignore']['table'] ?? null;
@@ -57,7 +59,7 @@ class FilePondMediaCleanup
 
                     // Überspringe das Feld das gerade bearbeitet wird
                     if ($ignoreTable === $tableName && $ignoreField === $fieldName) {
-                        if (rex::isDebugMode() && rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
+                        if (rex::isDebugMode() && (bool) rex_config::get('filepond_uploader', 'enable_debug_logging', false)) {
                             rex_logger::factory()->debug(sprintf(
                                 'FilePondMediaCleanup: Überspringe Feld %s in %s',
                                 $fieldName,
@@ -71,7 +73,7 @@ class FilePondMediaCleanup
                     $query = "SELECT id, $fieldName FROM $tableName WHERE FIND_IN_SET(:filename, $fieldName)";
                     
                     // Wenn wir eine ID ignorieren sollen, schließe diese aus
-                    if ($ignoreTable === $tableName && $ignoreId) {
+                    if ($ignoreTable === $tableName && $ignoreId !== null) {
                         $query .= " AND id != :id";
                         $result = $sql->getArray($query, [
                             ':filename' => $filename,
@@ -82,7 +84,8 @@ class FilePondMediaCleanup
                     }
 
                     if (count($result) > 0) {
-                        $tableLabel = $table->getName() ?: $tableName;
+                        $tableLabelValue = $table->getName();
+                        $tableLabel = ($tableLabelValue !== '') ? $tableLabelValue : $tableName;
                         $warnings[] = sprintf(
                             'FilePond Feld "%s" in Tabelle "%s" (ID: %s)',
                             $fieldName,

@@ -1,8 +1,8 @@
 <?php
 class filepond_helper {
     // Tracking variables for scripts and styles
-    private static $scriptsIncluded = false;
-    private static $stylesIncluded = false;
+    private static bool $scriptsIncluded = false;
+    private static bool $stylesIncluded = false;
     
     /**
      * Get JavaScript files

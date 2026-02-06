@@ -7,7 +7,7 @@ class rex_yform_action_filepond2email extends rex_yform_action_abstract {
         $label_from = $this->getElement(2);
 
         foreach ($this->params['value_pool']['email'] as $key => $value) {
-            if ($label_from == $key) {
+            if ($label_from === $key) {
                 foreach (explode(',',$value) as $filename) {
                     $this->params['value_pool']['email_attachments'][] = [$filename, rex_path::media().$filename];
                 }

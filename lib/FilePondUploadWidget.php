@@ -57,17 +57,17 @@ class FilePondUploadWidget extends AbstractWidget
         
         // Get current user language
         $currentUser = rex::getUser();
-        $langCode = $currentUser ? $currentUser->getLanguage() : 'de_de';
+        $langCode = ($currentUser !== null) ? $currentUser->getLanguage() : 'de_de';
         
         // Get addon config values
         $addon = rex_addon::get('filepond_uploader');
         $maxFiles = $addon->getConfig('max_files', 30);
         $allowedTypes = $addon->getConfig('allowed_types', 'image/*');
         $maxFilesize = $addon->getConfig('max_filesize', 10);
-        $skipMeta = $addon->getConfig('upload_skip_meta', false);
-        $delayedUpload = $addon->getConfig('delayed_upload_mode', false);
-        $titleRequired = $addon->getConfig('title_required_default', false);
-        $clientResize = ($addon->getConfig('create_thumbnails', '') == '|1|');
+        $skipMeta = (bool) $addon->getConfig('upload_skip_meta', false);
+        $delayedUpload = (bool) $addon->getConfig('delayed_upload_mode', false);
+        $titleRequired = (bool) $addon->getConfig('title_required_default', false);
+        $clientResize = ($addon->getConfig('create_thumbnails', '') === '|1|');
         $maxPixel = $addon->getConfig('max_pixel', 2100);
         $imageQuality = $addon->getConfig('image_quality', 90);
 

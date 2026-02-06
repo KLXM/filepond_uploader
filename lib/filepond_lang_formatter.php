@@ -7,38 +7,34 @@ class filepond_lang_formatter
 {
     /**
      * Format multilingual field data for display
-     * 
-     * @param array $langData
+     *
+     * @param array<int, array{clang_id: int, value: string}> $langData
      * @return string
      */
-    public static function formatMultilingualField($langData)
+    public static function formatMultilingualField(array $langData): string
     {
-        if (!is_array($langData)) {
-            return '';
-        }
-        
         $currentLang = rex_clang::getCurrentId();
         $descriptions = [];
         
         // First try to get current language
         foreach ($langData as $entry) {
             if (isset($entry['clang_id'], $entry['value']) && 
-                $entry['clang_id'] == $currentLang && 
-                !empty(trim($entry['value']))) {
+                (int) $entry['clang_id'] === $currentLang && 
+                trim($entry['value']) !== '') {
                 return strip_tags(trim($entry['value']));
             }
         }
         
         // Fallback: collect all non-empty descriptions
         foreach ($langData as $entry) {
-            if (isset($entry['clang_id'], $entry['value']) && !empty(trim($entry['value']))) {
-                $clang = rex_clang::get($entry['clang_id']);
-                $langName = $clang ? $clang->getName() : 'ID' . $entry['clang_id'];
+            if (isset($entry['clang_id'], $entry['value']) && trim($entry['value']) !== '') {
+                $clang = rex_clang::get((int) $entry['clang_id']);
+                $langName = $clang !== null ? $clang->getName() : 'ID' . $entry['clang_id'];
                 $descriptions[] = $langName . ': ' . strip_tags(trim($entry['value']));
             }
         }
         
-        if (empty($descriptions)) {
+        if (count($descriptions) === 0) {
             return rex_i18n::msg('filepond_no_description');
         }
         
@@ -51,9 +47,9 @@ class filepond_lang_formatter
      * @param string $value
      * @return bool
      */
-    public static function isMultilingualJson($value)
+    public static function isMultilingualJson(string $value): bool
     {
-        if (!is_string($value) || empty($value)) {
+        if ($value === '') {
             return false;
         }
         

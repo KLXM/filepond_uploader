@@ -40,7 +40,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             return;
         }
         
-        if (!isset($this->params['send']) || $this->params['send'] !== true) {
+        if (!isset($this->params['send']) || !$this->params['send']) {
             return;
         }
 
@@ -227,7 +227,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
     {
         $this->setValue($this->getValue());
 
-        if ($this->params['send'] === true) {
+        if ((bool) $this->params['send']) {
             $value = '';
 
             /** @var array<int, array<int, string>> $formData */
@@ -239,7 +239,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                         break;
                     }
                 }
-            } elseif (isset($this->params['real_field_names']) && $this->params['real_field_names'] === true) {
+            } elseif (isset($this->params['real_field_names']) && $this->params['real_field_names']) {
                 $requestValue = rex_request($this->getName(), 'string', '');
                 if ($requestValue !== '') {
                     $value = $requestValue;

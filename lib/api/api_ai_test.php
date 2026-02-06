@@ -7,10 +7,10 @@ class rex_api_filepond_ai_test extends rex_api_function
 {
     protected $published = false; // Nur für Backend-User
 
-    public function execute()
+    public function execute(): rex_api_result
     {
         // Prüfe ob User eingeloggt
-        if (!rex::getUser()) {
+        if (rex::getUser() === null) {
             rex_response::cleanOutputBuffers();
             rex_response::sendJson(['success' => false, 'message' => 'Nicht autorisiert']);
             exit;
