@@ -602,8 +602,8 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         // Sanitize string: trim, remove dangerous chars but keep basic formatting
         $sanitized = trim((string) $value);
         // Remove potential script tags and other dangerous content
-        $sanitized = preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $sanitized);
-        $sanitized = preg_replace('/javascript:/i', '', $sanitized);
+        $sanitized = (string) preg_replace('/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi', '', $sanitized);
+        $sanitized = (string) preg_replace('/javascript:/i', '', $sanitized);
         $sanitized = preg_replace('/on\w+\s*=/i', '', $sanitized);
         return $sanitized;
     }

@@ -6,6 +6,7 @@ use KLXM\InfoCenter\AbstractWidget;
 use rex;
 use rex_addon;
 use rex_media_category_select;
+use rex_media_perm;
 
 use function sprintf;
 
@@ -50,7 +51,8 @@ class FilePondUploadWidget extends AbstractWidget
         $selMedia->setSize(1);
         $selMedia->setSelected($currentCategory);
         $selMedia->setAttribute('class', 'form-select');
-        if (rex::getUser()->getComplexPerm('media')->hasAll()) {
+        $mediaPerm = rex::getUser() ? rex::getUser()->getComplexPerm('media') : null;
+        if ($mediaPerm instanceof rex_media_perm && $mediaPerm->hasAll()) {
             $selMedia->addOption('Root-Kategorie', '0');
         }
 

@@ -125,6 +125,10 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
 // Erweiterte Einstellungen für kombinierte Verarbeitung (nur sichtbar wenn beide aktiv)
+$clientMaxPixelVal = rex_config::get('filepond_uploader', 'client_max_pixel', '');
+$clientMaxPixel = is_scalar($clientMaxPixelVal) ? (string) $clientMaxPixelVal : '';
+$clientQualityVal = rex_config::get('filepond_uploader', 'client_image_quality', '');
+$clientQuality = is_scalar($clientQualityVal) ? (string) $clientQualityVal : '';
 $form->addRawField('
 <div id="combined-processing-settings" class="panel panel-default" style="margin-top: 15px; display: none;">
     <div class="panel-heading"><strong>' . $addon->i18n('filepond_settings_combined_processing') . '</strong></div>
@@ -135,7 +139,7 @@ $form->addRawField('
                 <div class="form-group">
                     <label class="control-label">' . $addon->i18n('filepond_settings_client_max_pixel') . '</label>
                     <input type="number" class="form-control" name="rex_config[filepond_uploader][client_max_pixel]" 
-                           value="' . rex_config::get('filepond_uploader', 'client_max_pixel', '') . '" 
+                           value="' . $clientMaxPixel . '" 
                            min="50" placeholder="' . $addon->i18n('filepond_settings_use_global') . '">
                     <p class="help-block small">' . $addon->i18n('filepond_settings_client_max_pixel_notice') . '</p>
                 </div>
@@ -144,7 +148,7 @@ $form->addRawField('
                 <div class="form-group">
                     <label class="control-label">' . $addon->i18n('filepond_settings_client_image_quality') . '</label>
                     <input type="number" class="form-control" name="rex_config[filepond_uploader][client_image_quality]" 
-                           value="' . rex_config::get('filepond_uploader', 'client_image_quality', '') . '" 
+                           value="' . $clientQuality . '" 
                            min="10" max="100" placeholder="' . $addon->i18n('filepond_settings_use_global') . '">
                     <p class="help-block small">' . $addon->i18n('filepond_settings_client_image_quality_notice') . '</p>
                 </div>
@@ -214,13 +218,13 @@ if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) 
     $sql = rex_sql::factory();
     $sql->setQuery('SELECT name, title FROM ' . rex::getTable('metainfo_field') . ' WHERE name LIKE "med_%" ORDER BY priority');
     foreach ($sql as $row) {
-        $name = $row->getValue('name');
+        $name = (string) $row->getValue('name');
         if (!isset($standardFields[$name])) {
-             $label = $row->getValue('title');
+             $label = (string) $row->getValue('title');
              if (strpos($label, 'translate:') === 0) {
                  $label = rex_i18n::msg(substr($label, 10));
              }
-             $standardFields[$name] = ($label ?: ucfirst($name)) . ' (' . $name . ')';
+             $standardFields[$name] = ($label !== '' ? $label : ucfirst($name)) . ' (' . $name . ')';
         }
     }
 }
@@ -553,7 +557,7 @@ $form->addRawField('
                 <label class="control-label">' . $addon->i18n('filepond_current_token') . '</label>
                 <div class="input-group">
                     <input type="text" class="form-control" id="current-token" value="' . 
-                    rex_escape(rex_config::get('filepond_uploader', 'api_token')) . 
+                    rex_escape(is_string($apiToken = rex_config::get('filepond_uploader', 'api_token')) ? $apiToken : '') . 
                     '" readonly>
                 </div>
                 <p class="help-block">' . $addon->i18n('filepond_token_help') . '</p>
@@ -639,7 +643,7 @@ if (rex_post('regenerate_token', 'boolean')) {
 }
 
 // AJAX-Aktion für Aufräumen temporärer Dateien
-if (rex_request('cleanup_temp', 'boolean') && rex::isBackend() && rex::getUser()->isAdmin()) {
+if (rex_request('cleanup_temp', 'boolean') && rex::isBackend() && rex::getUser() instanceof rex_user && rex::getUser()->isAdmin()) {
     $api = new rex_api_filepond_uploader();
     try {
         $result = $api->handleCleanup();

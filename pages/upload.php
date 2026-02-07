@@ -13,12 +13,14 @@ $selMedia->setSize(1);
 $selMedia->setSelected($selectedCategory);
 $selMedia->setAttribute('class', 'selectpicker');
 $selMedia->setAttribute('data-live-search', 'true');
-if (rex::getUser()->getComplexPerm('media')->hasAll()) {
+$mediaPerm = rex::getUser() ? rex::getUser()->getComplexPerm('media') : null;
+if ($mediaPerm instanceof rex_media_perm && $mediaPerm->hasAll()) {
     $selMedia->addOption(rex_i18n::msg('filepond_upload_no_category'), '0');
 }
 
 $currentUser = rex::getUser();
-$langCode = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
+$langCodeVal = $currentUser ? $currentUser->getLanguage() : rex_config::get('filepond_uploader', 'lang', 'en_gb');
+$langCode = is_string($langCodeVal) ? $langCodeVal : 'en_gb';
 
 // Prüfen, ob Metadaten übersprungen werden sollen (neue Einstellung)
 $skipMeta = rex_config::get('filepond_uploader', 'upload_skip_meta', false);
@@ -28,6 +30,22 @@ $delayedUpload = rex_config::get('filepond_uploader', 'delayed_upload_mode', fal
 
 // Prüfen, ob das title-Feld required sein soll
 $titleRequired = rex_config::get('filepond_uploader', 'title_required_default', false);
+
+// Config-Werte für data-Attribute vorab typsicher extrahieren
+$cfgMaxFiles = rex_config::get('filepond_uploader', 'max_files', 30);
+$dataMaxFiles = is_numeric($cfgMaxFiles) ? (string) (int) $cfgMaxFiles : '30';
+$cfgAllowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
+$dataAllowedTypes = is_string($cfgAllowedTypes) ? $cfgAllowedTypes : 'image/*,video/*,.pdf,.doc,.docx,.txt';
+$cfgMaxFilesize = rex_config::get('filepond_uploader', 'max_filesize', 10);
+$dataMaxFilesize = is_numeric($cfgMaxFilesize) ? (string) (int) $cfgMaxFilesize : '10';
+$cfgClientMaxPixel = rex_config::get('filepond_uploader', 'client_max_pixel', '');
+$cfgMaxPixel = rex_config::get('filepond_uploader', 'max_pixel', 2100);
+$dataMaxPixel = is_scalar($cfgClientMaxPixel) && $cfgClientMaxPixel !== '' ? (string) $cfgClientMaxPixel : (is_numeric($cfgMaxPixel) ? (string) (int) $cfgMaxPixel : '2100');
+$cfgClientQuality = rex_config::get('filepond_uploader', 'client_image_quality', '');
+$cfgQuality = rex_config::get('filepond_uploader', 'image_quality', 90);
+$dataQuality = is_scalar($cfgClientQuality) && $cfgClientQuality !== '' ? (string) $cfgClientQuality : (is_numeric($cfgQuality) ? (string) (int) $cfgQuality : '90');
+$cfgCreateThumbnails = rex_config::get('filepond_uploader', 'create_thumbnails', '');
+$dataClientResize = (is_string($cfgCreateThumbnails) && $cfgCreateThumbnails === '|1|') ? 'true' : 'false';
 
 // Session-Wert setzen für die API
 if ($skipMeta) {
@@ -59,17 +77,17 @@ $content = '
                             id="filepond-upload"
                             data-widget="filepond"
                             data-filepond-cat="'.$selectedCategory.'"
-                            data-filepond-maxfiles="'.rex_config::get('filepond_uploader', 'max_files', 30).'"
-                            data-filepond-types="'.rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt').'"
-                            data-filepond-maxsize="'.rex_config::get('filepond_uploader', 'max_filesize', 10).'"
+                            data-filepond-maxfiles="'.$dataMaxFiles.'"
+                            data-filepond-types="'.$dataAllowedTypes.'"
+                            data-filepond-maxsize="'.$dataMaxFilesize.'"
                             data-filepond-lang="'.$langCode.'"
                             data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
                             data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
                             data-filepond-title-required="'.($titleRequired ? 'true' : 'false').'"
                             data-filepond-opener-field="'.rex_escape($openerInputField).'"
-                            data-filepond-max-pixel="'.(rex_config::get('filepond_uploader', 'client_max_pixel', '') ?: rex_config::get('filepond_uploader', 'max_pixel', 2100)).'" 
-                            data-filepond-image-quality="'.(rex_config::get('filepond_uploader', 'client_image_quality', '') ?: rex_config::get('filepond_uploader', 'image_quality', 90)).'" 
-                            data-filepond-client-resize="'.((rex_config::get('filepond_uploader', 'create_thumbnails', '') == '|1|') ? 'true' : 'false').'"
+                            data-filepond-max-pixel="'.$dataMaxPixel.'" 
+                            data-filepond-image-quality="'.$dataQuality.'" 
+                            data-filepond-client-resize="'.$dataClientResize.'"
                             value=""
                         >
                     </div>
@@ -350,7 +368,7 @@ if ($isMediaWidget): ?>
     
     const MediaWidget = {
         openerInputField: '<?= rex_escape($openerInputField, 'js') ?>',
-        isMediaList: <?= $openerInputField && str_starts_with($openerInputField, 'REX_MEDIALIST_') ? 'true' : 'false' ?>,
+        isMediaList: <?= str_starts_with($openerInputField, 'REX_MEDIALIST_') ? 'true' : 'false' ?>,
         resultsContainer: null,
         
         init() {

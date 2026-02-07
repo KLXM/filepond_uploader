@@ -14,8 +14,11 @@ if (!rex::getUser() || (!rex::getUser()->isAdmin() && !rex::getUser()->hasPerm('
 $addon = rex_addon::get('filepond_uploader');
 
 // Filter und Pagination zuerst definieren
-$itemsPerPage = (int) $addon->getConfig('items_per_page', 30);
-if ($itemsPerPage < 1) $itemsPerPage = 30;
+$configItemsPerPage = $addon->getConfig('items_per_page');
+$itemsPerPage = is_numeric($configItemsPerPage) ? (int) $configItemsPerPage : 30;
+if ($itemsPerPage < 1) {
+    $itemsPerPage = 30;
+}
 
 $filterFilename = rex_request('filter_filename', 'string', '');
 $filterCategory = rex_request('filter_category', 'int', -1);
@@ -40,7 +43,8 @@ $selMediaFilter->setSelected($filterCategory);
 $selMediaFilter->setAttribute('class', 'form-control');
 $selMediaFilter->setAttribute('onchange', 'this.form.submit(); return false;');
 $selMediaFilter->addOption($addon->i18n('alt_checker_all_categories'), '-1');
-if (rex::getUser()->getComplexPerm('media')->hasAll()) {
+$mediaPerm = rex::getUser()->getComplexPerm('media');
+if ($mediaPerm instanceof rex_media_perm && $mediaPerm->hasAll()) {
     $selMediaFilter->addOption(rex_i18n::msg('pool_kats_no'), '0');
 }
 
@@ -234,51 +238,61 @@ $currentPage = rex_be_controller::getCurrentPage();
                     $hasMoreLangs = $isMultiLang && count($otherLangs) > 0;
                     
                     foreach ($images as $index => $img): 
-                        $categoryName = $img['category_id'] == 0 
+                        $rawFilename = $img['filename'] ?? '';
+                        $imgFilename = is_string($rawFilename) ? $rawFilename : '';
+                        $rawTitle = $img['title'] ?? '';
+                        $imgTitle = is_string($rawTitle) ? $rawTitle : '';
+                        $rawWidth = $img['width'] ?? '?';
+                        $imgWidth = is_scalar($rawWidth) ? (string) $rawWidth : '?';
+                        $rawHeight = $img['height'] ?? '?';
+                        $imgHeight = is_scalar($rawHeight) ? (string) $rawHeight : '?';
+                        $rawCategoryId = $img['category_id'] ?? 0;
+                        $imgCategoryId = is_numeric($rawCategoryId) ? (int) $rawCategoryId : 0;
+                        $categoryName = 0 === $imgCategoryId 
                             ? rex_i18n::msg('pool_kats_no') 
-                            : ($categories[$img['category_id']] ?? '-');
+                            : (string) ($categories[$imgCategoryId] ?? '-');
                         
-                        $isSvg = strtolower(pathinfo($img['filename'], PATHINFO_EXTENSION)) === 'svg';
+                        $isSvg = 'svg' === strtolower(pathinfo($imgFilename, PATHINFO_EXTENSION));
                         $thumbSrc = $isSvg 
-                            ? '../media/' . urlencode($img['filename'])
-                            : 'index.php?rex_media_type=rex_media_small&rex_media_file=' . urlencode($img['filename']);
+                            ? '../media/' . urlencode($imgFilename)
+                            : 'index.php?rex_media_type=rex_media_small&rex_media_file=' . urlencode($imgFilename);
                         $previewSrc = $isSvg 
-                            ? '../media/' . urlencode($img['filename'])
-                            : 'index.php?rex_media_type=rex_media_medium&rex_media_file=' . urlencode($img['filename']);
+                            ? '../media/' . urlencode($imgFilename)
+                            : 'index.php?rex_media_type=rex_media_medium&rex_media_file=' . urlencode($imgFilename);
                     ?>
-                    <tr data-filename="<?= rex_escape($img['filename']) ?>" class="image-row">
+                    <tr data-filename="<?= rex_escape($imgFilename) ?>" class="image-row">
                         <td>
-                            <span class="preview-toggle" data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_show_preview') ?>">
+                            <span class="preview-toggle" data-filename="<?= rex_escape($imgFilename) ?>" title="<?= $addon->i18n('alt_checker_show_preview') ?>">
                                 <i class="fa fa-chevron-right"></i>
                                 <img src="<?= $thumbSrc ?>" alt="" class="thumb-mini" loading="lazy">
                             </span>
                         </td>
                         <td>
-                            <strong><?= rex_escape($img['filename']) ?></strong>
-                            <?php if (!empty($img['title'])): ?>
-                                <br><small class="text-muted"><?= rex_escape($img['title']) ?></small>
+                            <strong><?= rex_escape($imgFilename) ?></strong>
+                            <?php if ('' !== $imgTitle): ?>
+                                <br><small class="text-muted"><?= rex_escape($imgTitle) ?></small>
                             <?php endif; ?>
-                            <br><small class="text-muted"><?= $img['width'] ?? '?' ?> × <?= $img['height'] ?? '?' ?> px</small>
+                            <br><small class="text-muted"><?= $imgWidth ?> × <?= $imgHeight ?> px</small>
                         </td>
                         <td>
                             <?php if ($isMultiLang && $hasMoreLangs): ?>
                                 <div class="alt-input-group">
-                                    <span class="lang-badge"><?= strtoupper($firstLang['code']) ?></span>
+                                    <span class="lang-badge"><?= strtoupper((string) $firstLang['code']) ?></span>
                                     <input type="text" class="form-control input-sm alt-input" 
-                                           data-filename="<?= rex_escape($img['filename']) ?>"
-                                           data-clang-id="<?= $firstLang['id'] ?>"
+                                           data-filename="<?= rex_escape($imgFilename) ?>"
+                                           data-clang-id="<?= (int) $firstLang['id'] ?>"
                                            value=""
                                            placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
                                            tabindex="<?= $index + 1 ?>">
                                     <button type="button" class="btn btn-default btn-sm lang-toggle" 
-                                            data-filename="<?= rex_escape($img['filename']) ?>" 
+                                            data-filename="<?= rex_escape($imgFilename) ?>" 
                                             title="<?= $addon->i18n('alt_checker_more_languages') ?> (<?= count($otherLangs) ?>)">
                                         <i class="fa fa-globe"></i>
                                     </button>
                                 </div>
                             <?php else: ?>
                                 <input type="text" class="form-control input-sm alt-input" 
-                                       data-filename="<?= rex_escape($img['filename']) ?>"
+                                       data-filename="<?= rex_escape($imgFilename) ?>"
                                        data-clang-id="<?= $currentLangId ?>"
                                        value=""
                                        placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>"
@@ -289,32 +303,32 @@ $currentPage = rex_be_controller::getCurrentPage();
                         <td class="text-nowrap">
                             <?php if ($aiEnabled && !$isSvg): ?>
                             <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
-                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
+                                    data-filename="<?= rex_escape($imgFilename) ?>" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
                                 <i class="fa fa-magic"></i>
                             </button>
                             <?php endif; ?>
                             <button type="button" class="btn btn-success btn-xs btn-save-row" 
-                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_save') ?>">
+                                    data-filename="<?= rex_escape($imgFilename) ?>" title="<?= $addon->i18n('alt_checker_save') ?>">
                                 <i class="fa fa-check"></i>
                             </button>
                             <button type="button" class="btn btn-default btn-xs btn-ignore" 
-                                    data-filename="<?= rex_escape($img['filename']) ?>" title="<?= $addon->i18n('alt_checker_ignore_decorative') ?>">
+                                    data-filename="<?= rex_escape($imgFilename) ?>" title="<?= $addon->i18n('alt_checker_ignore_decorative') ?>">
                                 <i class="fa fa-eye-slash"></i>
                             </button>
                         </td>
                     </tr>
                     
                     <?php if ($hasMoreLangs): ?>
-                    <tr class="lang-row" data-filename="<?= rex_escape($img['filename']) ?>">
+                    <tr class="lang-row" data-filename="<?= rex_escape($imgFilename) ?>">
                         <td></td>
                         <td colspan="2">
                             <div class="other-langs-container">
                                 <?php foreach ($otherLangs as $lang): ?>
                                 <div class="input-group input-group-sm" style="margin-bottom: 5px;">
-                                    <span class="input-group-addon" style="min-width: 35px;"><?= strtoupper($lang['code']) ?></span>
+                                    <span class="input-group-addon" style="min-width: 35px;"><?= strtoupper((string) $lang['code']) ?></span>
                                     <input type="text" class="form-control alt-input" 
-                                           data-filename="<?= rex_escape($img['filename']) ?>"
-                                           data-clang-id="<?= $lang['id'] ?>"
+                                           data-filename="<?= rex_escape($imgFilename) ?>"
+                                           data-clang-id="<?= (int) $lang['id'] ?>"
                                            value=""
                                            placeholder="<?= $addon->i18n('alt_checker_enter_alt') ?>">
                                 </div>
@@ -325,13 +339,13 @@ $currentPage = rex_be_controller::getCurrentPage();
                     </tr>
                     <?php endif; ?>
                     
-                    <tr class="preview-row" data-filename="<?= rex_escape($img['filename']) ?>">
+                    <tr class="preview-row" data-filename="<?= rex_escape($imgFilename) ?>">
                         <td colspan="5">
                             <div class="preview-container">
                                 <img src="<?= $previewSrc ?>" 
                                      alt="" loading="lazy"<?= $isSvg ? ' style="max-width: 300px; background: #f5f5f5; padding: 10px;"' : '' ?>>
                                 <div style="margin-top: 10px;">
-                                    <a href="index.php?page=mediapool/media&file_name=<?= urlencode($img['filename']) ?>" 
+                                    <a href="index.php?page=mediapool/media&file_name=<?= urlencode($imgFilename) ?>" 
                                        target="_blank" class="btn btn-default btn-xs">
                                         <i class="fa fa-external-link"></i> <?= $addon->i18n('alt_checker_open_mediapool') ?>
                                     </a>

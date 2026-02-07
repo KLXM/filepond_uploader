@@ -1,5 +1,7 @@
 <?php
 
+/** @var rex_addon $this */
+
 use FriendsOfRedaxo\FilePond\FilePondMediaCleanup;
 
 rex_yform::addTemplatePath($this->getPath('ytemplates'));
@@ -23,6 +25,7 @@ if (rex::isBackend() && rex::getUser()) {
 if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
 {    
     rex_extension::register('PAGES_PREPARED', function (rex_extension_point $ep) {
+        /** @var array<string, rex_be_page> $pages */
         $pages = $ep->getSubject();
         
         if (isset($pages['mediapool'])) {
@@ -54,6 +57,7 @@ if ($enableAltChecker === '|1|' || $enableAltChecker === '1') {
             return;
         }
         
+        /** @var array<string, rex_be_page> $pages */
         $pages = $ep->getSubject();
         
         if (isset($pages['mediapool'])) {
