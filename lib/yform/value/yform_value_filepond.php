@@ -202,7 +202,7 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                         rex_logger::factory()->log('debug', sprintf(
                             'FilePond Auto-Cleanup: Datei "%s" NICHT gelöscht (inUse: %s)',
                             $filename,
-                            $inUse ? 'true' : 'false',
+                            $inUse ? 'true' : 'false'
                         ));
                     }
                 }
