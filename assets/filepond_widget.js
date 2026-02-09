@@ -1627,7 +1627,7 @@
             pond.on('processfile', (error, file) => {
                 if (!error && file.serverId) {
                     // Prüfen, ob maxFiles=1 ist - in diesem Fall ersetzen wir den kompletten Wert
-                    const maxFiles = parseInt(input.dataset.filepondMaxfiles) || null;
+                    const maxFiles = parseInt(input.dataset.filepondMaxfiles) || 30;
                     
                     if (maxFiles === 1) {
                         // Bei maxFiles=1 kompletten Wert ersetzen statt anzuhängen
@@ -1640,6 +1640,9 @@
                             input.value = currentValue.join(',');
                         }
                     }
+
+                    // Debug Ausgabe (nur wenn debug mode im Browser aktiviert ist, kann man hier einkommentieren)
+                    // console.log('FilePond update: ', input.value);
                     
                     // Versuchen, den Dateinamen in der FilePond-UI zu aktualisieren
                     try {

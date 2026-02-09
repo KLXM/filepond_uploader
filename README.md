@@ -265,6 +265,59 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
 >
 ```
 
+### Verwendung in YForm (Frontend)
+
+Hier ein vollständiges Beispiel für ein Formular im Frontend, das auch für Gäste (ohne Login) funktioniert.
+
+```php
+<?php
+// 1. Session starten und Token setzen (zwingend für Gäste ohne Backend-Login)
+rex_login::startSession();
+rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
+
+// 2. FilePond Assets einbinden
+// (idealerweise im Template-Head, hier zur Demonstration inline)
+if (rex::isFrontend()) {
+    echo filepond_helper::getStyles();
+    echo filepond_helper::getScripts();
+}
+
+// 3. YForm Instanz konfigurieren
+$yform = new rex_yform();
+$yform->setObjectparams('form_name', 'upload-form');
+$yform->setObjectparams('form_action', rex_getUrl(rex_article::getCurrentId()));
+$yform->setObjectparams('form_ytemplate', 'bootstrap');
+$yform->setObjectparams('form_showformafterupdate', 0); // Formular nach Absenden ausblenden
+$yform->setObjectparams('real_field_names', true);
+
+// 4. FilePond Feld hinzufügen
+$yform->setValueField('filepond', [
+    'attachment',           // Name der Datenbank-Spalte
+    'Datei-Upload',         // Label
+    '0',                    // Mediapool-Kategorie ID (0 = Root)
+    'image/*,application/pdf', // Erlaubte Dateitypen
+    '50',                   // Max. Dateigröße in MB
+    '5',                    // Max. Anzahl Dateien
+    '0',                    // Titel Meta-Feld Pflicht? (0/1)
+    'Bitte laden Sie Ihre Dateien hier hoch.', // Hinweis-Text unter dem Feld
+    'Bitte wählen Sie mindestens eine Datei aus.', // Fehlermeldung wenn leer
+    '0',                    // Warnung ausblenden?
+    '0',                    // Verzögerter Upload?
+    '1'                     // Chunk-Upload aktiviert?
+]);
+
+// 5. Speichern in der Datenbank
+// Tabelle 'rex_my_yform_table' muss existieren und Spalte 'attachment' haben (Typ: text/varchar)
+$yform->setActionField('db', ['rex_my_yform_table']);
+
+// 6. Erfolgsmeldung
+$yform->setActionField('html', ['<div class="alert alert-success">Vielen Dank! Der Upload war erfolgreich.</div>']);
+
+// Formular ausgeben
+echo $yform->getForm();
+?>
+```
+
 **Hinweis zu den neuen Attributen:**
 - `data-filepond-title-required="true"`: Macht das title Feld im Metadaten-Dialog zu einem Pflichtfeld
 - `data-filepond-metainfo-lang="true"`: Aktiviert die automatische Erkennung mehrsprachiger MetaInfo-Felder
