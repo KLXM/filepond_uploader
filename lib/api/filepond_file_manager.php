@@ -28,6 +28,8 @@ class filepond_file_manager
     }
 
     /**
+     * Löscht eine Datei aus dem Mediapool (nur wenn nicht in YForm-Tabellen verwendet).
+     *
      * @return never
      */
     public function handleDelete(): void

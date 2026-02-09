@@ -31,6 +31,10 @@ class rex_api_filepond_uploader extends rex_api_function
         $this->metadataDir = $baseDir . '/metadata';
         rex_dir::create($this->metadataDir);
 
+        // Debug aus Config lesen (optional auch mit rex::isDebugMode() kombinierbar)
+        $debugConfig = rex_config::get('filepond_uploader', 'enable_debug_logging', false);
+        $this->debug = is_bool($debugConfig) ? $debugConfig : false;
+
         // Handler-Instanzen erzeugen
         $imageProcessor = new filepond_image_processor($this->debug);
         $metadataHandler = new filepond_metadata_handler();
@@ -48,10 +52,10 @@ class rex_api_filepond_uploader extends rex_api_function
     /**
      * @return never
      */
-    private function sendResponse(mixed $data, string $statusCode = '200'): void
+    private function sendResponse(mixed $data, string $statusCode = rex_response::HTTP_OK): void
     {
         rex_response::cleanOutputBuffers();
-        if ('200' !== $statusCode) {
+        if (rex_response::HTTP_OK !== $statusCode) {
             rex_response::setStatus($statusCode);
         }
         rex_response::sendJson($data);
@@ -79,24 +83,43 @@ class rex_api_filepond_uploader extends rex_api_function
             $func = rex_request('func', 'string', '');
             $categoryId = rex_request('category_id', 'int', 0);
 
-            match ($func) {
-                'prepare' => $this->sendResponse($this->uploadHandler->handlePrepare()),
-                'upload' => $this->sendResponse($this->uploadHandler->handleUpload($categoryId)),
-                'chunk-upload' => $this->uploadHandler->handleChunkUpload($categoryId),
-                'finalize-upload' => $this->sendResponse($this->uploadHandler->handleFinalizeUpload($categoryId)),
-                'delete' => $this->fileManager->handleDelete(),
-                'cancel-upload' => $this->sendResponse($this->fileManager->handleCancelUpload()),
-                'load' => $this->fileManager->handleLoad(),
-                'restore' => $this->fileManager->handleRestore(),
-                'cleanup' => $this->sendResponse($this->handleCleanup()),
-                default => throw new rex_api_exception('Invalid function: ' . $func),
-            };
+            // Switch statt match(), da void-Funktionen nicht in match()-Expressions verwendet werden können
+            switch ($func) {
+                case 'prepare':
+                    $this->sendResponse($this->uploadHandler->handlePrepare());
+                    // sendResponse() endet mit exit, Code wird nie fortgesetzt
+                case 'upload':
+                    $this->sendResponse($this->uploadHandler->handleUpload($categoryId));
+                    // sendResponse() endet mit exit, Code wird nie fortgesetzt
+                case 'chunk-upload':
+                    $this->uploadHandler->handleChunkUpload($categoryId);
+                    // handleChunkUpload() ruft intern sendResponse auf (exit), Code wird nie fortgesetzt
+                case 'finalize-upload':
+                    $this->sendResponse($this->uploadHandler->handleFinalizeUpload($categoryId));
+                    // sendResponse() endet mit exit, Code wird nie fortgesetzt
+                case 'delete':
+                    $this->fileManager->handleDelete();
+                    // handleDelete() ruft intern sendResponse auf (exit), Code wird nie fortgesetzt
+                case 'cancel-upload':
+                    $this->sendResponse($this->fileManager->handleCancelUpload());
+                    // sendResponse() endet mit exit, Code wird nie fortgesetzt
+                case 'load':
+                    $this->fileManager->handleLoad();
+                    // handleLoad() ruft intern sendResponse auf (exit), Code wird nie fortgesetzt
+                case 'restore':
+                    $this->fileManager->handleRestore();
+                    // handleRestore() ruft intern sendResponse auf (exit), Code wird nie fortgesetzt
+                case 'cleanup':
+                    $this->sendResponse($this->handleCleanup());
+                    // sendResponse() endet mit exit, Code wird nie fortgesetzt
+                default:
+                    throw new rex_api_exception('Invalid function: ' . $func);
+            }
         } catch (Exception $e) {
             rex_logger::logException($e);
-            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_FORBIDDEN);
+            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_BAD_REQUEST);
         }
-
-        return new rex_api_result(true);
+        // Alle switch-Cases und der catch-Block enden mit exit (sendResponse), dieser Code wird nie erreicht
     }
 
     /**

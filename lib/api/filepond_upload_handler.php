@@ -630,10 +630,10 @@ class filepond_upload_handler
      * @param mixed $data Die zu sendenden Daten
      * @return never
      */
-    private function sendResponse(mixed $data, string $statusCode = '200'): void
+    private function sendResponse(mixed $data, string $statusCode = rex_response::HTTP_OK): void
     {
         rex_response::cleanOutputBuffers();
-        if ('200' !== $statusCode) {
+        if (rex_response::HTTP_OK !== $statusCode) {
             rex_response::setStatus($statusCode);
         }
         rex_response::sendJson($data);
