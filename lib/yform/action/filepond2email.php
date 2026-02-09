@@ -6,12 +6,43 @@ class rex_yform_action_filepond2email extends rex_yform_action_abstract
     {
         $label_from = $this->getElement(2);
 
-        foreach ($this->params['value_pool']['email'] as $key => $value) {
-            if ($label_from === $key) {
-                foreach (explode(',', $value) as $filename) {
-                    $this->params['value_pool']['email_attachments'][] = [$filename, rex_path::media() . $filename];
+        // Suche zuerst in email pool, dann in sql pool (für Datenbankfelder)
+        $value = null;
+        
+        if (isset($this->params['value_pool']['email'][$label_from])) {
+            $value = $this->params['value_pool']['email'][$label_from];
+        } elseif (isset($this->params['value_pool']['sql'][$label_from])) {
+            $value = $this->params['value_pool']['sql'][$label_from];
+        }
+
+        if ($value) {
+            // Unterstütze sowohl komma-separierte Strings als auch JSON-Arrays
+            $filenames = [];
+            
+            if (is_array($value)) {
+                $filenames = $value;
+            } elseif (is_string($value)) {
+                // Prüfe ob JSON
+                $decoded = json_decode($value, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $filenames = $decoded;
+                } else {
+                    // Komma-separierter String
+                    $filenames = explode(',', $value);
                 }
-                break;
+            }
+
+            // Bereinige und füge Anhänge hinzu
+            foreach ($filenames as $filename) {
+                $filename = trim($filename);
+                if ($filename === '') {
+                    continue;
+                }
+                
+                $mediaPath = rex_path::media($filename);
+                if (file_exists($mediaPath)) {
+                    $this->params['value_pool']['email_attachments'][] = [$filename, $mediaPath];
+                }
             }
         }
     }
@@ -21,3 +52,4 @@ class rex_yform_action_filepond2email extends rex_yform_action_abstract
         return 'action|filepond2email|label_from';
     }
 }
+
