@@ -1624,70 +1624,46 @@
             window.FilePondGlobal.instances[input.id] = pond;
 
             // Event handlers
+            // UNIVERSELLER Handler: updatefiles wird nach jedem Add/Remove/Process/Reorder gefeuert
+            // und arbeitet mit allen Dateien → verhindert Race Conditions bei Multi-Upload
+            const updateInputValue = () => {
+                const files = pond.getFiles();
+                const processedFiles = files
+                    .filter(file => file.status === FilePond.FileStatus.PROCESSING_COMPLETE && file.serverId)
+                    .map(file => file.serverId);
+                
+                input.value = processedFiles.join(',');
+                
+                // Explizit ein change-Event auslösen
+                const event = new Event('change', { bubbles: true });
+                input.dispatchEvent(event);
+            };
+
+            // processfile: Für UI-Updates nach erfolgreichem Upload
             pond.on('processfile', (error, file) => {
                 if (!error && file.serverId) {
-                    // Prüfen, ob maxFiles=1 ist - in diesem Fall ersetzen wir den kompletten Wert
-                    const maxFiles = parseInt(input.dataset.filepondMaxfiles) || null;
-                    
-                    if (maxFiles === 1) {
-                        // Bei maxFiles=1 kompletten Wert ersetzen statt anzuhängen
-                        input.value = file.serverId;
-                    } else {
-                        // Standardverhalten: An bestehenden Wert anhängen
-                        const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
-                        if (!currentValue.includes(file.serverId)) {
-                            currentValue.push(file.serverId);
-                            input.value = currentValue.join(',');
-                        }
-                    }
+                    // Input-Wert wird über updatefiles aktualisiert
                     
                     // Versuchen, den Dateinamen in der FilePond-UI zu aktualisieren
                     try {
-                        // Finde das DOM-Element für diese Datei über die FilePond-API
                         const fileElement = pond.getFiles().find(f => f.id === file.id)?.element;
                         
                         if (fileElement) {
-                            // Aktualisieren der Dateiansicht im FilePond Widget
                             const fileInfo = fileElement.querySelector('.filepond--file-info-main');
                             if (fileInfo) {
-                                // Dateiname anzeigen, aber Status "Uploaded" beibehalten
                                 fileInfo.textContent = file.serverId;
                             }
                         }
                     } catch (err) {
                         console.warn('Failed to update file name in UI:', err);
-                        // Fehler ignorieren, ist nur kosmetisch
                     }
                 }
             });
 
-            pond.on('removefile', (error, file) => {
-                if (!error) {
-                    // Sicherstellen, dass wir den aktuellsten Wert haben
-                    const currentValue = input.value ? input.value.split(',').filter(Boolean) : [];
-                    const removeValue = file.serverId || file.source;
-                    
-                    // Entferne alle Vorkommen dieses Wertes (für den Fall von Duplikaten)
-                    const filteredValue = currentValue.filter(val => val !== removeValue);
-                    
-                    // Wenn sich die Anzahl geändert hat, wurde etwas entfernt
-                    if (filteredValue.length !== currentValue.length) {
-                        // Neuen Wert direkt setzen
-                        input.value = filteredValue.join(',');
-                        
-                        // Explizit ein change-Event auslösen, damit Frameworks wie jQuery die Änderung erkennen
-                        const event = new Event('change', { bubbles: true });
-                        input.dispatchEvent(event);
-                    }
-                }
-            });
-
-            pond.on('reorderfiles', (files) => {
-                const newValue = files
-                    .map(file => file.serverId || file.source)
-                    .filter(Boolean)
-                    .join(',');
-                input.value = newValue;
+            // updatefiles: Wird bei JEDEM Änderungsereignis gefeuert (Add/Remove/Process/Reorder)
+            // → Zentraler Synchronisationspunkt für input.value
+            pond.on('updatefiles', (files) => {
+                updateInputValue();
             });
 
             // Element als initialisiert markieren
