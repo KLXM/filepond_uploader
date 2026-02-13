@@ -458,13 +458,20 @@ class rex_api_filepond_uploader extends rex_api_function
     protected function handleUpload(int $categoryId): array
     {
         // Standard-Upload (kleine Dateien ohne Chunks)
-        $file = rex_request::files('filepond', 'array', []);
+        // Dynamischen Feldnamen nutzen, Fallback auf 'filepond'
+        $fieldName = rex_request('fieldName', 'string', 'filepond');
+        $file = rex_request::files($fieldName, 'array', []);
         if (!isset($file['tmp_name']) || '' === $file['tmp_name']) {
-            throw new rex_api_exception('No file uploaded');
+            // Fallback: Versuche Default-Feldname 'filepond' falls dynamischer Name nicht funktioniert
+            if ('filepond' !== $fieldName) {
+                $file = rex_request::files('filepond', 'array', []);
+            }
+            if (!isset($file['tmp_name']) || '' === $file['tmp_name']) {
+                throw new rex_api_exception('No file uploaded');
+            }
         }
 
         $fileId = rex_request('fileId', 'string', '');
-        $fieldName = rex_request('fieldName', 'string', 'filepond');
 
         $this->log('info', "Processing standard upload for file: {$file['name']}, ID: $fileId");
 

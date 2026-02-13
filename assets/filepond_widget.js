@@ -408,14 +408,14 @@
             };
 
             // Create metadata dialog with SimpleModal and MetaInfo integration
-            const createMetadataDialog = (file, existingMetadata = null) => {
+            const createMetadataDialog = (file, existingMetadata = null, originalFileName = null) => {
                 // Einreihen in die Queue
                 const dialogPromise = metadataDialogQueue.then(() => {
                     return new Promise(async (resolve, reject) => {
                         try {
                             // Lade MetaInfo-Felder über API
                             const metaInfoFields = await loadMetaInfoFields();
-                            const result = await createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields);
+                            const result = await createEnhancedMetadataDialog(file, existingMetadata, metaInfoFields, originalFileName);
                             resolve(result);
                         } catch (error) {
                             // Wenn der Benutzer abgebrochen hat, Fehler weiterleiten
@@ -460,7 +460,7 @@
             loadMetaInfoFields().catch(() => {});
             
             // Erweiterte MetaInfo-Dialog
-            const createEnhancedMetadataDialog = (file, existingMetadata, fields) => {
+            const createEnhancedMetadataDialog = (file, existingMetadata, fields, originalFileName = null) => {
                 return new Promise((resolve, reject) => {
                     // Generiere eindeutige Modal-ID für diese Instanz
                     const modalId = 'modal_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -504,11 +504,14 @@
                     
                     // Setup nach DOM-Einfügung
                     setTimeout(() => {
-                        setupEnhancedFieldEvents(form, fields, file);
+                        setupEnhancedFieldEvents(form, fields, file, originalFileName);
                     }, 100);
 
+                    // Blob-safe Dateiname für Dialog-Titel
+                    const dialogFileName = originalFileName || file.filename || file.name || 'upload';
+                    
                     modal.show({
-                        title: `${t.metaTitle} ${file.filename || file.name}`,
+                        title: `${t.metaTitle} ${dialogFileName}`,
                         content: form,
                         buttons: [
                             {
@@ -623,7 +626,7 @@
                     }
 
                     modal.show({
-                        title: `${t.metaTitle} ${file.filename || file.name}`,
+                        title: `${t.metaTitle} ${file.filename || file.name || 'upload'}`,
                         content: form,
                         buttons: [
                             {
@@ -845,11 +848,11 @@
             };
             
             // Setup Events für erweiterte Felder
-            const setupEnhancedFieldEvents = (form, fields, file) => {
+            const setupEnhancedFieldEvents = (form, fields, file, originalFileName = null) => {
                 // Auto-Titel-Generierung
                 const titleField = form.querySelector('[data-field="title"]');
                 if (titleField && !titleField.value) {
-                    const filename = file.name || file.filename || '';
+                    const filename = originalFileName || file.name || file.filename || '';
                     const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
                     titleField.value = nameWithoutExt;
                 }
@@ -1140,7 +1143,9 @@
                 }) : [];
 
             // Funktion zum Verarbeiten des Chunk-Uploads mit verbesserter Fehlerbehandlung
-            const processFileInChunks = async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+            const processFileInChunks = async (fieldName, file, metadata, load, error, progress, abort, transfer, options, originalFileName) => {
+                // originalFileName wird vom process-Callback übergeben (Blob-safe)
+                const safeFileName = originalFileName || file.name || 'upload';
                 let fileId;
                 const abortController = new AbortController();
 
@@ -1149,7 +1154,7 @@
                     const prepareFormData = new FormData();
                     prepareFormData.append('rex-api-call', 'filepond_uploader');
                     prepareFormData.append('func', 'prepare');
-                    prepareFormData.append('fileName', file.name);
+                    prepareFormData.append('fileName', safeFileName);
                     prepareFormData.append('fieldName', fieldName);
                     prepareFormData.append('metadata', JSON.stringify(metadata));
 
@@ -1215,7 +1220,7 @@
                             formData.append('fieldName', fieldName);
                             formData.append('chunkIndex', chunkIndex);
                             formData.append('totalChunks', totalChunks);
-                            formData.append('fileName', file.name);
+                            formData.append('fileName', safeFileName);
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
 
@@ -1271,7 +1276,7 @@
                     finalFormData.append('func', 'finalize-upload'); // Neue Funktion zum Finalisieren
                     finalFormData.append('fileId', fileId);
                     finalFormData.append('fieldName', fieldName);
-                    finalFormData.append('fileName', file.name);
+                    finalFormData.append('fileName', safeFileName);
                     finalFormData.append('category_id', input.dataset.filepondCat || '0');
                     finalFormData.append('totalChunks', totalChunks);
                     finalFormData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
@@ -1296,7 +1301,7 @@
                         load(finalResult.filename);
                     } else {
                         // Fallback auf den Originalnamen
-                        load(file.name);
+                        load(safeFileName);
                     }
 
                 } catch (err) {
@@ -1344,16 +1349,21 @@
                     url: basePath,
                     process: async (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
                         try {
+                            // Originalen Dateinamen ermitteln - wichtig für Blob-Objekte
+                            // nach Image Transform Plugin (Blob hat kein .name)
+                            const pondItem = pond.getFiles().find(item => item.file === file);
+                            const originalFileName = (pondItem ? pondItem.filename : null) || file.name || 'upload';
+
                             let fileMetadata = {};
 
                             // Meta-Dialog nur anzeigen wenn nicht übersprungen
                             if (!skipMeta) {
-                                fileMetadata = await createMetadataDialog(file);
+                                fileMetadata = await createMetadataDialog(file, null, originalFileName);
                             } else {
                                 // Standard-Metadaten wenn übersprungen
                                 fileMetadata = {
-                                    title: file.name,
-                                    alt: file.name,
+                                    title: originalFileName,
+                                    alt: originalFileName,
                                     copyright: ''
                                 };
                             }
@@ -1363,14 +1373,14 @@
 
                             if (useChunks) {
                                 // Großer File - Chunk Upload
-                                return processFileInChunks(fieldName, file, fileMetadata, load, error, progress, abort, transfer, options);
+                                return processFileInChunks(fieldName, file, fileMetadata, load, error, progress, abort, transfer, options, originalFileName);
                             } else {
                                 // Standard Upload für kleine Dateien
                                 const formData = new FormData();
-                                formData.append(fieldName, file);
+                                formData.append(fieldName, file, originalFileName);
                                 formData.append('rex-api-call', 'filepond_uploader');
                                 formData.append('func', 'prepare');
-                                formData.append('fileName', file.name);
+                                formData.append('fileName', originalFileName);
                                 formData.append('fieldName', fieldName);
                                 formData.append('metadata', JSON.stringify(fileMetadata));
 
@@ -1394,7 +1404,7 @@
 
                                 // Eigentlicher Upload
                                 const uploadFormData = new FormData();
-                                uploadFormData.append(fieldName, file);
+                                uploadFormData.append(fieldName, file, originalFileName);
                                 uploadFormData.append('rex-api-call', 'filepond_uploader');
                                 uploadFormData.append('func', 'upload');
                                 uploadFormData.append('fileId', fileId);
@@ -1423,7 +1433,7 @@
                                 } else if (typeof result === 'string') {
                                     load(result);
                                 } else {
-                                    load(file.name);
+                                    load(originalFileName);
                                 }
                             }
                         } catch (err) {
