@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.3.0 (2026-02-25)
+## Version 2.3.1 (2026-02-25)
 
 ### 🎉 Neue Features
 - **Automatische Mediapool-Erweiterung**: Konfigurierte MIME-Types werden zur Laufzeit automatisch im Mediapool freigeschaltet – keine manuelle Pflege der `allowed_mime_types` mehr nötig.
