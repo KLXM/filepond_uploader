@@ -240,10 +240,11 @@ filepond_select_for_medialist = In Medienliste übernehmen
 filepond_uploader_media_widget_mode = Upload-Auswahl
 filepond_uploader_media_widget_info = Die ausgewählten Elemente können in die Liste übernommen werden.
 
-filepond_settings_openwebui_base_url = OpenWebUI Base URL
-filepond_settings_openwebui_base_url_notice = Die Basis-URL der API (ohne /api/...), z.B. http://localhost:3000
+filepond_settings_openwebui_base_url = OpenAI-/OpenWebUI Base URL (optional)
+filepond_settings_openwebui_base_url_notice = Optional: Für OpenAI leer lassen (Standard ist https://api.openai.com). Für OpenWebUI/Ollama eigene Basis-URL eintragen, z.B. http://localhost:3000
 filepond_settings_openwebui_api_key = API Key
 filepond_settings_openwebui_api_key_notice = Der API Key für Authentifizierung (Bearer Token)
 filepond_settings_openwebui_model = Modell Name
 filepond_settings_openwebui_model_notice = Der Name des Modells in OpenWebUI/Ollama, z.B. gemma3:12b, llava:7b, minicpm-v
 filepond_settings_openwebui_usage = OpenWebUI Docs
+filepond_settings_test_connection_save_first = Bitte zuerst speichern: Für den gewählten Provider liegt noch keine Konfiguration vor.

@@ -13,6 +13,115 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         $this->model = $model;
     }
 
+    private function resolveBaseUrl(): string
+    {
+        if ('' !== trim($this->baseUrl)) {
+            return $this->baseUrl;
+        }
+
+        return 'https://api.openai.com';
+    }
+
+    private function getModelIdentifier(array $model): string
+    {
+        $id = $model['id'] ?? ($model['name'] ?? '');
+        return is_string($id) ? $id : '';
+    }
+
+    private function toBool(mixed $value): bool
+    {
+        return true === $value || 1 === $value || '1' === $value;
+    }
+
+    private function hasTruthyPath(array $model, array $path): bool
+    {
+        $value = $model;
+
+        foreach ($path as $segment) {
+            if (!is_array($value) || !array_key_exists($segment, $value)) {
+                return false;
+            }
+
+            $value = $value[$segment];
+        }
+
+        return $this->toBool($value);
+    }
+
+    private function hasImageInputModality(array $model): bool
+    {
+        $possibleArrays = [
+            $model['input_modalities'] ?? null,
+            $model['modalities'] ?? null,
+            $model['capabilities']['input'] ?? null,
+            $model['capabilities']['modalities'] ?? null,
+            $model['meta']['capabilities']['input'] ?? null,
+            $model['meta']['capabilities']['modalities'] ?? null,
+        ];
+
+        foreach ($possibleArrays as $modalities) {
+            if (!is_array($modalities)) {
+                continue;
+            }
+
+            foreach ($modalities as $modality) {
+                if (is_string($modality) && str_contains(strtolower($modality), 'image')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function isVisionCapableModel(array $model): bool
+    {
+        $explicitVisionPaths = [
+            ['vision'],
+            ['capabilities', 'vision'],
+            ['capabilities', 'image'],
+            ['meta', 'vision'],
+            ['meta', 'capabilities', 'vision'],
+            ['details', 'vision'],
+        ];
+
+        foreach ($explicitVisionPaths as $path) {
+            if ($this->hasTruthyPath($model, $path)) {
+                return true;
+            }
+        }
+
+        if ($this->hasImageInputModality($model)) {
+            return true;
+        }
+
+        $id = strtolower($this->getModelIdentifier($model));
+        if ('' === $id) {
+            return false;
+        }
+
+        $visionNameHints = [
+            'gpt-4o',
+            'gpt-4.1',
+            'vision',
+            'vl',
+            'llava',
+            'minicpm-v',
+            'qwen-vl',
+            'pixtral',
+            'gemma3',
+            'moondream',
+        ];
+
+        foreach ($visionNameHints as $hint) {
+            if (str_contains($id, $hint)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function getKey(): string
     {
         return 'openwebui';
@@ -25,13 +134,13 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
 
     public function isConfigured(): bool
     {
-        return '' !== $this->baseUrl;
+        return '' !== trim($this->apiKey);
     }
 
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array
     {
         // Smart URL handling
-        $url = $this->baseUrl;
+        $url = $this->resolveBaseUrl();
 
         // 1. Wenn die URL bereits auf /chat/completions endet (User hat vollen Pfad eingegeben)
         if (str_ends_with($url, '/chat/completions')) {
@@ -134,7 +243,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         }
 
         // Smart URL handling für Models Check
-        $url = $this->baseUrl;
+        $url = $this->resolveBaseUrl();
 
         // Versuchen den "Basis"-Pfad zu erraten, falls der User /chat/completions eingegeben hat
         if (str_ends_with($url, '/chat/completions')) {
@@ -180,20 +289,29 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         if (200 === $httpCode) {
             $data = json_decode($response, true);
             $count = 0;
-            $modelList = [];
+            $visionModelList = [];
 
             if (isset($data['data']) && is_array($data['data'])) {
                 $count = count($data['data']);
                 foreach ($data['data'] as $model) {
-                    if (isset($model['id'])) {
-                        $modelList[] = $model['id'];
+                    if (!is_array($model)) {
+                        continue;
+                    }
+
+                    if ($this->isVisionCapableModel($model)) {
+                        $modelId = $this->getModelIdentifier($model);
+                        if ('' !== $modelId) {
+                            $visionModelList[] = $modelId;
+                        }
                     }
                 }
             }
 
             $msg = "Verbindung OK! $count Modelle gefunden.";
-            if ([] !== $modelList) {
-                $msg .= ' Verfügbare Modelle: <br><code>' . implode('</code>, <code>', $modelList) . '</code>';
+            $msg .= ' Vision-fähig: ' . count($visionModelList) . '.';
+
+            if ([] !== $visionModelList) {
+                $msg .= ' Vision-Modelle: <br><code>' . implode('</code>, <code>', $visionModelList) . '</code>';
             }
 
             return ['success' => true, 'message' => $msg];

@@ -59,7 +59,7 @@ class filepond_ai_alt_generator
             case 'openwebui':
                 $this->provider = new filepond_ai_provider_openai_compatible(
                     rex_config::get('filepond_uploader', 'openwebui_api_key', ''),
-                    rex_config::get('filepond_uploader', 'openwebui_base_url', 'http://localhost:3000'),
+                    rex_config::get('filepond_uploader', 'openwebui_base_url', ''),
                     rex_config::get('filepond_uploader', 'openwebui_model', 'llava'),
                 );
                 break;

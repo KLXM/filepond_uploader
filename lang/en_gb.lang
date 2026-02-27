@@ -173,6 +173,7 @@ filepond_settings_cloudflare_account_id_notice = Find Account ID under %s in the
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholder: {language} for language.
 filepond_settings_test_ai_connection = Test connection
+filepond_settings_test_connection_save_first = Please save first: no configuration exists yet for the selected provider.
 filepond_settings_gemini_usage = View limits and usage
 filepond_settings_cloudflare_usage = Manage API tokens
 

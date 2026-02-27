@@ -615,7 +615,7 @@ $form->addRawField('<div class="col-sm-6">');
 // Base URL
 $field = $form->addInputField('text', 'openwebui_base_url', null, [
     'class' => 'form-control',
-    'placeholder' => 'http://localhost:3000'
+    'placeholder' => 'https://api.openai.com'
 ]);
 $field->setLabel($addon->i18n('filepond_settings_openwebui_base_url'));
 $field->setNotice($addon->i18n('filepond_settings_openwebui_base_url_notice'));
@@ -652,11 +652,21 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 $form->addRawField('</div>'); // Ende openwebui-settings
 
+$savedAiProvider = (string) rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
+$hasSavedAiConfig = [
+    'gemini' => '' !== trim((string) rex_config::get('filepond_uploader', 'gemini_api_key', '')),
+    'cloudflare' => '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_api_token', ''))
+        && '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_account_id', '')),
+    'openwebui' => '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_api_key', '')),
+];
+
+$isAiTestEnabled = $hasSavedAiConfig[$savedAiProvider] ?? false;
+
 // API-Verbindungstest Button
 $form->addRawField('
     <div class="form-group">
         <div style="margin-bottom: 10px;">
-            <button type="button" class="btn btn-default" id="btn-test-ai-connection">
+            <button type="button" class="btn btn-default" id="btn-test-ai-connection"' . ($isAiTestEnabled ? '' : ' disabled="disabled"') . '>
                 <i class="fa fa-flask"></i> ' . $addon->i18n('filepond_settings_test_ai_connection') . '
             </button>
             <span id="ai-connection-result" style="margin-left: 10px;"></span>
@@ -833,6 +843,8 @@ echo $fragment->parse('core/page/section.php');
 ?>
 <script nonce="<?= rex_response::getNonce() ?>">
 (function() {
+    let updateAiTestButtonState = null;
+
     function initCombinedSettings() {
         const combinedSettings = document.getElementById("combined-processing-settings");
         if (!combinedSettings) {
@@ -872,10 +884,37 @@ echo $fragment->parse('core/page/section.php');
     function initAiTest() {
         const testBtn = document.getElementById('btn-test-ai-connection');
         const resultSpan = document.getElementById('ai-connection-result');
+        const providerSelect = document.getElementById('ai-provider-select');
+        const savedConfigMap = <?= json_encode($hasSavedAiConfig, JSON_THROW_ON_ERROR) ?>;
+        const missingConfigMessage = <?= json_encode($addon->i18n('filepond_settings_test_connection_save_first'), JSON_THROW_ON_ERROR) ?>;
+        const testButtonLabel = '<?= $addon->i18n('filepond_settings_test_ai_connection') ?>';
         
         if (!testBtn || !resultSpan) return;
+
+        updateAiTestButtonState = function() {
+            const provider = providerSelect ? providerSelect.value : '<?= rex_escape($savedAiProvider) ?>';
+            const hasSavedConfig = !!savedConfigMap[provider];
+
+            testBtn.disabled = !hasSavedConfig;
+
+            if (!hasSavedConfig) {
+                resultSpan.setAttribute('data-ai-state', 'missing-config');
+                resultSpan.innerHTML = '<span class="text-muted"><i class="fa fa-info-circle"></i> ' + missingConfigMessage + '</span>';
+            } else {
+                if (resultSpan.getAttribute('data-ai-state') === 'missing-config') {
+                    resultSpan.innerHTML = '';
+                    resultSpan.removeAttribute('data-ai-state');
+                }
+            }
+        };
+
+        updateAiTestButtonState();
         
         testBtn.addEventListener('click', function() {
+            if (testBtn.disabled) {
+                return;
+            }
+
             testBtn.disabled = true;
             testBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Teste...';
             resultSpan.innerHTML = '';
@@ -893,17 +932,22 @@ echo $fragment->parse('core/page/section.php');
                 })
                 .then(data => {
                     if (data && data.success) {
+                        resultSpan.setAttribute('data-ai-state', 'success');
                         resultSpan.innerHTML = '<span class="text-success"><i class="fa fa-check"></i> ' + (data.message || 'OK') + '</span>';
                     } else {
+                        resultSpan.setAttribute('data-ai-state', 'error');
                         resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> ' + (data?.message || data?.error || 'Unbekannter Fehler') + '</span>';
                     }
                 })
                 .catch(err => {
+                    resultSpan.setAttribute('data-ai-state', 'error');
                     resultSpan.innerHTML = '<span class="text-danger"><i class="fa fa-times"></i> Fehler: ' + err.message + '</span>';
                 })
                 .finally(() => {
-                    testBtn.disabled = false;
-                    testBtn.innerHTML = '<i class="fa fa-flask"></i> <?= $addon->i18n('filepond_settings_test_ai_connection') ?>';
+                    testBtn.innerHTML = '<i class="fa fa-flask"></i> ' + testButtonLabel;
+                    if (updateAiTestButtonState) {
+                        updateAiTestButtonState();
+                    }
                 });
         });
     }
@@ -941,6 +985,10 @@ echo $fragment->parse('core/page/section.php');
             } else {
                 if (geminiSettings) geminiSettings.style.display = 'block';
                 if (geminiUsageLink) geminiUsageLink.style.display = 'inline';
+            }
+
+            if (updateAiTestButtonState) {
+                updateAiTestButtonState();
             }
         }
         
