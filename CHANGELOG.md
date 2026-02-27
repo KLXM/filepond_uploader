@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.3.1 (2026-02-27)
+## Version 2.3.2 (2026-02-27)
 
 ### 🐛 Bugfixes
 - **OpenAI UX vereinfacht**: Bei OpenAI-kompatiblen Einstellungen ist die Base URL jetzt optional. Wenn das Feld leer bleibt, wird automatisch die offizielle OpenAI API verwendet.
