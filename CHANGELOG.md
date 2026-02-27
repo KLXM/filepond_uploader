@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 2.3.2 (2026-02-27)
+## Version 2.3.1 - 2.3.2 (2026-02-27)
 
 ### 🐛 Bugfixes
 - **OpenAI UX vereinfacht**: Bei OpenAI-kompatiblen Einstellungen ist die Base URL jetzt optional. Wenn das Feld leer bleibt, wird automatisch die offizielle OpenAI API verwendet.
@@ -8,6 +8,7 @@
 - **Testergebnis sichtbar**: Erfolg-/Fehlermeldungen des Verbindungstests bleiben nun korrekt sichtbar und werden nicht mehr direkt überschrieben.
 - **Vision-Modelle gefiltert**: Beim OpenAI-kompatiblen Verbindungstest werden nur noch visuell/vision-fähige Modelle in der Modellliste ausgegeben.
 - **Dependencies aktualisiert**: NPM-Abhängigkeiten wurden aktualisiert und die FilePond-Assets neu gebaut (inkl. aktualisiertem `package-lock.json`).
+- **Automatische Mediapool-Erweiterung**: Konfigurierte MIME-Types werden zur Laufzeit automatisch im Mediapool freigeschaltet – keine manuelle Pflege der `allowed_mime_types` mehr nötig.
 
 ## Version 2.3.0 (2026-02-25)
 
