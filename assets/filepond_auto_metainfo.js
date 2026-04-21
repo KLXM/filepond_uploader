@@ -4,7 +4,6 @@
  */
 class FilePondAutoMetaInfo {
     constructor() {
-        this.fieldsCache = null;
         this.currentModalId = null; // Eindeutige Modal-ID pro Instanz
         this.init();
     }
@@ -74,24 +73,20 @@ class FilePondAutoMetaInfo {
     }
     
     /**
-     * Lädt alle verfügbaren MetaInfo-Felder
+     * Lädt alle verfügbaren MetaInfo-Felder (kein Cache – immer frisch aus DB)
      */
     async loadMetaInfoFields() {
-        if (this.fieldsCache) {
-            return this.fieldsCache;
-        }
-        
         try {
             const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
                 method: 'GET',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Cache-Control': 'no-cache'
                 }
             });
             
             const data = await response.json();
             if (data.success) {
-                this.fieldsCache = data.fields;
                 return data.fields;
             } else {
                 throw new Error(data.error || 'Fehler beim Laden der Felder');

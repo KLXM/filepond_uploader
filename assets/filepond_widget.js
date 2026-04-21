@@ -701,7 +701,7 @@
                     'med_copyright': translations[lang]?.copyrightLabel || 'Copyright:',
                     'med_description': translations[lang]?.descriptionLabel || 'Beschreibung:'
                 };
-                return translationMap[fieldName] || fieldName;
+                return translationMap[fieldName] || null;
             };
             
             // Erstellt HTML für ein MetaInfo-Feld

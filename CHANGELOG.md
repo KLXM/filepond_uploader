@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 2.3.4 (2026-04-21)
+
+### 🐛 Bugfixes
+- **Metainfo-Feldbezeichnungen**: Im Metadaten-Modal werden jetzt die in MetaInfo konfigurierten Feldtitel korrekt angezeigt statt der rohen Spaltennamen (z.B. `med_copyright_link`). Ursache war ein Fallback in `getFieldTranslation()`, der bei unbekannten Feldern den Spaltennamen statt `null` zurückgab, wodurch `field.label` nie zum Einsatz kam.
+- **MetaInfo-Labels aus DB**: Die API-Methode `getMetaInfoFields()` liest `name`, `title` und `type_label` jetzt in einer einzigen JOIN-Query statt in N+1 Einzelabfragen. Labels werden korrekt per `rex_i18n::msg()` übersetzt wenn sie mit `translate:` beginnen, andernfalls direkt aus der DB verwendet.
+- **Humanisierter Fallback**: Felder ohne konfigurierten MetaInfo-Titel zeigen jetzt einen lesbaren Namen (z.B. `Copyright Link`) statt dem rohen Spaltennamen.
+
 ## Version 2.3.3 (2026-03-05)
 
 ### ✨ Verbesserungen

@@ -93,15 +93,22 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                     }
                 }
             } else {
-                // 3. Dynamisch ALLE med_ Felder aus MetaInfo laden
+                // 3. Dynamisch ALLE med_ Felder aus MetaInfo laden – mit Title und Type in einer JOIN-Query
                 $sql = rex_sql::factory();
-                // Wir holen alle Felder, die mit med_ beginnen, sortiert nach Priorität
-                $sql->setQuery('SELECT name FROM ' . rex::getTable('metainfo_field') . ' WHERE name LIKE "med_%" ORDER BY priority');
+                $sql->setQuery('
+                    SELECT mf.name, mf.title, mt.label AS type_label
+                    FROM ' . rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    WHERE mf.name LIKE "med_%"
+                    ORDER BY mf.priority
+                ');
 
                 foreach ($sql as $row) {
                     $name = (string) ($row->getValue('name') ?? '');
+                    $title = (string) ($row->getValue('title') ?? '');
+                    $typeLabel = (string) ($row->getValue('type_label') ?? '');
                     if (!in_array($name, $excludedFields, true)) {
-                        $fields[] = $this->analyzeField($name);
+                        $fields[] = $this->analyzeField($name, $title, $typeLabel);
                     }
                 }
             }
@@ -177,16 +184,18 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     /**
      * Analysiert ein Feld auf Typ und Mehrsprachigkeit.
      *
+     * @param string $metainfoTitle   Vorgeladener MetaInfo-Titel (aus JOIN-Query)
+     * @param string $metainfoTypeLabel Vorgeladener MetaInfo-Typ-Label (aus JOIN-Query)
      * @return array{name: string, label: string, type: string, multilingual: bool, required: bool, languages: list<array{code: string, name: string, id: int}>}
      */
-    private function analyzeField(string $fieldName): array
+    private function analyzeField(string $fieldName, string $metainfoTitle = '', string $metainfoTypeLabel = ''): array
     {
         // Standard-Feld-Informationen
         $fieldInfo = [
             'name' => $fieldName,
-            'label' => $this->getFieldLabel($fieldName),
-            'type' => $this->getFieldType($fieldName),
-            'multilingual' => $this->isMultilingual($fieldName),
+            'label' => $this->getFieldLabel($fieldName, $metainfoTitle),
+            'type' => $this->getFieldType($fieldName, $metainfoTypeLabel),
+            'multilingual' => $this->isMultilingual($fieldName, $metainfoTypeLabel),
             'required' => $this->isFieldRequired($fieldName),
             'languages' => [],
         ];
@@ -201,91 +210,108 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 
     /**
      * Ermittelt das Label für ein Feld.
+     *
+     * @param string $metainfoTitle Vorgeladener MetaInfo-Titel (aus JOIN-Query, leer = aus DB laden)
      */
-    private function getFieldLabel(string $fieldName): string
+    private function getFieldLabel(string $fieldName, string $metainfoTitle = ''): string
     {
-        $label = ucfirst($fieldName);
+        // 1. Humanisierter Feldname als Basis-Fallback (besser als roher Spaltenname)
+        $label = $this->humanizeFieldName($fieldName);
 
-        // 1. Standard Labels (Fallback)
-        $labels = [
+        // 2. Standard Labels für bekannte Felder
+        $standardLabels = [
             'title' => 'Titel',
             'med_alt' => 'Alt-Text',
             'med_copyright' => 'Copyright',
             'med_description' => 'Beschreibung',
         ];
 
-        if (isset($labels[$fieldName])) {
-            $label = $labels[$fieldName];
+        if (isset($standardLabels[$fieldName])) {
+            $label = $standardLabels[$fieldName];
         }
 
-        // 2. MetaInfo Labels (Database) - Hat Vorrang
-        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+        // 3. MetaInfo-Titel aus DB laden, falls nicht vorgeladen
+        if ('' === $metainfoTitle && rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
             try {
                 $sql = rex_sql::factory();
                 $sql->setQuery('SELECT title FROM ' . rex::getTable('metainfo_field') . ' WHERE name = ?', [$fieldName]);
                 if ($sql->getRows() > 0) {
-                    $customLabel = (string) ($sql->getValue('title') ?? '');
-                    if ('' !== $customLabel) {
-                        $label = $customLabel;
-                    }
+                    $metainfoTitle = (string) ($sql->getValue('title') ?? '');
                 }
             } catch (Exception $e) {
                 // Ignore
             }
         }
 
-        // 3. Translate if needed (rex_i18n)
-        if (str_starts_with($label, 'translate:')) {
-            $key = substr($label, 10);
-            return rex_i18n::msg($key);
+        // 4. MetaInfo-Titel anwenden (hat höchste Priorität)
+        if ('' !== $metainfoTitle) {
+            if (str_starts_with($metainfoTitle, 'translate:')) {
+                // Übersetzungs-Key: nur verwenden wenn die Übersetzung tatsächlich gefunden wurde
+                $key = substr($metainfoTitle, 10);
+                $translated = rex_i18n::msg($key);
+                // In Produktion gibt msg() den Key selbst zurück wenn nicht gefunden;
+                // im Debug-Modus '**key**'. Nur verwenden wenn die Übersetzung abweicht.
+                if ($translated !== $key && $translated !== '**' . $key . '**') {
+                    $label = $translated;
+                }
+                // Sonst: Standard- oder humanisierter Fallback bleibt erhalten
+            } elseif ($metainfoTitle !== $fieldName) {
+                // Direkter Label-Wert (nicht verwenden wenn er identisch mit dem Spaltennamen ist)
+                $label = $metainfoTitle;
+            }
         }
 
         return $label;
     }
 
     /**
-     * Ermittelt den Feldtyp.
+     * Erzeugt einen lesbaren Namen aus einem Spaltennamen.
+     * Entfernt `med_`-Prefix, ersetzt Unterstriche durch Leerzeichen.
      */
-    private function getFieldType(string $fieldName): string
+    private function humanizeFieldName(string $fieldName): string
     {
-        // 1. Hardcoded Standard-Types
+        $name = preg_replace('/^med_/', '', $fieldName) ?? $fieldName;
+        $name = str_replace('_', ' ', $name);
+        return ucwords($name);
+    }
+
+    /**
+     * Ermittelt den Feldtyp.
+     *
+     * @param string $metainfoTypeLabel Vorgeladener MetaInfo-Typ-Label (aus JOIN-Query, leer = aus DB laden)
+     */
+    private function getFieldType(string $fieldName, string $metainfoTypeLabel = ''): string
+    {
         // Title ist speziell und fix
         if ('title' === $fieldName) {
             return 'text';
         }
 
-        // 2. Datenbank-Lookup via MetaInfo
-        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+        // Typ-Label aus DB laden, falls nicht vorgeladen
+        if ('' === $metainfoTypeLabel && rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
             try {
                 $sql = rex_sql::factory();
-                // Wir holen Label UND ID vom Typ, um auch lang_textarea erkennen zu können
                 $sql->setQuery('
-                    SELECT mf.type_id, mt.label as type_label
+                    SELECT mt.label AS type_label
                     FROM ' . rex::getTable('metainfo_field') . ' mf
                     LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
                     WHERE mf.name = ?
                 ', [$fieldName]);
 
                 if ($sql->getRows() > 0) {
-                    $typeId = (int) $sql->getValue('type_id');
-                    $typeLabel = (string) ($sql->getValue('type_label') ?? '');
-
-                    // 1=Text, 2=Textarea (Standard MetaInfo)
-                    if (2 === $typeId) {
-                        return 'textarea';
-                    }
-
-                    // Check for specialized types (like lang_textarea_all)
-                    if ('' !== $typeLabel && str_contains($typeLabel, 'textarea')) {
-                        return 'textarea';
-                    }
-
-                    // Default to text
-                    return 'text';
+                    $metainfoTypeLabel = (string) ($sql->getValue('type_label') ?? '');
                 }
             } catch (Exception $e) {
                 // Ignore errors
             }
+        }
+
+        if ('' !== $metainfoTypeLabel && str_contains($metainfoTypeLabel, 'textarea')) {
+            return 'textarea';
+        }
+
+        if ('' !== $metainfoTypeLabel) {
+            return 'text';
         }
 
         // Fallbacks für Standard-Felder wenn MetaInfo-Lookup fehlschlägt/nicht existiert
@@ -298,8 +324,10 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 
     /**
      * Prüft ob ein Feld mehrsprachig konfiguriert ist.
+     *
+     * @param string $metainfoTypeLabel Vorgeladener MetaInfo-Typ-Label (aus JOIN-Query, leer = aus DB laden)
      */
-    private function isMultilingual(string $fieldName): bool
+    private function isMultilingual(string $fieldName, string $metainfoTypeLabel = ''): bool
     {
         // Prüfe MetaInfo Lang Fields AddOn
         if (!rex_addon::exists('metainfo_lang_fields') || !rex_addon::get('metainfo_lang_fields')->isAvailable()) {
@@ -311,28 +339,27 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             return false;
         }
 
-        try {
-            // Prüfe den Feldtyp in der MetaInfo-Konfiguration
-            $sql = rex_sql::factory();
-            $sql->setQuery('
-                SELECT mt.label as type_label 
-                FROM ' . rex::getTable('metainfo_field') . ' mf 
-                LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id 
-                WHERE mf.name = ?
-            ', [$fieldName]);
+        // Typ-Label aus DB laden, falls nicht vorgeladen
+        if ('' === $metainfoTypeLabel) {
+            try {
+                $sql = rex_sql::factory();
+                $sql->setQuery('
+                    SELECT mt.label AS type_label
+                    FROM ' . rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    WHERE mf.name = ?
+                ', [$fieldName]);
 
-            if ($sql->getRows() > 0) {
-                $typeLabel = (string) ($sql->getValue('type_label') ?? '');
-
-                // Prüfe ob es ein mehrsprachiger Feldtyp ist
-                $multilingualTypes = ['lang_text', 'lang_textarea', 'lang_text_all', 'lang_textarea_all'];
-                return in_array($typeLabel, $multilingualTypes, true);
+                if ($sql->getRows() > 0) {
+                    $metainfoTypeLabel = (string) ($sql->getValue('type_label') ?? '');
+                }
+            } catch (Exception $e) {
+                return false;
             }
-
-            return false;
-        } catch (Exception $e) {
-            return false;
         }
+
+        $multilingualTypes = ['lang_text', 'lang_textarea', 'lang_text_all', 'lang_textarea_all'];
+        return in_array($metainfoTypeLabel, $multilingualTypes, true);
     }
 
     /**
