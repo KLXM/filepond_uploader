@@ -1,5 +1,13 @@
 # Changelog
 
+## Version 2.3.5 (2026-04-21)
+
+### 🐛 Bugfixes (PHP 8.5 Kompatibilität)
+- **`imagedestroy()` entfernt**: In `filepond_ai_alt_generator.php` wurden veraltete `imagedestroy()`-Aufrufe entfernt, die in PHP 8.5 Deprecated-Notices erzeugen und die JSON-API-Antwort zerstören.
+- **`curl_close()` entfernt**: In `filepond_ai_provider_openai_compatible.php` wurden beide `curl_close()`-Aufrufe entfernt (ebenfalls PHP 8.5 deprecated).
+- **`max_completion_tokens` statt `max_tokens`**: Der OpenAI-kompatible Provider sendet jetzt `max_completion_tokens` statt dem veralteten `max_tokens`, das neuere Modelle (z.B. gpt-5-mini) ablehnen.
+- **`temperature` entfernt**: Der OpenAI-kompatible Provider sendet keinen expliziten `temperature`-Wert mehr – neuere Modelle akzeptieren nur den API-Default (1.0).
+
 ## Version 2.3.4 (2026-04-21)
 
 ### 🐛 Bugfixes

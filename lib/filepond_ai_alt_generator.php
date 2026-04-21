@@ -323,7 +323,6 @@ class filepond_ai_alt_generator
 
                     $newImage = imagescale($image, $newWidth, $newHeight);
                     if (false !== $newImage) {
-                        imagedestroy($image);
                         $image = $newImage;
                     }
                 }
@@ -337,8 +336,6 @@ class filepond_ai_alt_generator
                     $imageData = $obResult;
                 }
                 $mimeType = 'image/jpeg';
-
-                imagedestroy($image);
             }
         }
 
