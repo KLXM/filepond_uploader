@@ -150,7 +150,32 @@ if (rex::isBackend() && rex::getUser()) {
     if ('filepond_uploader/settings' === rex_be_controller::getCurrentPage()) {
         rex_view::addJsFile($this->getAssetsUrl('filepond_settings.js'));
     }
+
+    // YCom Media Auth Defaults JS auf den Upload-Seiten laden
+    $currentPage = rex_be_controller::getCurrentPage();
+    $isFilePondUploadPage = in_array($currentPage, [
+        'filepond_uploader/upload',
+        'mediapool/upload',
+        'mediapool/filepond_multiupload',
+    ], true);
+    if ($isFilePondUploadPage
+        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
+        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())
+    ) {
+        rex_view::addJsFile($this->getAssetsUrl('filepond_ycom_auth.js'));
+    }
 }
+
+// Backend-Permission für YCom-Media-Auth-Defaults registrieren
+rex_perm::register(
+    \FriendsOfRedaxo\FilePond\YcomAuthSettings::PERM,
+    rex_i18n::msg('filepond_perm_ycom_media_auth')
+);
+
+// API-Endpoint zum Speichern der Session-Defaults explizit registrieren
+// (defensiv – sicherstellt, dass `?rex-api-call=filepond_ycom_auth` immer auflöst,
+// auch wenn der Autoload-Cache nach Neuinstallation noch nicht aktualisiert wurde).
+rex_api_function::register('filepond_ycom_auth', rex_api_filepond_ycom_auth::class);
 
 
 

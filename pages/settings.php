@@ -491,6 +491,15 @@ $field->setLabel($addon->i18n('filepond_settings_show_alt_stats'));
 $field->addOption($addon->i18n('filepond_settings_show_alt_stats_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_show_alt_stats_notice'));
 
+// YCom Media Auth Defaults beim Upload setzen (nur wenn ycom/media_auth Plugin verfügbar)
+if (rex_addon::get('ycom')->isAvailable()
+    && rex_plugin::get('ycom', 'media_auth')->isAvailable()) {
+    $field = $form->addCheckboxField('ycom_media_auth_defaults_enabled');
+    $field->setLabel($addon->i18n('filepond_ycom_media_auth_defaults_enabled'));
+    $field->addOption($addon->i18n('filepond_ycom_media_auth_defaults_enabled_label'), 1);
+    $field->setNotice($addon->i18n('filepond_ycom_media_auth_defaults_enabled_notice'));
+}
+
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 

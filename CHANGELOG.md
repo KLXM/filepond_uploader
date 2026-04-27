@@ -1,5 +1,20 @@
 # Changelog
 
+## Version 2.4.0 (2026-04-27)
+
+### 🎉 Neue Features
+- **YCom-Medienberechtigungen beim Upload setzen** (optional): Auf der Upload-Seite erscheint für berechtigte Backend-User ein ausklappbares Panel, in dem `ycom_auth_type`, `ycom_group_type` und `ycom_groups` als Defaults für die laufende Backend-Sitzung gesetzt werden können. Jede neu hochgeladene Datei (inkl. Chunk-Upload) erhält die gewählten Werte automatisch in `rex_media`.
+  - Voraussetzung: Plugin `ycom/media_auth` aktiv.
+  - Per Schalter **„YCom-Medienberechtigungen beim Upload setzen“** in den Einstellungen aktivierbar (Standard: aus).
+  - Eigene Backend-Permission `filepond_uploader[ycom_media_auth]` (Admins haben automatisch Zugriff).
+  - Status-Badge im Panel-Header zeigt, ob aktuell „öffentlich“ oder „nur eingeloggte“ als Default greift; Reset-Button setzt die Sitzungs-Defaults zurück.
+  - Gruppen-Felder werden nur eingeblendet, wenn `ycom/group` verfügbar ist und ein konkreter Gruppentyp gewählt wurde.
+
+### 🐛 Bugfixes
+- **Defaults landeten nicht in `rex_media`**: Beim Upload über den Medienpool oder die Upload-Seite werden die YCom-Auth-Defaults jetzt zusätzlich direkt in der Upload-FormData mitgeschickt (POST-Werte `ycom_auth_type`, `ycom_group_type`, `ycom_groups[]`). Der Server bevorzugt diese POST-Werte und greift nur als Fallback auf die Session zurück – damit greift das Feature auch dann zuverlässig, wenn die asynchrone Session-Synchronisation noch nicht durchgelaufen ist oder der Autoload-Cache nach Erstinstallation veraltet ist.
+- **API-Endpoint defensiv registriert**: `?rex-api-call=filepond_ycom_auth` wird in `boot.php` jetzt explizit via `rex_api_function::register()` registriert, damit er auch ohne vorherigen Cache-Refresh sofort auflöst.
+- **Diagnose-Logging**: `applyYcomMediaAuthDefaults()` schreibt informative Log-Einträge ins FilePond-Logfile, wenn Defaults bewusst übersprungen werden (Feature aus, kein Backend-Login, fehlende Permission) bzw. erfolgreich angewendet werden – inkl. Quelle (`POST` oder `SESSION`).
+
 ## Version 2.3.5 (2026-04-21)
 
 ### 🐛 Bugfixes (PHP 8.5 Kompatibilität)

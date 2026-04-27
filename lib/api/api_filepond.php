@@ -1,5 +1,7 @@
 <?php
 
+use FriendsOfRedaxo\FilePond\YcomAuthSettings;
+
 class rex_api_filepond_uploader extends rex_api_function
 {
     protected $published = true;
@@ -699,6 +701,9 @@ class rex_api_filepond_uploader extends rex_api_function
                     $sql->update();
                 }
 
+                // YCom-Media-Auth-Defaults aus der Backend-Session anwenden (optional, gegated)
+                $this->applyYcomMediaAuthDefaults($result['filename']);
+
                 return $result['filename'];
             }
 
@@ -710,6 +715,84 @@ class rex_api_filepond_uploader extends rex_api_function
             if (str_contains($file['tmp_name'], 'upload/filepond/') && file_exists($file['tmp_name'])) {
                 rex_file::delete($file['tmp_name']);
             }
+        }
+    }
+
+    /**
+     * Wendet die in der Backend-Session hinterlegten YCom-Media-Auth-Defaults
+     * auf die soeben hochgeladene Datei an. Voraussetzung: ycom/media_auth
+     * Plugin verfügbar, Feature aktiviert und der eingeloggte Backend-User
+     * besitzt die Permission.
+     *
+     * Quelle der Default-Werte:
+     *  1. Direkte POST-Parameter (`ycom_auth_type`, `ycom_group_type`, `ycom_groups[]`),
+     *     falls der Upload sie selbst mitliefert (robuster gegen Race-Conditions
+     *     und stale Session-Daten).
+     *  2. Sonst Session-Defaults aus YcomAuthSettings::getSessionDefaults().
+     */
+    protected function applyYcomMediaAuthDefaults(string $filename): void
+    {
+        if ('' === $filename) {
+            return;
+        }
+        if (!YcomAuthSettings::isEnabled()) {
+            $this->log('info', 'YCom auth defaults skipped: feature disabled or ycom/media_auth missing');
+            return;
+        }
+        if (!rex_backend_login::hasSession()) {
+            $this->log('info', 'YCom auth defaults skipped: no backend session (frontend upload)');
+            return;
+        }
+        if (!YcomAuthSettings::userMayManage(rex::getUser())) {
+            $this->log('info', 'YCom auth defaults skipped: user lacks permission filepond_uploader[ycom_media_auth]');
+            return;
+        }
+
+        // Bevorzugt POST-Werte aus dem aktuellen Upload, sonst Session-Fallback.
+        $hasPostAuth = null !== rex_request('ycom_auth_type', 'string', null);
+        if ($hasPostAuth) {
+            $authType = 1 === rex_request('ycom_auth_type', 'int', 0) ? 1 : 0;
+            $groupType = rex_request('ycom_group_type', 'int', 0);
+            $groupsRaw = rex_request('ycom_groups', 'array', []);
+            $groups = [];
+            foreach ($groupsRaw as $g) {
+                $gid = (int) $g;
+                if ($gid > 0) {
+                    $groups[] = $gid;
+                }
+            }
+            $defaults = [
+                'ycom_auth_type' => $authType,
+                'ycom_group_type' => $groupType,
+                'ycom_groups' => $groups,
+            ];
+        } else {
+            $defaults = YcomAuthSettings::getSessionDefaults();
+        }
+
+        try {
+            $sql = rex_sql::factory();
+            $sql->setTable(rex::getTable('media'));
+            $sql->setWhere(['filename' => $filename]);
+            $sql->setValue('ycom_auth_type', $defaults['ycom_auth_type']);
+
+            if (YcomAuthSettings::isGroupSupportAvailable()) {
+                $sql->setValue('ycom_group_type', $defaults['ycom_group_type']);
+                $sql->setValue('ycom_groups', implode(',', $defaults['ycom_groups']));
+            }
+
+            $sql->update();
+            rex_media_cache::delete($filename);
+            $this->log('info', sprintf(
+                'YCom auth defaults applied to %s (auth_type=%d, group_type=%d, groups=[%s], source=%s)',
+                $filename,
+                $defaults['ycom_auth_type'],
+                $defaults['ycom_group_type'],
+                implode(',', $defaults['ycom_groups']),
+                $hasPostAuth ? 'POST' : 'SESSION'
+            ));
+        } catch (rex_sql_exception $e) {
+            rex_logger::logException($e);
         }
     }
 

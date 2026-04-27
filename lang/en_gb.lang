@@ -257,3 +257,19 @@ filepond_select_for_media = Select for Media Field
 filepond_select_for_medialist = Add to Media List
 filepond_uploader_media_widget_mode = Upload Selection
 filepond_uploader_media_widget_info = The selected items can be added to the list.
+
+# YCom Media Auth Defaults
+filepond_perm_ycom_media_auth = FilePond: Set YCom media permissions on upload
+filepond_ycom_media_auth_defaults_enabled = Set YCom media permissions on upload
+filepond_ycom_media_auth_defaults_enabled_label = Enable
+filepond_ycom_media_auth_defaults_enabled_notice = When active, a collapsible panel is shown on the upload page for authorised backend users. The values selected there are applied automatically to every file uploaded in the current backend session. Requires the "YCom Media Auth" plugin.
+filepond_ycom_auth_panel_title = YCom media permissions for new uploads
+filepond_ycom_auth_panel_intro = These defaults are written to the mediapool for every file uploaded in this session. Existing files are not modified.
+filepond_ycom_auth_type = Visibility
+filepond_ycom_auth_type_note = "All" = public. "Logged-in only" restricts access to logged-in frontend users.
+filepond_ycom_auth_all = All (public)
+filepond_ycom_auth_only_logged_in = Logged-in only
+filepond_ycom_group_type = Group filter
+filepond_ycom_groups = Groups
+filepond_ycom_groups_note = Multi-select: Ctrl/Cmd + click.
+filepond_ycom_auth_reset = Reset session defaults

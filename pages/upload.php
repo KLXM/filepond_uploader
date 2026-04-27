@@ -65,6 +65,112 @@ if ($skipMeta) {
     rex_set_session('filepond_no_meta', false);
 }
 
+// YCom Media Auth Defaults Panel (optional, gegated)
+$ycomAuthHtml = '';
+if (\FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
+    && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())) {
+    $fpAddon = rex_addon::get('filepond_uploader');
+    $ycomDefaults = \FriendsOfRedaxo\FilePond\YcomAuthSettings::getSessionDefaults();
+    $hasGroupSupport = \FriendsOfRedaxo\FilePond\YcomAuthSettings::isGroupSupportAvailable();
+
+    // Auth-Typ Select
+    $authSel = new rex_select();
+    $authSel->setName('ycom_auth_type');
+    $authSel->setId('filepond-ycom-auth-type');
+    $authSel->setSize(1);
+    $authSel->setAttribute('class', 'form-control');
+    $authSel->addArrayOptions([
+        0 => $fpAddon->i18n('filepond_ycom_auth_all'),
+        1 => $fpAddon->i18n('filepond_ycom_auth_only_logged_in'),
+    ]);
+    $authSel->setSelected($ycomDefaults['ycom_auth_type']);
+
+    $rowAuth = '<div class="form-group">'
+        . '<label for="filepond-ycom-auth-type">' . rex_escape($fpAddon->i18n('filepond_ycom_auth_type')) . '</label>'
+        . $authSel->get()
+        . '<p class="help-block text-muted">' . rex_escape($fpAddon->i18n('filepond_ycom_auth_type_note')) . '</p>'
+        . '</div>';
+
+    $rowGroupType = '';
+    $rowGroups = '';
+    if ($hasGroupSupport) {
+        $groupTypeSel = new rex_select();
+        $groupTypeSel->setName('ycom_group_type');
+        $groupTypeSel->setId('filepond-ycom-group-type');
+        $groupTypeSel->setSize(1);
+        $groupTypeSel->setAttribute('class', 'form-control');
+        $groupTypeSel->addArrayOptions([
+            0 => rex_i18n::msg('ycom_group_forallgroups'),
+            1 => rex_i18n::msg('ycom_group_inallgroups'),
+            2 => rex_i18n::msg('ycom_group_inonegroup'),
+            3 => rex_i18n::msg('ycom_group_nogroups'),
+        ]);
+        $groupTypeSel->setSelected($ycomDefaults['ycom_group_type']);
+
+        $rowGroupType = '<div class="form-group" id="filepond-ycom-group-type-row">'
+            . '<label for="filepond-ycom-group-type">' . rex_escape($fpAddon->i18n('filepond_ycom_group_type')) . '</label>'
+            . $groupTypeSel->get()
+            . '</div>';
+
+        $ycomGroups = [];
+        if (class_exists(rex_ycom_group::class)) {
+            try {
+                $ycomGroups = rex_ycom_group::getGroups();
+            } catch (\Throwable $e) {
+                $ycomGroups = [];
+            }
+        }
+
+        $groupSel = new rex_select();
+        $groupSel->setName('ycom_groups[]');
+        $groupSel->setId('filepond-ycom-groups');
+        $groupSel->setMultiple();
+        $groupSel->setSize(min(8, max(3, count($ycomGroups))));
+        $groupSel->setAttribute('class', 'form-control');
+        foreach ($ycomGroups as $gid => $gname) {
+            $groupSel->addOption($gname, (string) $gid);
+        }
+        if (!empty($ycomDefaults['ycom_groups'])) {
+            $groupSel->setSelected($ycomDefaults['ycom_groups']);
+        }
+
+        $rowGroups = '<div class="form-group" id="filepond-ycom-groups-row">'
+            . '<label for="filepond-ycom-groups">' . rex_escape($fpAddon->i18n('filepond_ycom_groups')) . '</label>'
+            . $groupSel->get()
+            . '<p class="help-block text-muted">' . rex_escape($fpAddon->i18n('filepond_ycom_groups_note')) . '</p>'
+            . '</div>';
+    }
+
+    // Status-Badge: zeigt aktuell aktive Defaults
+    $badgeText = 0 === $ycomDefaults['ycom_auth_type']
+        ? $fpAddon->i18n('filepond_ycom_auth_all')
+        : $fpAddon->i18n('filepond_ycom_auth_only_logged_in');
+    $badgeClass = 0 === $ycomDefaults['ycom_auth_type'] ? 'label-default' : 'label-warning';
+    $statusBadge = '<span id="filepond-ycom-auth-status" class="label ' . $badgeClass . '" data-public-text="'
+        . rex_escape($fpAddon->i18n('filepond_ycom_auth_all'))
+        . '" data-protected-text="' . rex_escape($fpAddon->i18n('filepond_ycom_auth_only_logged_in')) . '">'
+        . rex_escape($badgeText) . '</span>';
+
+    $ycomAuthHtml = '
+    <div class="panel panel-default" id="filepond-ycom-auth-panel" style="margin-top:0; margin-bottom:0; border-radius:0; border-left:none; border-right:none;">
+        <div class="panel-heading" style="display:flex; align-items:center; gap:8px;">
+            <a role="button" data-toggle="collapse" href="#filepond-ycom-auth-body" aria-expanded="false" aria-controls="filepond-ycom-auth-body" class="collapsed" style="flex:1;">
+                <i class="rex-icon fa-solid fa-lock"></i> ' . rex_escape($fpAddon->i18n('filepond_ycom_auth_panel_title')) . '
+            </a>
+            ' . $statusBadge . '
+            <button type="button" id="filepond-ycom-auth-reset" class="btn btn-default btn-xs" title="' . rex_escape($fpAddon->i18n('filepond_ycom_auth_reset')) . '">
+                <i class="rex-icon fa-solid fa-rotate-left"></i>
+            </button>
+        </div>
+        <div id="filepond-ycom-auth-body" class="panel-collapse collapse" aria-expanded="false">
+            <div class="panel-body">
+                <p class="text-muted">' . rex_escape($fpAddon->i18n('filepond_ycom_auth_panel_intro')) . '</p>
+                ' . $rowAuth . $rowGroupType . $rowGroups . '
+            </div>
+        </div>
+    </div>';
+}
+
 $content = '
 <div class="rex-form">
     <form action="' . rex_url::currentBackendPage() . '" method="post" class="form-horizontal">
@@ -80,8 +186,8 @@ $content = '
                         '.$selMedia->get().'
                     </div>
                 </div>
-                
-                <div class="form-group">
+                ' . $ycomAuthHtml . '
+                <div class="form-group" style="margin-top:15px;">
                     <label class="col-sm-2 control-label">' . rex_i18n::msg('filepond_upload_files') . '</label>
                     <div class="col-sm-10">
                         <input type="hidden" 

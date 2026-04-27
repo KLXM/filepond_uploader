@@ -252,3 +252,19 @@ filepond_settings_openwebui_model = Modell Name
 filepond_settings_openwebui_model_notice = Der Name des Modells in OpenWebUI/Ollama, z.B. gemma3:12b, llava:7b, minicpm-v
 filepond_settings_openwebui_usage = OpenWebUI Docs
 filepond_settings_test_connection_save_first = Bitte zuerst speichern: Für den gewählten Provider liegt noch keine Konfiguration vor.
+
+# YCom Media Auth Defaults
+filepond_perm_ycom_media_auth = FilePond: YCom-Medienberechtigungen beim Upload setzen
+filepond_ycom_media_auth_defaults_enabled = YCom-Medienberechtigungen beim Upload setzen
+filepond_ycom_media_auth_defaults_enabled_label = Aktivieren
+filepond_ycom_media_auth_defaults_enabled_notice = Wenn aktiv, erscheint auf der Upload-Seite ein ausklappbares Panel für berechtigte Backend-User. Die dort gewählten YCom-Auth-Werte werden für jede in dieser Sitzung neu hochgeladene Datei automatisch gesetzt. Voraussetzung: Plugin „YCom Media Auth“.
+filepond_ycom_auth_panel_title = YCom-Medienberechtigungen für neue Uploads
+filepond_ycom_auth_panel_intro = Diese Vorgaben werden für jede in dieser Sitzung neu hochgeladene Datei in den Mediapool geschrieben. Bestehende Dateien werden nicht verändert.
+filepond_ycom_auth_type = Sichtbarkeit
+filepond_ycom_auth_type_note = "Alle" = öffentlich. "Nur eingeloggte" beschränkt den Zugriff auf eingeloggte Frontend-User.
+filepond_ycom_auth_all = Alle (öffentlich)
+filepond_ycom_auth_only_logged_in = Nur eingeloggte
+filepond_ycom_group_type = Gruppenfilter
+filepond_ycom_groups = Gruppen
+filepond_ycom_groups_note = Mehrfachauswahl: Strg/Cmd-Klick.
+filepond_ycom_auth_reset = Sitzungs-Defaults zurücksetzen

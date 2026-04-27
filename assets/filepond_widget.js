@@ -187,6 +187,32 @@
         const basePath = getBasePath();
         // console.log('Basepath ermittelt:', basePath);
 
+        // Hilfsfunktion: hängt – sofern auf der Seite vorhanden – die YCom-Media-Auth-Defaults
+        // an jede Upload-FormData. Backend-Upload-Seite (filepond_uploader/upload bzw.
+        // mediapool/upload bei replace_mediapool=true) rendert dafür ein Panel mit
+        // den Feld-IDs filepond-ycom-auth-type / filepond-ycom-group-type / filepond-ycom-groups.
+        const appendYcomAuthDefaults = (formData) => {
+            const auth = document.getElementById('filepond-ycom-auth-type');
+            if (!auth) {
+                return; // Panel nicht vorhanden – Frontend-Upload, nichts zu tun.
+            }
+            formData.append('ycom_auth_type', auth.value || '0');
+            const groupType = document.getElementById('filepond-ycom-group-type');
+            if (groupType) {
+                formData.append('ycom_group_type', groupType.value || '0');
+            }
+            const groups = document.getElementById('filepond-ycom-groups');
+            if (groups && groups.options) {
+                for (let i = 0; i < groups.options.length; i++) {
+                    if (groups.options[i].selected) {
+                        formData.append('ycom_groups[]', groups.options[i].value);
+                    }
+                }
+            }
+        };
+        // Global verfügbar machen, damit auch externe Code-Pfade darauf zugreifen können.
+        window.filepondAppendYcomAuthDefaults = appendYcomAuthDefaults;
+
         document.querySelectorAll('input[data-widget="filepond"]').forEach(input => {
             // Prüfen, ob das Element bereits initialisiert wurde
             if (initializedElements.has(input)) {
@@ -1280,6 +1306,7 @@
                     finalFormData.append('category_id', input.dataset.filepondCat || '0');
                     finalFormData.append('totalChunks', totalChunks);
                     finalFormData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
+                    appendYcomAuthDefaults(finalFormData);
                     
                     // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
                     const lastChunkResponse = await fetch(basePath, {
@@ -1410,6 +1437,7 @@
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
                                 uploadFormData.append('category_id', input.dataset.filepondCat || '0');
+                                appendYcomAuthDefaults(uploadFormData);
                                 uploadFormData.append('skipMeta', skipMeta ? '1' : '0'); // Direkt skipMeta-Parameter übergeben
 
                                 const response = await fetch(basePath, {
