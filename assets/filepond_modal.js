@@ -3,6 +3,7 @@ class SimpleModal {
         this.modal = document.createElement('div');
         this.modal.className = 'simple-modal';
         this.modal.style.display = 'none';
+        this.focusBypassHandler = null;
 
         // Prüfen ob Style bereits existiert
         if (!document.getElementById('simple-modal-style')) {
@@ -317,6 +318,15 @@ class SimpleModal {
         this.modal.appendChild(content);
         document.body.appendChild(this.modal);
 
+        // Bootstrap-Modal-Fokusfalle kann verschachtelte Dialog-Inputs blockieren.
+        // Wir stoppen nur focusin-Events aus unserem SimpleModal im Capture-Phase.
+        this.focusBypassHandler = (event) => {
+            if (event.target && event.target.closest && event.target.closest('.simple-modal')) {
+                event.stopPropagation();
+            }
+        };
+        document.addEventListener('focusin', this.focusBypassHandler, true);
+
         const handleClose = () => {
             if (options.buttons) {
                 const cancelButton = options.buttons.find(btn => !btn.primary);
@@ -364,6 +374,12 @@ class SimpleModal {
 
     close() {
         this.modal.classList.remove('show');
+
+        if (this.focusBypassHandler) {
+            document.removeEventListener('focusin', this.focusBypassHandler, true);
+            this.focusBypassHandler = null;
+        }
+
         setTimeout(() => {
             this.modal.style.display = 'none';
             if (this.modal.parentNode) {
