@@ -1641,7 +1641,14 @@ class rex_api_filepond_uploader extends rex_api_function
     private function processAdditionalMetaInfoFields(rex_sql $sql, array $metadata): void
     {
         // Zusätzliche Felder die verarbeitet werden sollen
-        $additionalFields = ['med_description', 'med_title_lang', 'med_keywords', 'med_source'];
+        $additionalFields = [
+            'med_description',
+            'med_description_lang',
+            'med_title_lang',
+            'med_keywords',
+            'med_keywords_lang',
+            'med_source',
+        ];
 
         foreach ($additionalFields as $fieldName) {
             if (isset($metadata[$fieldName])) {

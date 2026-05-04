@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Bugfixes
+- **MetaInfo Lang Fields Speicherung korrigiert**: `processAdditionalMetaInfoFields()` verarbeitet jetzt zusätzlich `med_description_lang` und `med_keywords_lang`. Dadurch werden mehrsprachige Beschreibungen und Keywords beim Upload korrekt in den `*_lang` Feldern persistiert.
+
+
+## 2.4.1 (2026.05.04)
+
+fixed https://github.com/KLXM/filepond_uploader/issues/102, danke @milorad-micko
+
 ## Version 2.4.0 (2026-04-27)
 
 ### 🎉 Neue Features
