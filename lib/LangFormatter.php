@@ -1,9 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
 /**
  * Helper class for formatting multilingual MetaInfo fields.
  */
-class filepond_lang_formatter
+class LangFormatter
 {
     /**
      * Format multilingual field data for display.
@@ -12,7 +16,7 @@ class filepond_lang_formatter
      */
     public static function formatMultilingualField(array $langData): string
     {
-        $currentLang = rex_clang::getCurrentId();
+        $currentLang = \rex_clang::getCurrentId();
         $descriptions = [];
 
         // First try to get current language
@@ -26,14 +30,14 @@ class filepond_lang_formatter
         // Fallback: collect all non-empty descriptions
         foreach ($langData as $entry) {
             if ('' !== trim($entry['value'])) {
-                $clang = rex_clang::get($entry['clang_id']);
+                $clang = \rex_clang::get($entry['clang_id']);
                 $langName = null !== $clang ? $clang->getName() : 'ID' . $entry['clang_id'];
                 $descriptions[] = $langName . ': ' . strip_tags(trim($entry['value']));
             }
         }
 
         if (0 === count($descriptions)) {
-            return rex_i18n::msg('filepond_no_description');
+            return \rex_i18n::msg('filepond_no_description');
         }
 
         return implode(' | ', $descriptions);
@@ -65,7 +69,7 @@ class filepond_lang_formatter
                     return true;
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return false;
         }
 

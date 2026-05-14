@@ -2,7 +2,17 @@
 
 /** @var rex_addon $this */
 
-use FriendsOfRedaxo\FilePond\FilePondMediaCleanup;
+use KLXM\FilePond\FilePondMediaCleanup;
+use KLXM\FilePond\YcomAuthSettings;
+use KLXM\FilePond\Helper;
+use KLXM\FilePond\AltTextChecker;
+use KLXM\FilePond\AiAltGenerator;
+use KLXM\FilePond\UploadApi;
+use KLXM\FilePond\AiTestApi;
+use KLXM\FilePond\AltCheckerApi;
+use KLXM\FilePond\AiGenerateApi;
+use KLXM\FilePond\AutoMetainfoApi;
+use KLXM\FilePond\YcomAuthApi;
 
 rex_yform::addTemplatePath($this->getPath('ytemplates'));
 
@@ -141,8 +151,8 @@ if (rex::isBackend() && rex::getUser()) {
     static $filepondScriptsLoaded = false;
     
     if (!$filepondScriptsLoaded) {
-        filepond_helper::getStyles();
-        filepond_helper::getScripts();
+        Helper::getStyles();
+        Helper::getScripts();
         $filepondScriptsLoaded = true;
     }
 
@@ -159,8 +169,8 @@ if (rex::isBackend() && rex::getUser()) {
         'mediapool/filepond_multiupload',
     ], true);
     if ($isFilePondUploadPage
-        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
-        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())
+        && YcomAuthSettings::isEnabled()
+        && YcomAuthSettings::userMayManage(rex::getUser())
     ) {
         rex_view::addJsFile($this->getAssetsUrl('filepond_ycom_auth.js'));
     }
@@ -168,14 +178,19 @@ if (rex::isBackend() && rex::getUser()) {
 
 // Backend-Permission für YCom-Media-Auth-Defaults registrieren
 rex_perm::register(
-    \FriendsOfRedaxo\FilePond\YcomAuthSettings::PERM,
+    YcomAuthSettings::PERM,
     rex_i18n::msg('filepond_perm_ycom_media_auth')
 );
 
 // API-Endpoint zum Speichern der Session-Defaults explizit registrieren
 // (defensiv – sicherstellt, dass `?rex-api-call=filepond_ycom_auth` immer auflöst,
 // auch wenn der Autoload-Cache nach Neuinstallation noch nicht aktualisiert wurde).
-rex_api_function::register('filepond_ycom_auth', rex_api_filepond_ycom_auth::class);
+rex_api_function::register('filepond_uploader', UploadApi::class);
+rex_api_function::register('filepond_ai_test', AiTestApi::class);
+rex_api_function::register('filepond_alt_checker', AltCheckerApi::class);
+rex_api_function::register('filepond_ai_generate', AiGenerateApi::class);
+rex_api_function::register('filepond_auto_metainfo', AutoMetainfoApi::class);
+rex_api_function::register('filepond_ycom_auth', YcomAuthApi::class);
 
 
 
@@ -249,7 +264,7 @@ if ($enableAltChecker === '|1|' || $enableAltChecker === '1') {
         }
         
         // Nur einbinden wenn med_alt Feld überhaupt vorhanden ist
-        if (!filepond_alt_text_checker::checkAltFieldExists()) {
+        if (!AltTextChecker::checkAltFieldExists()) {
             return;
         }
         

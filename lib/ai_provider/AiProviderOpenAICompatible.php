@@ -1,22 +1,22 @@
 <?php
 
-class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstract
-{
-    private string $apiKey;
-    private string $baseUrl;
-    private string $model;
+declare(strict_types=1);
 
-    public function __construct(string $apiKey, string $baseUrl, string $model)
-    {
-        $this->apiKey = $apiKey;
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->model = $model;
-    }
+namespace KLXM\FilePond;
+
+class AiProviderOpenAICompatible extends AiProviderAbstract
+{
+    public function __construct(
+        private readonly string $apiKey,
+        private readonly string $baseUrl,
+        private readonly string $model,
+    ) {}
 
     private function resolveBaseUrl(): string
     {
-        if ('' !== trim($this->baseUrl)) {
-            return $this->baseUrl;
+        $url = rtrim($this->baseUrl, '/');
+        if ('' !== trim($url)) {
+            return $url;
         }
 
         return 'https://api.openai.com';

@@ -1,8 +1,10 @@
 <?php
+
+use KLXM\FilePond\AltTextChecker;
+use KLXM\FilePond\AiAltGenerator;
+
 /**
  * Alt-Text-Checker - Bilder ohne Alt-Text finden und bearbeiten
- * 
- * @package filepond_uploader
  */
 
 // Berechtigung prüfen
@@ -55,14 +57,14 @@ $apiEndpoint = rex_url::backendController([
 ]);
 
 // Prüfen ob med_alt Feld existiert
-$altFieldExists = filepond_alt_text_checker::checkAltFieldExists();
+$altFieldExists = AltTextChecker::checkAltFieldExists();
 
 // AI-Status prüfen
-$aiEnabled = filepond_ai_alt_generator::isEnabled();
+$aiEnabled = AiAltGenerator::isEnabled();
 $aiProvider = rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
 
 // Mehrsprachigkeit prüfen
-$isMultiLang = filepond_alt_text_checker::isMultiLangField();
+$isMultiLang = AltTextChecker::isMultiLangField();
 $languages = [];
 // Sprachen immer laden, auch für einsprachige Seiten (für AI-Generierung)
 foreach (rex_clang::getAll() as $clang) {
@@ -84,7 +86,7 @@ if ($filterCategory >= 0) {
 }
 
 // Statistik laden
-$stats = filepond_alt_text_checker::getStatistics();
+$stats = AltTextChecker::getStatistics();
 
 // Bilder laden
 $totalCount = 0;
@@ -92,10 +94,10 @@ $images = [];
 $pager = new rex_pager($itemsPerPage, 'start');
 
 if ($altFieldExists) {
-    $totalCount = filepond_alt_text_checker::countImagesWithoutAlt($filters);
+    $totalCount = AltTextChecker::countImagesWithoutAlt($filters);
     $pager->setRowCount($totalCount);
     $offset = $pager->getCursor();
-    $images = filepond_alt_text_checker::findImagesWithoutAlt($filters, $itemsPerPage, $offset);
+    $images = AltTextChecker::findImagesWithoutAlt($filters, $itemsPerPage, $offset);
 }
 
 // Determine current page context (mediapool or addon)
@@ -206,7 +208,7 @@ $currentPage = rex_be_controller::getCurrentPage();
                 <span id="image-count" class="badge"><?= $totalCount ?></span>
                 
                 <div class="pull-right">
-                    <?php if (filepond_ai_alt_generator::isEnabled() && count($images) > 0): ?>
+                    <?php if (AiAltGenerator::isEnabled() && count($images) > 0): ?>
                     <button type="button" class="btn btn-info btn-xs" id="btn-ai-generate-all">
                         <i class="fa fa-magic"></i> <?= $addon->i18n('alt_checker_ai_generate_all') ?>
                     </button>
@@ -557,7 +559,7 @@ $(document).on('rex:ready', function() {
         isMultiLang: <?= json_encode($isMultiLang) ?>,
         languages: <?= json_encode($languages) ?>,
         currentLangId: <?= json_encode($currentLangId) ?>,
-        aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
+        aiEnabled: <?= json_encode(AiAltGenerator::isEnabled()) ?>,
         modifiedImages: new Set(),
         
         init() {

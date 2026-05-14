@@ -1,28 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
 /**
  * API Endpoint für AI Alt-Text Generierung.
- *
- * @package filepond_uploader
  */
-
-class rex_api_filepond_ai_generate extends rex_api_function
+class AiGenerateApi extends \rex_api_function
 {
     protected $published = true;
 
-    public function execute(): rex_api_result
+    public function execute(): \rex_api_result
     {
         // Berechtigung prüfen
-        if (null === rex::getUser()) {
-            rex_response::setStatus(rex_response::HTTP_UNAUTHORIZED);
-            rex_response::sendJson(['error' => 'Unauthorized']);
+        if (null === \rex::getUser()) {
+            \rex_response::setStatus(\rex_response::HTTP_UNAUTHORIZED);
+            \rex_response::sendJson(['error' => 'Unauthorized']);
             exit;
         }
 
         // Prüfen ob AI aktiviert ist
-        if (!filepond_ai_alt_generator::isEnabled()) {
-            rex_response::setStatus(rex_response::HTTP_FORBIDDEN);
-            rex_response::sendJson(['error' => 'AI generation is disabled']);
+        if (!AiAltGenerator::isEnabled()) {
+            \rex_response::setStatus(\rex_response::HTTP_FORBIDDEN);
+            \rex_response::sendJson(['error' => 'AI generation is disabled']);
             exit;
         }
 
@@ -30,7 +31,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
         $mediaName = rex_request('media_name', 'string', '');
         $language = rex_request('language', 'string', 'de');
 
-        $generator = new filepond_ai_alt_generator();
+        $generator = new AiAltGenerator();
         $result = ['success' => false, 'error' => 'Unknown error'];
 
         try {
@@ -43,13 +44,13 @@ class rex_api_filepond_ai_generate extends rex_api_function
                 $filePath = '';
 
                 // Check direct file upload (Client-side file)
-                $files = rex_request::files('file', 'array', []);
+                $files = \rex_request::files('file', 'array', []);
                 if (isset($files['tmp_name']) && is_string($files['tmp_name']) && '' !== $files['tmp_name']) {
                     $filePath = $files['tmp_name'];
                 }
                 // Check existing file by ID (Server-side file)
                 elseif ('' !== $fileId) {
-                    $baseDir = rex_path::addonData('filepond_uploader', 'upload');
+                    $baseDir = \rex_path::addonData('filepond_uploader', 'upload');
                     $filePath = $baseDir . $fileId;
                 }
 
@@ -59,12 +60,12 @@ class rex_api_filepond_ai_generate extends rex_api_function
                     $result = ['success' => false, 'error' => 'No file provided'];
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $result = ['success' => false, 'error' => $e->getMessage()];
         }
 
-        rex_response::cleanOutputBuffers();
-        rex_response::sendJson($result);
+        \rex_response::cleanOutputBuffers();
+        \rex_response::sendJson($result);
         exit;
     }
 }

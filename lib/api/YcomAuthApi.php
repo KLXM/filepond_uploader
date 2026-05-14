@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use FriendsOfRedaxo\FilePond\YcomAuthSettings;
+namespace KLXM\FilePond;
 
 /**
  * API-Endpoint zum Speichern der YCom-Media-Auth-Defaults pro Backend-Session.
@@ -10,31 +10,31 @@ use FriendsOfRedaxo\FilePond\YcomAuthSettings;
  * Wird vom Upload-Formular aufgerufen, sobald ein berechtigter Backend-User
  * eines der drei Felder (Auth-Typ, Group-Typ, Gruppen) verändert.
  */
-class rex_api_filepond_ycom_auth extends rex_api_function
+class YcomAuthApi extends \rex_api_function
 {
     protected $published = false;
 
-    public function execute()
+    public function execute(): never
     {
-        rex_response::cleanOutputBuffers();
+        \rex_response::cleanOutputBuffers();
 
         // Nur POST – mutiert Session-State, daher GET/HEAD ablehnen.
         if ('POST' !== strtoupper((string) rex_server('REQUEST_METHOD', 'string', ''))) {
-            rex_response::setStatus('405 Method Not Allowed');
-            rex_response::sendJson(['error' => 'method_not_allowed']);
+            \rex_response::setStatus('405 Method Not Allowed');
+            \rex_response::sendJson(['error' => 'method_not_allowed']);
             exit;
         }
 
-        if (!rex_backend_login::hasSession()) {
-            rex_response::setStatus(rex_response::HTTP_FORBIDDEN);
-            rex_response::sendJson(['error' => 'forbidden']);
+        if (!\rex_backend_login::hasSession()) {
+            \rex_response::setStatus(\rex_response::HTTP_FORBIDDEN);
+            \rex_response::sendJson(['error' => 'forbidden']);
             exit;
         }
 
-        $user = rex::getUser();
+        $user = \rex::getUser();
         if (!YcomAuthSettings::isEnabled() || !YcomAuthSettings::userMayManage($user)) {
-            rex_response::setStatus(rex_response::HTTP_FORBIDDEN);
-            rex_response::sendJson(['error' => 'forbidden']);
+            \rex_response::setStatus(\rex_response::HTTP_FORBIDDEN);
+            \rex_response::sendJson(['error' => 'forbidden']);
             exit;
         }
 
@@ -56,7 +56,7 @@ class rex_api_filepond_ycom_auth extends rex_api_function
             'ycom_groups' => $groups,
         ]);
 
-        rex_response::sendJson([
+        \rex_response::sendJson([
             'success' => true,
             'defaults' => YcomAuthSettings::getSessionDefaults(),
         ]);

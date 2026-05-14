@@ -1,12 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
 use FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper;
 
 /**
  * Automatische MetaInfo-Feld-Erkennung für FilePond
  * Pragmatischer Ansatz: Vollautomatische Erkennung aller relevanten Felder.
  */
-class rex_api_filepond_auto_metainfo extends rex_api_function
+class AutoMetainfoApi extends \rex_api_function
 {
     protected $published = true;
 
@@ -17,39 +21,29 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
      */
     protected function sendResponse(array $data, int $statusCode = 200): never
     {
-        rex_response::cleanOutputBuffers();
+        \rex_response::cleanOutputBuffers();
         if (200 !== $statusCode) {
             http_response_code($statusCode);
         }
-        rex_response::sendJson($data);
+        \rex_response::sendJson($data);
         exit;
     }
 
-    public function execute(): rex_api_result
+    public function execute(): \rex_api_result
     {
         $action = rex_request('action', 'string');
 
-        switch ($action) {
-            case 'get_fields':
-                $this->getMetaInfoFields();
-                break;
+        match ($action) {
+            'get_fields' => $this->getMetaInfoFields(),
+            'save_metadata' => $this->saveMetadata(),
+            'load_metadata' => $this->loadMetadata(),
+            default => $this->sendResponse([
+                'success' => false,
+                'error' => 'Unbekannte Aktion',
+            ], 400),
+        };
 
-            case 'save_metadata':
-                $this->saveMetadata();
-                break;
-
-            case 'load_metadata':
-                $this->loadMetadata();
-                break;
-
-            default:
-                $this->sendResponse([
-                    'success' => false,
-                    'error' => 'Unbekannte Aktion',
-                ], 400);
-        }
-
-        return new rex_api_result(true);
+        return new \rex_api_result(true);
     }
 
     /**
@@ -62,7 +56,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             $fields = [];
 
             // Konfigurierte Blacklist laden
-            $excludedFields = rex_config::get('filepond_uploader', 'excluded_metadata_fields', []);
+            $excludedFields = \rex_config::get('filepond_uploader', 'excluded_metadata_fields', []);
             if (!is_array($excludedFields)) {
                 // rex_config_form speichert Arrays oft als pipe-separierten String (|value|value|)
                 if (is_string($excludedFields) && str_contains($excludedFields, '|')) {
@@ -82,7 +76,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             }
 
             // 2. Prüfen ob MetaInfo Addon verfügbar ist
-            $hasMetaInfo = rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable();
+            $hasMetaInfo = \rex_addon::exists('metainfo') && \rex_addon::get('metainfo')->isAvailable();
 
             if (!$hasMetaInfo) {
                 // Fallback ohne MetaInfo: Nur die absoluten Standardfelder annehmen
@@ -94,11 +88,11 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 }
             } else {
                 // 3. Dynamisch ALLE med_ Felder aus MetaInfo laden – mit Title und Type in einer JOIN-Query
-                $sql = rex_sql::factory();
+                $sql = \rex_sql::factory();
                 $sql->setQuery('
                     SELECT mf.name, mf.title, mt.label AS type_label
-                    FROM ' . rex::getTable('metainfo_field') . ' mf
-                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    FROM ' . \rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . \rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
                     WHERE mf.name LIKE "med_%"
                     ORDER BY mf.priority
                 ');
@@ -127,8 +121,8 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 'success' => true,
                 'fields' => $uniqueFields,
             ]);
-        } catch (Exception $e) {
-            rex_logger::logException($e);
+        } catch (\Exception $e) {
+            \rex_logger::logException($e);
 
             $this->sendResponse([
                 'success' => false,
@@ -148,12 +142,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         // Prüfe in MetaInfo
-        if (rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+        if (\rex_addon::exists('metainfo') && \rex_addon::get('metainfo')->isAvailable()) {
             try {
-                $sql = rex_sql::factory();
+                $sql = \rex_sql::factory();
                 $sql->setQuery('SELECT id FROM rex_metainfo_field WHERE name = ?', [$fieldName]);
                 return $sql->getRows() > 0;
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return false;
             }
         }
@@ -167,12 +161,12 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     private function isFieldRequired(string $fieldName): bool
     {
         // 1. Prüfe alten Schalter für Titel
-        if ('title' === $fieldName && (bool) rex_config::get('filepond_uploader', 'title_required_default', 0)) {
+        if ('title' === $fieldName && (bool) \rex_config::get('filepond_uploader', 'title_required_default', 0)) {
             return true;
         }
 
         // 2. Prüfe neue kommaseparierte Liste
-        $requiredFields = (string) rex_config::get('filepond_uploader', 'required_metadata_fields', '');
+        $requiredFields = (string) \rex_config::get('filepond_uploader', 'required_metadata_fields', '');
         if ('' === $requiredFields) {
             return false;
         }
@@ -231,14 +225,14 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         // 3. MetaInfo-Titel aus DB laden, falls nicht vorgeladen
-        if ('' === $metainfoTitle && rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+        if ('' === $metainfoTitle && \rex_addon::exists('metainfo') && \rex_addon::get('metainfo')->isAvailable()) {
             try {
-                $sql = rex_sql::factory();
-                $sql->setQuery('SELECT title FROM ' . rex::getTable('metainfo_field') . ' WHERE name = ?', [$fieldName]);
+                $sql = \rex_sql::factory();
+                $sql->setQuery('SELECT title FROM ' . \rex::getTable('metainfo_field') . ' WHERE name = ?', [$fieldName]);
                 if ($sql->getRows() > 0) {
                     $metainfoTitle = (string) ($sql->getValue('title') ?? '');
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 // Ignore
             }
         }
@@ -248,7 +242,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             if (str_starts_with($metainfoTitle, 'translate:')) {
                 // Übersetzungs-Key: nur verwenden wenn die Übersetzung tatsächlich gefunden wurde
                 $key = substr($metainfoTitle, 10);
-                $translated = rex_i18n::msg($key);
+                $translated = \rex_i18n::msg($key);
                 // In Produktion gibt msg() den Key selbst zurück wenn nicht gefunden;
                 // im Debug-Modus '**key**'. Nur verwenden wenn die Übersetzung abweicht.
                 if ($translated !== $key && $translated !== '**' . $key . '**') {
@@ -288,20 +282,20 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         // Typ-Label aus DB laden, falls nicht vorgeladen
-        if ('' === $metainfoTypeLabel && rex_addon::exists('metainfo') && rex_addon::get('metainfo')->isAvailable()) {
+        if ('' === $metainfoTypeLabel && \rex_addon::exists('metainfo') && \rex_addon::get('metainfo')->isAvailable()) {
             try {
-                $sql = rex_sql::factory();
+                $sql = \rex_sql::factory();
                 $sql->setQuery('
                     SELECT mt.label AS type_label
-                    FROM ' . rex::getTable('metainfo_field') . ' mf
-                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    FROM ' . \rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . \rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
                     WHERE mf.name = ?
                 ', [$fieldName]);
 
                 if ($sql->getRows() > 0) {
                     $metainfoTypeLabel = (string) ($sql->getValue('type_label') ?? '');
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 // Ignore errors
             }
         }
@@ -330,30 +324,30 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     private function isMultilingual(string $fieldName, string $metainfoTypeLabel = ''): bool
     {
         // Prüfe MetaInfo Lang Fields AddOn
-        if (!rex_addon::exists('metainfo_lang_fields') || !rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+        if (!\rex_addon::exists('metainfo_lang_fields') || !\rex_addon::get('metainfo_lang_fields')->isAvailable()) {
             return false;
         }
 
         // Prüfe ob MetaInfo AddOn verfügbar ist
-        if (!rex_addon::exists('metainfo') || !rex_addon::get('metainfo')->isAvailable()) {
+        if (!\rex_addon::exists('metainfo') || !\rex_addon::get('metainfo')->isAvailable()) {
             return false;
         }
 
         // Typ-Label aus DB laden, falls nicht vorgeladen
         if ('' === $metainfoTypeLabel) {
             try {
-                $sql = rex_sql::factory();
+                $sql = \rex_sql::factory();
                 $sql->setQuery('
                     SELECT mt.label AS type_label
-                    FROM ' . rex::getTable('metainfo_field') . ' mf
-                    LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
+                    FROM ' . \rex::getTable('metainfo_field') . ' mf
+                    LEFT JOIN ' . \rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id
                     WHERE mf.name = ?
                 ', [$fieldName]);
 
                 if ($sql->getRows() > 0) {
                     $metainfoTypeLabel = (string) ($sql->getValue('type_label') ?? '');
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return false;
             }
         }
@@ -370,7 +364,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     private function getAvailableLanguages(): array
     {
         $languages = [];
-        foreach (rex_clang::getAll() as $clang) {
+        foreach (\rex_clang::getAll() as $clang) {
             $languages[] = [
                 'code' => $clang->getCode(),
                 'name' => $clang->getName(),
@@ -404,13 +398,13 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             }
 
             // Prüfe ob Datei existiert
-            $media = rex_media::get($fileId);
+            $media = \rex_media::get($fileId);
             if (null === $media) {
                 throw new Exception('Mediendatei nicht gefunden');
             }
 
             // SQL für Update vorbereiten
-            $sql = rex_sql::factory();
+            $sql = \rex_sql::factory();
             $sql->setTable('rex_media');
             $sql->setWhere(['filename' => $fileId]);
 
@@ -436,7 +430,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             // SQL error handling
             try {
                 $sql->update();
-            } catch (rex_sql_exception $e) {
+            } catch (\rex_sql_exception $e) {
                 throw new Exception('Fehler beim Speichern der Metadaten: ' . $e->getMessage());
             }
 
@@ -444,9 +438,9 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 'success' => true,
                 'message' => 'Metadaten erfolgreich gespeichert',
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Log the exception internally for debugging
-            rex_logger::logException($e);
+            \rex_logger::logException($e);
 
             $this->sendResponse([
                 'success' => false,
@@ -469,7 +463,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         $result = [];
-        $languages = rex_clang::getAll();
+        $languages = \rex_clang::getAll();
 
         foreach ($fieldValue as $langCode => $value) {
             // Finde Sprach-ID anhand des Codes
@@ -505,7 +499,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 throw new Exception('Ungültige Datei-ID');
             }
 
-            $media = rex_media::get($fileId);
+            $media = \rex_media::get($fileId);
             if (null === $media) {
                 throw new Exception('Mediendatei nicht gefunden');
             }
@@ -543,9 +537,9 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 'success' => true,
                 'metadata' => $metadata,
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Log the exception internally for debugging
-            rex_logger::logException($e);
+            \rex_logger::logException($e);
 
             $this->sendResponse([
                 'success' => false,
@@ -577,7 +571,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         $result = [];
-        $languages = rex_clang::getAll();
+        $languages = \rex_clang::getAll();
 
         foreach ($normalized as $item) {
             if (isset($item['clang_id']) && isset($item['value'])) {
@@ -602,7 +596,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 
         if (null === $validFields) {
             $validFields = [];
-            $sql = rex_sql::factory();
+            $sql = \rex_sql::factory();
             $sql->setQuery('SELECT name FROM rex_metainfo_field WHERE table_name = "rex_media"');
             while ($sql->hasNext()) {
                 $validFields[] = 'med_' . (string) ($sql->getValue('name') ?? '');

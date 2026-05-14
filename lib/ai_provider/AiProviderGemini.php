@@ -1,15 +1,15 @@
 <?php
 
-class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
-{
-    private string $apiKey;
-    private string $model;
+declare(strict_types=1);
 
-    public function __construct(string $apiKey, string $model)
-    {
-        $this->apiKey = $apiKey;
-        $this->model = $model;
-    }
+namespace KLXM\FilePond;
+
+class AiProviderGemini extends AiProviderAbstract
+{
+    public function __construct(
+        private readonly string $apiKey,
+        private readonly string $model,
+    ) {}
 
     public function getKey(): string
     {

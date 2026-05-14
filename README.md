@@ -89,6 +89,21 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   Als Unterseite im Medienpool integriert
     *   Eigene Berechtigung: `filepond_uploader[alt_checker]`
 
+## PHP-Namespace
+
+Alle PHP-Klassen dieses AddOns befinden sich im Namespace `KLXM\FilePond\`. Die wichtigsten Klassen im Überblick:
+
+| Klasse | Beschreibung |
+|--------|-------------|
+| `KLXM\FilePond\Helper` | Assets (CSS/JS) einbinden |
+| `KLXM\FilePond\AltTextChecker` | Alt-Text-Prüfung für Bilder |
+| `KLXM\FilePond\AiAltGenerator` | KI-gestützte Alt-Text-Generierung |
+| `KLXM\FilePond\LangFormatter` | Mehrsprachige Metainfo-Felder formatieren |
+| `KLXM\FilePond\YcomAuthSettings` | YCom Media Auth Backend-Einstellungen |
+| `KLXM\FilePond\FilePondMediaCleanup` | Medien-Cleanup bei Löschung |
+
+Erfordert **PHP >= 8.4**.
+
 ## Installation
 
 1.  **AddOn installieren:** Installiere das AddOn "filepond_uploader" über den REDAXO-Installer.
@@ -278,8 +293,8 @@ rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_toke
 // 2. FilePond Assets einbinden
 // (idealerweise im Template-Head, hier zur Demonstration inline)
 if (rex::isFrontend()) {
-    echo filepond_helper::getStyles();
-    echo filepond_helper::getScripts();
+    echo KLXM\FilePond\Helper::getStyles();
+    echo KLXM\FilePond\Helper::getScripts();
 }
 
 // 3. YForm Instanz konfigurieren
@@ -414,8 +429,8 @@ Das AddOn enthält eine Helper-Klasse, die das Einbinden von CSS- und JavaScript
 ```php
 // Im Template oder Modul
 <?php
-echo filepond_helper::getScripts();
-echo filepond_helper::getStyles();
+echo KLXM\FilePond\Helper::getScripts();
+echo KLXM\FilePond\Helper::getStyles();
 ?>
 ```
 
@@ -618,8 +633,8 @@ rex_set_session('filepond_metainfo_lang', true);
 
 // Filepond Assets einbinden (besser im Template ablegen)
 if (rex::isFrontend()) {
-    echo filepond_helper::getStyles();
-    echo filepond_helper::getScripts();
+    echo KLXM\FilePond\Helper::getStyles();
+    echo KLXM\FilePond\Helper::getScripts();
 }
 ?>
 
@@ -835,7 +850,7 @@ Die Anpassungen sollten in einer eigenen CSS-Datei gespeichert und **nach** den 
 ```php
 <?php
 // Standard FilePond-Styles laden
-echo filepond_helper::getStyles();
+echo KLXM\FilePond\Helper::getStyles();
 
 // Eigene Anpassungen laden
 rex_view::addCssFile($this->getAssetsUrl('css/meine-filepond-anpassungen.css'));

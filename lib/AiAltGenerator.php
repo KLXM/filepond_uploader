@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
 /**
  * AI Alt-Text Generator für REDAXO.
  *
  * Unterstützt Google Gemini, Cloudflare Workers AI und OpenWebUI (OpenAI Compatible)
- *
- * @package filepond_uploader
  */
 
-class filepond_ai_alt_generator
+class AiAltGenerator
 {
     // Verfügbare Provider
     public const PROVIDERS = [
@@ -37,49 +39,40 @@ class filepond_ai_alt_generator
 
     // Legacy: für Abwärtskompatibilität
     public const MODELS = self::GEMINI_MODELS;
-    private filepond_ai_provider_interface $provider;
+    private AiProviderInterface $provider;
 
     /**
      * Constructor.
      */
     public function __construct()
     {
-        $providerKey = rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
+        $providerKey = \rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
 
-        // Provider Factory Logic
-        switch ($providerKey) {
-            case 'cloudflare':
-                $this->provider = new filepond_ai_provider_cloudflare(
-                    rex_config::get('filepond_uploader', 'cloudflare_api_token', ''),
-                    rex_config::get('filepond_uploader', 'cloudflare_account_id', ''),
-                    rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf'),
-                );
-                break;
-
-            case 'openwebui':
-                $this->provider = new filepond_ai_provider_openai_compatible(
-                    rex_config::get('filepond_uploader', 'openwebui_api_key', ''),
-                    rex_config::get('filepond_uploader', 'openwebui_base_url', ''),
-                    rex_config::get('filepond_uploader', 'openwebui_model', 'llava'),
-                );
-                break;
-
-            case 'gemini':
-            default:
-                $this->provider = new filepond_ai_provider_gemini(
-                    rex_config::get('filepond_uploader', 'gemini_api_key', ''),
-                    rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash'),
-                );
-                break;
-        }
+        $this->provider = match ($providerKey) {
+            'cloudflare' => new AiProviderCloudflare(
+                (string) \rex_config::get('filepond_uploader', 'cloudflare_api_token', ''),
+                (string) \rex_config::get('filepond_uploader', 'cloudflare_account_id', ''),
+                (string) \rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf'),
+            ),
+            'openwebui' => new AiProviderOpenAICompatible(
+                (string) \rex_config::get('filepond_uploader', 'openwebui_api_key', ''),
+                (string) \rex_config::get('filepond_uploader', 'openwebui_base_url', ''),
+                (string) \rex_config::get('filepond_uploader', 'openwebui_model', 'llava'),
+            ),
+            default => new AiProviderGemini(
+                (string) \rex_config::get('filepond_uploader', 'gemini_api_key', ''),
+                (string) \rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash'),
+            ),
+        };
     }
+
 
     /**
      * Gibt den aktuellen Provider zurück.
      */
     public static function getProvider(): string
     {
-        return rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
+        return \rex_config::get('filepond_uploader', 'ai_provider', 'gemini');
     }
 
     /**
@@ -98,7 +91,7 @@ class filepond_ai_alt_generator
      */
     public static function isEnabled(): bool
     {
-        return (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false) && self::isAvailable();
+        return (bool) \rex_config::get('filepond_uploader', 'enable_ai_alt', false) && self::isAvailable();
     }
 
     /**
@@ -118,7 +111,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        $media = rex_media::get($filename);
+        $media = \rex_media::get($filename);
         if (null === $media) {
             return [
                 'success' => false,
@@ -146,7 +139,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        $filePath = rex_path::media($filename);
+        $filePath = \rex_path::media($filename);
         if (!file_exists($filePath)) {
             return [
                 'success' => false,
@@ -218,7 +211,7 @@ class filepond_ai_alt_generator
             $prepared = $this->prepareImage($filePath, true);
             $base64Image = $prepared['data'];
             $mimeType = $prepared['mime'];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -230,7 +223,7 @@ class filepond_ai_alt_generator
         $prompt = $this->buildPrompt($language);
 
         // Max Tokens holen
-        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        $maxTokens = (int) \rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
         if ($maxTokens <= 0) {
             $maxTokens = 2048;
         }
@@ -245,7 +238,7 @@ class filepond_ai_alt_generator
                 'tokens' => $result['tokens'] ?? null,
                 'error' => null,
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -351,7 +344,7 @@ class filepond_ai_alt_generator
     private function buildPrompt(string $language = 'de'): string
     {
         // Custom Prompt aus Einstellungen laden
-        $customPrompt = rex_config::get('filepond_uploader', 'ai_alt_prompt', '');
+        $customPrompt = \rex_config::get('filepond_uploader', 'ai_alt_prompt', '');
 
         if ('' !== $customPrompt && is_string($customPrompt)) {
             // Platzhalter ersetzen

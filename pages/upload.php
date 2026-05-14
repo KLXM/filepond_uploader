@@ -67,11 +67,11 @@ if ($skipMeta) {
 
 // YCom Media Auth Defaults Panel (optional, gegated)
 $ycomAuthHtml = '';
-if (\FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
-    && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())) {
+if (\KLXM\FilePond\YcomAuthSettings::isEnabled()
+    && \KLXM\FilePond\YcomAuthSettings::userMayManage(rex::getUser())) {
     $fpAddon = rex_addon::get('filepond_uploader');
-    $ycomDefaults = \FriendsOfRedaxo\FilePond\YcomAuthSettings::getSessionDefaults();
-    $hasGroupSupport = \FriendsOfRedaxo\FilePond\YcomAuthSettings::isGroupSupportAvailable();
+    $ycomDefaults = \KLXM\FilePond\YcomAuthSettings::getSessionDefaults();
+    $hasGroupSupport = \KLXM\FilePond\YcomAuthSettings::isGroupSupportAvailable();
 
     // Auth-Typ Select
     $authSel = new rex_select();

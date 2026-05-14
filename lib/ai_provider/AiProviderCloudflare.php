@@ -1,17 +1,16 @@
 <?php
 
-class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
-{
-    private string $apiKey;
-    private string $accountId;
-    private string $model;
+declare(strict_types=1);
 
-    public function __construct(string $apiKey, string $accountId, string $model)
-    {
-        $this->apiKey = $apiKey;
-        $this->accountId = $accountId;
-        $this->model = $model;
-    }
+namespace KLXM\FilePond;
+
+class AiProviderCloudflare extends AiProviderAbstract
+{
+    public function __construct(
+        private readonly string $apiKey,
+        private readonly string $accountId,
+        private readonly string $model,
+    ) {}
 
     public function getKey(): string
     {

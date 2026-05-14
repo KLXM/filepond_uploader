@@ -1,6 +1,10 @@
 <?php
 
-class filepond_helper
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
+class Helper
 {
     // Tracking variables for scripts and styles
     private static bool $scriptsIncluded = false;
@@ -17,7 +21,7 @@ class filepond_helper
             return '';
         }
 
-        $addon = rex_addon::get('filepond_uploader');
+        $addon = \rex_addon::get('filepond_uploader');
 
         $jsFiles = [
             $addon->getAssetsUrl('filepond/plugins/filepond-plugin-file-validate-type.js'),
@@ -32,9 +36,9 @@ class filepond_helper
             $addon->getAssetsUrl('filepond_auto_metainfo.js'),  // Unser neues MetaInfo JavaScript
         ];
 
-        if (rex::isBackend()) {
+        if (\rex::isBackend()) {
             foreach ($jsFiles as $file) {
-                rex_view::addJsFile($file);
+                \rex_view::addJsFile($file);
             }
             self::$scriptsIncluded = true;
             return '';
@@ -61,7 +65,7 @@ class filepond_helper
             return '';
         }
 
-        $addon = rex_addon::get('filepond_uploader');
+        $addon = \rex_addon::get('filepond_uploader');
 
         $cssFiles = [
             $addon->getAssetsUrl('filepond/filepond.css'),
@@ -71,9 +75,9 @@ class filepond_helper
             $addon->getAssetsUrl('filepond_metainfo_lang.css'),  // MetaInfo Lang Fields Styles
         ];
 
-        if (rex::isBackend()) {
+        if (\rex::isBackend()) {
             foreach ($cssFiles as $file) {
-                rex_view::addCssFile($file);
+                \rex_view::addCssFile($file);
             }
             self::$stylesIncluded = true;
             return '';

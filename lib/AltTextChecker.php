@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
+namespace KLXM\FilePond;
+
 /**
  * Alt-Text-Checker - Findet Bilder ohne Alt-Text für Barrierefreiheit
  * Unterstützt auch mehrsprachige Metafelder (metainfo_lang_fields).
- *
- * @package filepond_uploader
  */
-class filepond_alt_text_checker
+class AltTextChecker
 {
     private static ?bool $altFieldExists = null;
 
@@ -16,22 +18,22 @@ class filepond_alt_text_checker
     public static function isMultiLangField(): bool
     {
         // Prüfe MetaInfo Lang Fields AddOn
-        if (!rex_addon::exists('metainfo_lang_fields') || !rex_addon::get('metainfo_lang_fields')->isAvailable()) {
+        if (!\rex_addon::exists('metainfo_lang_fields') || !\rex_addon::get('metainfo_lang_fields')->isAvailable()) {
             return false;
         }
 
         // Prüfe ob MetaInfo AddOn verfügbar ist
-        if (!rex_addon::exists('metainfo') || !rex_addon::get('metainfo')->isAvailable()) {
+        if (!\rex_addon::exists('metainfo') || !\rex_addon::get('metainfo')->isAvailable()) {
             return false;
         }
 
         try {
             // Prüfe den Feldtyp in der MetaInfo-Konfiguration
-            $sql = rex_sql::factory();
+            $sql = \rex_sql::factory();
             $sql->setQuery('
                 SELECT mf.type_id, mt.label as type_label 
-                FROM ' . rex::getTable('metainfo_field') . ' mf 
-                LEFT JOIN ' . rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id 
+                FROM ' . \rex::getTable('metainfo_field') . ' mf 
+                LEFT JOIN ' . \rex::getTable('metainfo_type') . ' mt ON mf.type_id = mt.id 
                 WHERE mf.name = ?
             ', ['med_alt']);
 
@@ -44,7 +46,7 @@ class filepond_alt_text_checker
             }
 
             return false;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -85,7 +87,7 @@ class filepond_alt_text_checker
         }
 
         if (null === $clangId) {
-            $clangId = rex_clang::getCurrentId();
+            $clangId = \rex_clang::getCurrentId();
         }
 
         // Prüfen ob es ein JSON-Array ist (mehrsprachig)
@@ -131,19 +133,19 @@ class filepond_alt_text_checker
         $where = ['filetype LIKE "image/%"'];
 
         if ([] !== $decorativeList) {
-            $escapedList = array_map(static fn ($f) => rex_sql::factory()->escape($f), $decorativeList);
+            $escapedList = array_map(static fn ($f) => \rex_sql::factory()->escape($f), $decorativeList);
             $where[] = 'filename NOT IN (' . implode(',', $escapedList) . ')';
         }
 
         if (isset($filters['filename']) && '' !== $filters['filename']) {
-            $where[] = 'filename LIKE ' . rex_sql::factory()->escape('%' . $filters['filename'] . '%');
+            $where[] = 'filename LIKE ' . \rex_sql::factory()->escape('%' . $filters['filename'] . '%');
         }
         if (isset($filters['category_id']) && $filters['category_id'] >= 0) {
             $where[] = 'category_id = ' . (int) $filters['category_id'];
         }
 
         // Sortierung
-        $sortConfig = rex_config::get('filepond_uploader', 'alt_checker_sort', 'createdate_desc');
+        $sortConfig = \rex_config::get('filepond_uploader', 'alt_checker_sort', 'createdate_desc');
         $orderBy = 'createdate DESC';
 
         switch ($sortConfig) {
@@ -162,10 +164,10 @@ class filepond_alt_text_checker
                 break;
         }
 
-        $sql = rex_sql::factory();
+        $sql = \rex_sql::factory();
         $sql->setQuery('
             SELECT id, filename, category_id, title, med_alt, createdate, createuser, width, height
-            FROM ' . rex::getTable('media') . '
+            FROM ' . \rex::getTable('media') . '
             WHERE ' . implode(' AND ', $where) . '
             ORDER BY ' . $orderBy . '
         ');
@@ -216,10 +218,10 @@ class filepond_alt_text_checker
             ];
         }
 
-        $sql = rex_sql::factory();
+        $sql = \rex_sql::factory();
 
         // Alle Bilder laden und prüfen (wegen JSON-Format)
-        $sql->setQuery('SELECT filename, med_alt FROM ' . rex::getTable('media') . ' WHERE filetype LIKE "image/%"');
+        $sql->setQuery('SELECT filename, med_alt FROM ' . \rex::getTable('media') . ' WHERE filetype LIKE "image/%"');
 
         $total = 0;
         $withAlt = 0;
@@ -269,7 +271,7 @@ class filepond_alt_text_checker
         }
 
         try {
-            $media = rex_media::get($filename);
+            $media = \rex_media::get($filename);
             if (null === $media) {
                 return ['success' => false, 'error' => 'Medium nicht gefunden'];
             }
@@ -291,8 +293,8 @@ class filepond_alt_text_checker
             // Wenn mehrsprachig aktiv und ein String übergeben wurde, in aktuelle Sprache speichern
             elseif (self::isMultiLangField()) {
                 // Bestehenden Wert laden und updaten
-                $sql = rex_sql::factory();
-                $sql->setQuery('SELECT med_alt FROM ' . rex::getTable('media') . ' WHERE filename = ?', [$filename]);
+                $sql = \rex_sql::factory();
+                $sql->setQuery('SELECT med_alt FROM ' . \rex::getTable('media') . ' WHERE filename = ?', [$filename]);
                 $currentValue = (string) ($sql->getValue('med_alt') ?? '');
 
                 $langData = [];
@@ -301,7 +303,7 @@ class filepond_alt_text_checker
                 }
 
                 // Aktuelle Sprache updaten oder hinzufügen
-                $currentClangId = rex_clang::getCurrentId();
+                $currentClangId = \rex_clang::getCurrentId();
                 $found = false;
                 foreach ($langData as &$entry) {
                     if (isset($entry['clang_id']) && (int) $entry['clang_id'] === $currentClangId) {
@@ -320,21 +322,21 @@ class filepond_alt_text_checker
                 $valueToSave = (string) json_encode($langData, JSON_UNESCAPED_UNICODE);
             }
 
-            $sql = rex_sql::factory();
-            $sql->setTable(rex::getTable('media'));
+            $sql = \rex_sql::factory();
+            $sql->setTable(\rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
             $sql->setValue('med_alt', $valueToSave);
             $sql->update();
 
             // Cache löschen
-            rex_media_cache::delete($filename);
+            \rex_media_cache::delete($filename);
 
             return [
                 'success' => true,
                 'filename' => $filename,
                 'alt_text' => $valueToSave,
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -347,7 +349,7 @@ class filepond_alt_text_checker
     public static function markAsDecorative(string $filename): array
     {
         try {
-            $media = rex_media::get($filename);
+            $media = \rex_media::get($filename);
             if (null === $media) {
                 return ['success' => false, 'error' => 'Medium nicht gefunden'];
             }
@@ -355,7 +357,7 @@ class filepond_alt_text_checker
             $decorativeList = self::getDecorativeList();
             if (!in_array($filename, $decorativeList, true)) {
                 $decorativeList[] = $filename;
-                rex_config::set('filepond_uploader', 'decorative_images', json_encode($decorativeList));
+                \rex_config::set('filepond_uploader', 'decorative_images', json_encode($decorativeList));
             }
 
             return [
@@ -363,7 +365,7 @@ class filepond_alt_text_checker
                 'filename' => $filename,
                 'decorative' => true,
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -378,14 +380,14 @@ class filepond_alt_text_checker
         try {
             $decorativeList = self::getDecorativeList();
             $decorativeList = array_filter($decorativeList, static fn ($f) => $f !== $filename);
-            rex_config::set('filepond_uploader', 'decorative_images', json_encode(array_values($decorativeList)));
+            \rex_config::set('filepond_uploader', 'decorative_images', json_encode(array_values($decorativeList)));
 
             return [
                 'success' => true,
                 'filename' => $filename,
                 'decorative' => false,
             ];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
@@ -405,7 +407,7 @@ class filepond_alt_text_checker
      */
     public static function getDecorativeList(): array
     {
-        $json = rex_config::get('filepond_uploader', 'decorative_images', '[]');
+        $json = \rex_config::get('filepond_uploader', 'decorative_images', '[]');
         if (!is_string($json)) {
             return [];
         }
@@ -472,11 +474,11 @@ class filepond_alt_text_checker
             return self::$altFieldExists;
         }
 
-        $sql = rex_sql::factory();
+        $sql = \rex_sql::factory();
         try {
-            $sql->setQuery('SHOW COLUMNS FROM ' . rex::getTable('media') . ' LIKE "med_alt"');
+            $sql->setQuery('SHOW COLUMNS FROM ' . \rex::getTable('media') . ' LIKE "med_alt"');
             self::$altFieldExists = $sql->getRows() > 0;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             self::$altFieldExists = false;
         }
 
@@ -494,14 +496,14 @@ class filepond_alt_text_checker
             return [];
         }
 
-        $sql = rex_sql::factory();
+        $sql = \rex_sql::factory();
         $sql->setQuery('
             SELECT 
                 m.category_id,
                 COALESCE(c.name, "Keine Kategorie") as category_name,
                 COUNT(*) as missing_count
-            FROM ' . rex::getTable('media') . ' m
-            LEFT JOIN ' . rex::getTable('media_category') . ' c ON m.category_id = c.id
+            FROM ' . \rex::getTable('media') . ' m
+            LEFT JOIN ' . \rex::getTable('media_category') . ' c ON m.category_id = c.id
             WHERE m.filetype LIKE "image/%" 
               AND (m.med_alt IS NULL OR m.med_alt = "")
             GROUP BY m.category_id, c.name
