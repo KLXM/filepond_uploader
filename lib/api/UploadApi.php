@@ -117,16 +117,16 @@ class UploadApi extends \rex_api_function
         $apiToken = \rex_config::get('filepond_uploader', 'api_token');
         $apiTokenStr = is_string($apiToken) ? $apiToken : '';
         $requestToken = \rex_request('api_token', 'string', '');
-        $sessionToken = rex_session('filepond_token', 'string', '');
+        $sessionToken = \rex_session('filepond_token', 'string', '');
 
         $isValidToken = ('' !== $apiTokenStr && '' !== $requestToken && hash_equals($apiTokenStr, $requestToken))
             || ('' !== $apiTokenStr && '' !== $sessionToken && hash_equals($apiTokenStr, $sessionToken));
 
         // YCom Check
         $isYComUser = false;
-        if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
+        if (\rex_plugin::get('ycom', 'auth')->isAvailable()) {
             /** @phpstan-ignore class.notFound */
-            if (null !== rex_ycom_auth::getUser()) {
+            if (null !== \rex_ycom_auth::getUser()) {
                 $isYComUser = true;
             }
         }
@@ -149,7 +149,7 @@ class UploadApi extends \rex_api_function
         // Hier werden Metadaten gespeichert und ein eindeutiger fileId zurückgegeben
 
         $fileId = uniqid('filepond_', true);
-        $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
+        $metadata = json_decode(\rex_post('metadata', 'string', '{}'), true);
         $fileName = \rex_request('fileName', 'string', '');
         $fieldName = \rex_request('fieldName', 'string', 'filepond');
 
@@ -628,7 +628,7 @@ class UploadApi extends \rex_api_function
         $originalName = $file['name'];
 
         $metadata = $file['metadata'] ?? [];
-        $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
+        $skipMeta = \rex_session('filepond_no_meta', 'boolean', false);
 
         // Direkt übergebenen Parameter mit höherer Priorität berücksichtigen
         if ('1' === \rex_request('skipMeta', 'string', '')) {
@@ -1175,7 +1175,7 @@ class UploadApi extends \rex_api_function
                 $inUse = false;
 
                 $sql = \rex_sql::factory();
-                $yformTables = rex_yform_manager_table::getAll();
+                $yformTables = \rex_yform_manager_table::getAll();
 
                 foreach ($yformTables as $table) {
                     foreach ($table->getFields() as $field) {
