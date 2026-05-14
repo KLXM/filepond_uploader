@@ -4,24 +4,27 @@ declare(strict_types=1);
 
 namespace KLXM\FilePond;
 
+use CurlHandle;
+use Exception;
+
 abstract class AiProviderAbstract implements AiProviderInterface
 {
     /**
      * Helper für cURL-Error-Handling.
      */
-    protected function handleCurlError(\CurlHandle $ch, string|false $response = false): void
+    protected function handleCurlError(CurlHandle $ch, string|false $response = false): void
     {
         $error = curl_error($ch);
         $errno = curl_errno($ch);
 
         if ('' !== $error || 0 !== $errno) {
             curl_close($ch);
-            throw new \Exception('cURL Error #' . $errno . ': ' . $error);
+            throw new Exception('cURL Error #' . $errno . ': ' . $error);
         }
 
         if (false === $response) {
             curl_close($ch);
-            throw new \Exception('Empty response from API');
+            throw new Exception('Empty response from API');
         }
     }
 

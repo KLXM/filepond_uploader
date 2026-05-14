@@ -4,24 +4,31 @@ declare(strict_types=1);
 
 namespace KLXM\FilePond;
 
+use Exception;
+use rex;
+use rex_api_function;
+use rex_api_result;
+use rex_response;
+use function rex_request;
+
 /**
  * API Endpoint für Alt-Text-Checker.
  */
-class AltCheckerApi extends \rex_api_function
+class AltCheckerApi extends rex_api_function
 {
     protected $published = false;  // Nur für eingeloggte Backend-User
 
-    public function execute(): \rex_api_result
+    public function execute(): rex_api_result
     {
-        \rex_response::cleanOutputBuffers();
+        rex_response::cleanOutputBuffers();
 
         // Berechtigung prüfen
-        $user = \rex::getUser();
-        if (!\rex::isBackend() || null === $user || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[alt_checker]'))) {
+        $user = rex::getUser();
+        if (!rex::isBackend() || null === $user || (!$user->isAdmin() && !$user->hasPerm('filepond_uploader[alt_checker]'))) {
             $this->sendJson(['error' => 'Zugriff verweigert']);
         }
 
-        $action = \rex_request('action', 'string');
+        $action = rex_request('action', 'string');
 
         match ($action) {
             'list' => $this->handleList(),
@@ -33,7 +40,7 @@ class AltCheckerApi extends \rex_api_function
             'ai_test' => $this->handleAiTest(),
             default => $this->sendJson(['error' => 'Unbekannte Aktion']),
         };
-        return new \rex_api_result(true);
+        return new rex_api_result(true);
     }
 
     /**
@@ -41,15 +48,15 @@ class AltCheckerApi extends \rex_api_function
      */
     private function sendJson(array $data): never
     {
-        \rex_response::setHeader('Content-Type', 'application/json');
-        \rex_response::sendContent((string) json_encode($data, JSON_UNESCAPED_UNICODE));
+        rex_response::setHeader('Content-Type', 'application/json');
+        rex_response::sendContent((string) json_encode($data, JSON_UNESCAPED_UNICODE));
         exit;
     }
 
     private function handleList(): void
     {
-        $filterFilename = \rex_request('filter_filename', 'string', '');
-        $filterCategory = \rex_request('filter_category', 'int', -1);
+        $filterFilename = rex_request('filter_filename', 'string', '');
+        $filterCategory = rex_request('filter_category', 'int', -1);
 
         $filters = [];
         if ('' !== $filterFilename) {
@@ -75,7 +82,7 @@ class AltCheckerApi extends \rex_api_function
                 'images' => $images,
                 'stats' => $stats,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->sendJson(['error' => $e->getMessage()]);
         }
     }
@@ -97,17 +104,17 @@ class AltCheckerApi extends \rex_api_function
                 'stats' => $stats,
                 'categories' => $categories,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->sendJson(['error' => $e->getMessage()]);
         }
     }
 
     private function handleUpdate(): void
     {
-        $filename = \rex_request('filename', 'string', '');
-        $altText = \rex_request('alt_text', 'string', '');
-        $decorative = \rex_request('decorative', 'bool', false);
-        $isMultilang = \rex_request('is_multilang', 'bool', false);
+        $filename = rex_request('filename', 'string', '');
+        $altText = rex_request('alt_text', 'string', '');
+        $decorative = rex_request('decorative', 'bool', false);
+        $isMultilang = rex_request('is_multilang', 'bool', false);
 
         if ('' === $filename) {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
@@ -135,12 +142,12 @@ class AltCheckerApi extends \rex_api_function
 
     private function handleBulkUpdate(): void
     {
-        $updatesRaw = \rex_request('updates', 'string', '');
+        $updatesRaw = rex_request('updates', 'string', '');
 
         if ('' !== $updatesRaw && '[' === $updatesRaw[0]) {
             $updates = json_decode($updatesRaw, true) ?? [];
         } else {
-            $updates = \rex_request('updates', 'array', []);
+            $updates = rex_request('updates', 'array', []);
         }
 
         if ([] === $updates) {
@@ -160,8 +167,8 @@ class AltCheckerApi extends \rex_api_function
             $this->sendJson(['error' => 'AI Alt-Text-Generierung ist nicht aktiviert oder API-Key fehlt']);
         }
 
-        $filename = \rex_request('filename', 'string', '');
-        $language = \rex_request('language', 'string', 'de');
+        $filename = rex_request('filename', 'string', '');
+        $language = rex_request('language', 'string', 'de');
 
         if ('' === $filename) {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
@@ -182,13 +189,13 @@ class AltCheckerApi extends \rex_api_function
             $this->sendJson(['error' => 'AI Alt-Text-Generierung ist nicht aktiviert oder API-Key fehlt']);
         }
 
-        $filenamesRaw = \rex_request('filenames', 'string', '');
-        $language = \rex_request('language', 'string', 'de');
+        $filenamesRaw = rex_request('filenames', 'string', '');
+        $language = rex_request('language', 'string', 'de');
 
         if ('' !== $filenamesRaw && '[' === $filenamesRaw[0]) {
             $filenames = json_decode($filenamesRaw, true) ?? [];
         } else {
-            $filenames = \rex_request('filenames', 'array', []);
+            $filenames = rex_request('filenames', 'array', []);
         }
 
         if ([] === $filenames) {

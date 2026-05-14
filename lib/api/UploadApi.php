@@ -4,7 +4,38 @@ declare(strict_types=1);
 
 namespace KLXM\FilePond;
 
-class UploadApi extends \rex_api_function
+use Exception;
+use rex;
+use rex_addon;
+use rex_api_exception;
+use rex_api_function;
+use rex_api_result;
+use rex_backend_login;
+use rex_clang;
+use rex_config;
+use rex_dir;
+use rex_extension;
+use rex_file;
+use rex_i18n;
+use rex_logger;
+use rex_media;
+use rex_media_cache;
+use rex_media_service;
+use rex_mediapool;
+use rex_path;
+use rex_plugin;
+use rex_request as rex_request_class;
+use rex_response;
+use rex_sql;
+use rex_sql_exception;
+use rex_string;
+use rex_ycom_auth;
+use rex_yform_manager_table;
+use function rex_post;
+use function rex_request;
+use function rex_session;
+
+class UploadApi extends rex_api_function
 {
     protected $published = true;
     protected string $chunksDir = '';
@@ -17,13 +48,13 @@ class UploadApi extends \rex_api_function
     {
         parent::__construct();
         // Verzeichnisse erstellen, falls sie nicht existieren
-        $baseDir = \rex_path::addonData('filepond_uploader', 'upload');
+        $baseDir = rex_path::addonData('filepond_uploader', 'upload');
 
         $this->chunksDir = $baseDir . '/chunks';
-        \rex_dir::create($this->chunksDir);
+        rex_dir::create($this->chunksDir);
 
         $this->metadataDir = $baseDir . '/metadata';
-        \rex_dir::create($this->metadataDir);
+        rex_dir::create($this->metadataDir);
     }
 
     /**
@@ -40,35 +71,35 @@ class UploadApi extends \rex_api_function
      */
     protected function sendResponse(mixed $data, string $statusCode = '200'): void
     {
-        \rex_response::cleanOutputBuffers();
+        rex_response::cleanOutputBuffers();
         if ('200' !== $statusCode) {
-            \rex_response::setStatus($statusCode);
+            rex_response::setStatus($statusCode);
         }
-        \rex_response::sendJson($data);
+        rex_response::sendJson($data);
         exit;
     }
 
     private function log(string $level, string $message): void
     {
         if ($this->debug) {
-            $logger = \rex_logger::factory();
+            $logger = rex_logger::factory();
             /** @phpstan-ignore psr3.interpolated */
             $logger->log($level, 'FILEPOND: {message}', ['message' => $message]);
         }
     }
 
-    public function execute(): \rex_api_result
+    public function execute(): rex_api_result
     {
         try {
             $this->log('info', 'Starting execute()');
 
             // Authentifizierung prüfen
             if (!$this->isAuthorized()) {
-                throw new \rex_api_exception('Unauthorized access');
+                throw new rex_api_exception('Unauthorized access');
             }
 
-            $func = \rex_request('func', 'string', '');
-            $categoryId = \rex_request('category_id', 'int', 0);
+            $func = rex_request('func', 'string', '');
+            $categoryId = rex_request('category_id', 'int', 0);
 
             if ('prepare' === $func) {
                 $result = $this->handlePrepare();
@@ -94,14 +125,14 @@ class UploadApi extends \rex_api_function
                 $result = $this->handleCleanup();
                 $this->sendResponse($result);
             } else {
-                throw new \rex_api_exception('Invalid function: ' . $func);
+                throw new rex_api_exception('Invalid function: ' . $func);
             }
-        } catch (\Exception $e) {
-            \rex_logger::logException($e);
-            $this->sendResponse(['error' => $e->getMessage()], \rex_response::HTTP_FORBIDDEN);
+        } catch (Exception $e) {
+            rex_logger::logException($e);
+            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_FORBIDDEN);
         }
 
-        return new \rex_api_result(true);
+        return new rex_api_result(true);
     }
 
     protected function isAuthorized(): bool
@@ -109,24 +140,24 @@ class UploadApi extends \rex_api_function
         $this->log('info', 'Checking authorization');
 
         // Backend User Check
-        $user = \rex_backend_login::createUser();
+        $user = rex_backend_login::createUser();
         $isBackendUser = null !== $user;
         $this->log('info', 'isBackendUser = ' . ($isBackendUser ? 'true' : 'false'));
 
         // Token Check
-        $apiToken = \rex_config::get('filepond_uploader', 'api_token');
+        $apiToken = rex_config::get('filepond_uploader', 'api_token');
         $apiTokenStr = is_string($apiToken) ? $apiToken : '';
-        $requestToken = \rex_request('api_token', 'string', '');
-        $sessionToken = \rex_session('filepond_token', 'string', '');
+        $requestToken = rex_request('api_token', 'string', '');
+        $sessionToken = rex_session('filepond_token', 'string', '');
 
         $isValidToken = ('' !== $apiTokenStr && '' !== $requestToken && hash_equals($apiTokenStr, $requestToken))
             || ('' !== $apiTokenStr && '' !== $sessionToken && hash_equals($apiTokenStr, $sessionToken));
 
         // YCom Check
         $isYComUser = false;
-        if (\rex_plugin::get('ycom', 'auth')->isAvailable()) {
+        if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
             /** @phpstan-ignore class.notFound */
-            if (null !== \rex_ycom_auth::getUser()) {
+            if (null !== rex_ycom_auth::getUser()) {
                 $isYComUser = true;
             }
         }
@@ -149,12 +180,12 @@ class UploadApi extends \rex_api_function
         // Hier werden Metadaten gespeichert und ein eindeutiger fileId zurückgegeben
 
         $fileId = uniqid('filepond_', true);
-        $metadata = json_decode(\rex_post('metadata', 'string', '{}'), true);
-        $fileName = \rex_request('fileName', 'string', '');
-        $fieldName = \rex_request('fieldName', 'string', 'filepond');
+        $metadata = json_decode(rex_post('metadata', 'string', '{}'), true);
+        $fileName = rex_request('fileName', 'string', '');
+        $fieldName = rex_request('fieldName', 'string', 'filepond');
 
         if ('' === $fileName) {
-            throw new \rex_api_exception('Missing filename');
+            throw new rex_api_exception('Missing filename');
         }
 
         // Speichere den originalen Dateinamen für später
@@ -165,8 +196,8 @@ class UploadApi extends \rex_api_function
         $this->log('info', "Preparing upload for $fileName with ID $fileId");
 
         // Verzeichnis für Metadaten sicherstellen
-        if (!\rex_dir::create($this->metadataDir)) {
-            throw new \rex_api_exception("Failed to create metadata directory: {$this->metadataDir}");
+        if (!rex_dir::create($this->metadataDir)) {
+            throw new rex_api_exception("Failed to create metadata directory: {$this->metadataDir}");
         }
 
         // Metadaten speichern
@@ -179,8 +210,8 @@ class UploadApi extends \rex_api_function
             'timestamp' => time(),
         ];
 
-        if (!\rex_file::put($metaFile, (string) json_encode($metaData))) {
-            throw new \rex_api_exception("Failed to write metadata file: $metaFile");
+        if (!rex_file::put($metaFile, (string) json_encode($metaData))) {
+            throw new rex_api_exception("Failed to write metadata file: $metaFile");
         }
 
         // Erfolg zurückgeben
@@ -199,8 +230,8 @@ class UploadApi extends \rex_api_function
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
         $basename = pathinfo($filename, PATHINFO_FILENAME);
 
-        // Basename normalisieren mit \rex_string::normalize
-        $normalizedBasename = \rex_string::normalize($basename);
+        // Basename normalisieren mit rex_string::normalize
+        $normalizedBasename = rex_string::normalize($basename);
 
         // Wenn eine Endung vorhanden ist, wieder anhängen
         if ('' !== $extension) {
@@ -213,15 +244,15 @@ class UploadApi extends \rex_api_function
     protected function handleChunkUpload(int $categoryId): void
     {
         // Chunk-Informationen aus dem Request holen
-        $chunkIndex = \rex_request('chunkIndex', 'int', 0);
-        $totalChunks = \rex_request('totalChunks', 'int', 1);
-        $fileId = \rex_request('fileId', 'string', '');
-        $fieldName = \rex_request('fieldName', 'string', 'filepond'); // Feldname für die Identifikation
+        $chunkIndex = rex_request('chunkIndex', 'int', 0);
+        $totalChunks = rex_request('totalChunks', 'int', 1);
+        $fileId = rex_request('fileId', 'string', '');
+        $fieldName = rex_request('fieldName', 'string', 'filepond'); // Feldname für die Identifikation
 
-        $logger = \rex_logger::factory();
+        $logger = rex_logger::factory();
 
         if ('' === $fileId) {
-            throw new \rex_api_exception('Missing fileId');
+            throw new rex_api_exception('Missing fileId');
         }
 
         $metaFile = $this->metadataDir . '/' . $fileId . '.json';
@@ -232,27 +263,27 @@ class UploadApi extends \rex_api_function
             // Fallback-Metadaten erstellen
             $fallbackMetadata = [
                 'metadata' => [
-                    'title' => pathinfo(\rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
-                    'alt' => pathinfo(\rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
+                    'title' => pathinfo(rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
+                    'alt' => pathinfo(rex_request('fileName', 'string', 'unknown'), PATHINFO_FILENAME),
                     'copyright' => '',
                 ],
-                'fileName' => \rex_request('fileName', 'string', 'unknown'),
+                'fileName' => rex_request('fileName', 'string', 'unknown'),
                 'fieldName' => $fieldName,
                 'timestamp' => time(),
             ];
 
             // Verzeichnis erstellen, wenn es nicht existiert
-            \rex_dir::create($this->metadataDir);
+            rex_dir::create($this->metadataDir);
 
             // Fallback-Metadaten speichern
-            \rex_file::put($metaFile, (string) json_encode($fallbackMetadata));
+            rex_file::put($metaFile, (string) json_encode($fallbackMetadata));
 
             // Lokale Variable setzen
             $metaData = $fallbackMetadata;
         } else {
-            $metaContent = \rex_file::get($metaFile);
+            $metaContent = rex_file::get($metaFile);
             if (null === $metaContent) {
-                throw new \rex_api_exception('Could not read metadata file for chunk upload');
+                throw new rex_api_exception('Could not read metadata file for chunk upload');
             }
             $decoded = json_decode($metaContent, true);
             $metaData = is_array($decoded) ? $decoded : [];
@@ -270,10 +301,10 @@ class UploadApi extends \rex_api_function
         $this->log('debug', "chunkIndex = $chunkIndex, totalChunks = $totalChunks, fileId = $fileId, fieldName = $fieldName");
 
         // Chunk-Datei aus dem Upload holen
-        $file = \rex_request::files($fieldName, 'array', []);
+        $file = rex_request_class::files($fieldName, 'array', []);
         if (!isset($file['tmp_name']) || '' === $file['tmp_name']) {
-            \rex_response::setStatus(\rex_response::HTTP_BAD_REQUEST);
-            throw new \rex_api_exception("No file chunk uploaded for field $fieldName");
+            rex_response::setStatus(rex_response::HTTP_BAD_REQUEST);
+            throw new rex_api_exception("No file chunk uploaded for field $fieldName");
         }
 
         $this->log('debug', "\$_FILES[$fieldName] = " . print_r($file, true));
@@ -281,8 +312,8 @@ class UploadApi extends \rex_api_function
         // Verzeichnis für die Chunks dieses Files erstellen
         $fileChunkDir = $this->chunksDir . '/' . $fileId;
         if (!file_exists($fileChunkDir)) {
-            if (!\rex_dir::create($fileChunkDir)) {
-                throw new \rex_api_exception("Failed to create chunk directory: $fileChunkDir");
+            if (!rex_dir::create($fileChunkDir)) {
+                throw new rex_api_exception("Failed to create chunk directory: $fileChunkDir");
             }
             $this->log('info', "Created chunk directory: $fileChunkDir");
         }
@@ -291,12 +322,12 @@ class UploadApi extends \rex_api_function
         $lockFile = $fileChunkDir . '/.lock';
         $lock = fopen($lockFile, 'w+');
         if (false === $lock) {
-            throw new \rex_api_exception("Could not create lock file: $lockFile");
+            throw new rex_api_exception("Could not create lock file: $lockFile");
         }
 
         if (!flock($lock, LOCK_EX)) {  // Exklusives Lock anfordern
             fclose($lock);
-            throw new \rex_api_exception("Could not acquire lock for chunk directory: $fileChunkDir");
+            throw new rex_api_exception("Could not acquire lock for chunk directory: $fileChunkDir");
         }
 
         try {
@@ -306,7 +337,7 @@ class UploadApi extends \rex_api_function
             if (!move_uploaded_file($file['tmp_name'], $chunkPath)) {
                 $error = error_get_last();
                 $this->log('error', 'move_uploaded_file failed: ' . print_r($error, true));
-                throw new \rex_api_exception("Failed to save chunk $chunkIndex");
+                throw new rex_api_exception("Failed to save chunk $chunkIndex");
             }
             $this->log('info', "Saved chunk $chunkIndex successfully");
 
@@ -315,15 +346,15 @@ class UploadApi extends \rex_api_function
                 $this->log('info', "Last chunk received for $fileName, merging chunks...");
 
                 // Temporäre Datei für das zusammengeführte Ergebnis im Addon-Data-Verzeichnis
-                $tmpFile = \rex_path::addonData('filepond_uploader', 'upload/') . $fileId;
+                $tmpFile = rex_path::addonData('filepond_uploader', 'upload/') . $fileId;
 
                 // Ältere temporäre Datei entfernen falls vorhanden
-                \rex_file::delete($tmpFile);
+                rex_file::delete($tmpFile);
 
                 // Chunks zusammenführen
                 $out = fopen($tmpFile, 'w');
                 if (false === $out) {
-                    throw new \rex_api_exception('Could not create output file');
+                    throw new rex_api_exception('Could not create output file');
                 }
 
                 // DATEISYSTEM-CACHE LEEREN vor dem Auflisten der Chunks
@@ -354,7 +385,7 @@ class UploadApi extends \rex_api_function
                     fclose($out);
                     flock($lock, LOCK_UN);
                     fclose($lock);
-                    \rex_file::delete($lockFile);
+                    rex_file::delete($lockFile);
                     $missingChunks = [];
                     for ($i = 0; $i < $totalChunks; ++$i) {
                         if (!in_array((string) $i, $chunkFiles, true)) {
@@ -363,7 +394,7 @@ class UploadApi extends \rex_api_function
                     }
 
                     $this->cleanupChunks($fileChunkDir);
-                    throw new \rex_api_exception('Missing chunks: ' . implode(', ', $missingChunks) .
+                    throw new rex_api_exception('Missing chunks: ' . implode(', ', $missingChunks) .
                         ". Expected $totalChunks chunks but found only $actualChunks");
                 }
 
@@ -375,9 +406,9 @@ class UploadApi extends \rex_api_function
                         fclose($out);
                         flock($lock, LOCK_UN);
                         fclose($lock);
-                        \rex_file::delete($lockFile);
+                        rex_file::delete($lockFile);
                         $this->cleanupChunks($fileChunkDir);
-                        throw new \rex_api_exception("Chunk $i is missing despite previous validation");
+                        throw new rex_api_exception("Chunk $i is missing despite previous validation");
                     }
 
                     $in = fopen($chunkPath, 'r');
@@ -385,9 +416,9 @@ class UploadApi extends \rex_api_function
                         fclose($out);
                         flock($lock, LOCK_UN);
                         fclose($lock);
-                        \rex_file::delete($lockFile);
+                        rex_file::delete($lockFile);
                         $this->cleanupChunks($fileChunkDir);
-                        throw new \rex_api_exception("Could not open chunk $i for reading");
+                        throw new rex_api_exception("Could not open chunk $i for reading");
                     }
 
                     // Chunk zum Gesamtergebnis hinzufügen
@@ -411,7 +442,7 @@ class UploadApi extends \rex_api_function
 
                 flock($lock, LOCK_UN); // Lock freigeben
                 fclose($lock);
-                \rex_file::delete($lockFile);
+                rex_file::delete($lockFile);
 
                 $this->sendResponse([
                     'status' => 'chunk-success',
@@ -423,22 +454,22 @@ class UploadApi extends \rex_api_function
             // Antwort für erfolgreichen Chunk-Upload
             flock($lock, LOCK_UN); // Lock freigeben
             fclose($lock);
-            \rex_file::delete($lockFile);
+            rex_file::delete($lockFile);
 
             $this->sendResponse([
                 'status' => 'chunk-success',
                 'chunkIndex' => $chunkIndex,
                 'remaining' => $totalChunks - $chunkIndex - 1,
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if (is_resource($lock)) {
                 flock($lock, LOCK_UN); // Lock freigeben
                 fclose($lock);
-                \rex_file::delete($lockFile);
+                rex_file::delete($lockFile);
             }
             $this->cleanupChunks($fileChunkDir); // Räume die Chunks weg
             $this->log('error', 'Chunk upload error: ' . $e->getMessage());
-            $this->sendResponse(['error' => $e->getMessage()], \rex_response::HTTP_BAD_REQUEST);
+            $this->sendResponse(['error' => $e->getMessage()], rex_response::HTTP_BAD_REQUEST);
         }
     }
 
@@ -449,10 +480,10 @@ class UploadApi extends \rex_api_function
             $files = false !== $globResult ? $globResult : [];
             foreach ($files as $file) {
                 if (is_file($file)) {
-                    \rex_file::delete($file);
+                    rex_file::delete($file);
                 }
             }
-            \rex_dir::delete($directory);
+            rex_dir::delete($directory);
         }
     }
 
@@ -463,19 +494,19 @@ class UploadApi extends \rex_api_function
     {
         // Standard-Upload (kleine Dateien ohne Chunks)
         // Dynamischen Feldnamen nutzen, Fallback auf 'filepond'
-        $fieldName = \rex_request('fieldName', 'string', 'filepond');
-        $file = \rex_request::files($fieldName, 'array', []);
+        $fieldName = rex_request('fieldName', 'string', 'filepond');
+        $file = rex_request_class::files($fieldName, 'array', []);
         if (!isset($file['tmp_name']) || '' === $file['tmp_name']) {
             // Fallback: Versuche Default-Feldname 'filepond' falls dynamischer Name nicht funktioniert
             if ('filepond' !== $fieldName) {
-                $file = \rex_request::files('filepond', 'array', []);
+                $file = rex_request_class::files('filepond', 'array', []);
             }
             if (!isset($file['tmp_name']) || '' === $file['tmp_name']) {
-                throw new \rex_api_exception('No file uploaded');
+                throw new rex_api_exception('No file uploaded');
             }
         }
 
-        $fileId = \rex_request('fileId', 'string', '');
+        $fileId = rex_request('fileId', 'string', '');
 
         $this->log('info', "Processing standard upload for file: {$file['name']}, ID: $fileId");
 
@@ -484,12 +515,12 @@ class UploadApi extends \rex_api_function
         if ('' !== $fileId) {
             $metaFile = $this->metadataDir . '/' . $fileId . '.json';
             if (file_exists($metaFile)) {
-                $fileContent = \rex_file::get($metaFile);
+                $fileContent = rex_file::get($metaFile);
                 $metaData = (null !== $fileContent) ? json_decode($fileContent, true) : [];
                 $metadata = is_array($metaData) ? ($metaData['metadata'] ?? []) : [];
 
                 // Metadatendatei löschen, da wir sie jetzt verarbeitet haben
-                \rex_file::delete($metaFile);
+                rex_file::delete($metaFile);
             }
         }
 
@@ -502,7 +533,7 @@ class UploadApi extends \rex_api_function
                 'status' => 'success',
                 'filename' => $result,
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->log('error', 'Upload error: ' . $e->getMessage());
             throw $e;
         }
@@ -516,9 +547,9 @@ class UploadApi extends \rex_api_function
         $this->log('info', 'Processing file: ' . $file['name']);
 
         // Validierung der Dateigröße
-        $maxSize = (int) \rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
+        $maxSize = (int) rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
-            throw new \rex_api_exception('File too large');
+            throw new rex_api_exception('File too large');
         }
 
         // Sicherstellen, dass die temporäre Datei existiert
@@ -576,19 +607,19 @@ class UploadApi extends \rex_api_function
                 'video/mp4' => 'mp4',
             ];
 
-            $detectedMimeType = \rex_file::mimeType($file['tmp_name']);
+            $detectedMimeType = rex_file::mimeType($file['tmp_name']);
             if (isset($mimeExtensionMap[$detectedMimeType])) {
                 $fileExtension = $mimeExtensionMap[$detectedMimeType];
                 $file['name'] = $file['name'] . '.' . $fileExtension;
                 $this->log('info', "Added file extension based on MIME type: {$file['name']}");
             }
-            // throw new \rex_api_exception('Dateiendung konnte nicht erkannt werden');
+            // throw new rex_api_exception('Dateiendung konnte nicht erkannt werden');
         }
 
         // Verbesserte MIME-Typ-Erkennung für Chunk-Uploads mit REDAXO-eigenen Methoden
         if (str_contains($file['tmp_name'], 'upload/filepond/')) {
-            // Dateityp neu bestimmen mit \rex_file::mimeType (genauer als finfo)
-            $detectedMimeType = \rex_file::mimeType($file['tmp_name']);
+            // Dateityp neu bestimmen mit rex_file::mimeType (genauer als finfo)
+            $detectedMimeType = rex_file::mimeType($file['tmp_name']);
             $this->log('debug', "MIME detection: extension=$fileExtension, original={$file['type']}, detected=$detectedMimeType");
 
             // Den erkannten MIME-Typ verwenden
@@ -598,7 +629,7 @@ class UploadApi extends \rex_api_function
             }
 
             // Wenn der MIME-Typ immer noch nicht richtig ist, aus dem Mediapool die erlaubten MIME-Types holen
-            $allowedMimeTypes = \rex_mediapool::getAllowedMimeTypes();
+            $allowedMimeTypes = rex_mediapool::getAllowedMimeTypes();
             if (isset($allowedMimeTypes[$fileExtension]) && !in_array($file['type'], $allowedMimeTypes[$fileExtension], true)) {
                 // Ersten erlaubten MIME-Typ für diese Dateiendung verwenden
                 $file['type'] = $allowedMimeTypes[$fileExtension][0];
@@ -607,20 +638,20 @@ class UploadApi extends \rex_api_function
         }
 
         // Bei Validierung zunächst prüfen, ob die Dateiendung überhaupt erlaubt ist
-        if (!\rex_mediapool::isAllowedExtension($file['name'])) {
+        if (!rex_mediapool::isAllowedExtension($file['name'])) {
             $this->log('error', "File extension not allowed: .$fileExtension");
-            throw new \rex_api_exception('File type not allowed');
+            throw new rex_api_exception('File type not allowed');
         }
 
         // Dann prüfen, ob der MIME-Typ zur Dateiendung passt
-        if (!\rex_mediapool::isAllowedMimeType($file['tmp_name'], $file['name'])) {
+        if (!rex_mediapool::isAllowedMimeType($file['tmp_name'], $file['name'])) {
             $this->log('error', "File MIME type not allowed: {$file['type']} for extension .$fileExtension");
-            throw new \rex_api_exception('File type not allowed');
+            throw new rex_api_exception('File type not allowed');
         }
 
         // Bildoptimierung für unterstützte Formate (keine GIFs)
         // Nur wenn serverseitige Bildverarbeitung aktiviert ist
-        $serverImageProcessing = ('|1|' === (string) \rex_config::get('filepond_uploader', 'server_image_processing', ''));
+        $serverImageProcessing = ('|1|' === (string) rex_config::get('filepond_uploader', 'server_image_processing', ''));
         if ($serverImageProcessing && str_starts_with($file['type'], 'image/') && 'image/gif' !== $file['type']) {
             $this->processImage($file['tmp_name']);
         }
@@ -628,19 +659,19 @@ class UploadApi extends \rex_api_function
         $originalName = $file['name'];
 
         $metadata = $file['metadata'] ?? [];
-        $skipMeta = \rex_session('filepond_no_meta', 'boolean', false);
+        $skipMeta = rex_session('filepond_no_meta', 'boolean', false);
 
         // Direkt übergebenen Parameter mit höherer Priorität berücksichtigen
-        if ('1' === \rex_request('skipMeta', 'string', '')) {
+        if ('1' === rex_request('skipMeta', 'string', '')) {
             $skipMeta = true;
         }
 
         if ($categoryId < 0) {
-            $categoryId = (int) \rex_config::get('filepond_uploader', 'category_id', 0);
+            $categoryId = (int) rex_config::get('filepond_uploader', 'category_id', 0);
         }
 
         $data = [
-            'title' => $metadata['title'] ?? \rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME)),
+            'title' => $metadata['title'] ?? rex_string::normalize(pathinfo($originalName, PATHINFO_FILENAME)),
             'category_id' => $categoryId,
             'file' => [
                 'name' => $originalName,
@@ -658,11 +689,11 @@ class UploadApi extends \rex_api_function
             }
 
             // Übergebe die Datei an den MediaPool, der sich um Dateinamen-Duplizierung kümmert
-            $result = \rex_media_service::addMedia($data, true);
+            $result = rex_media_service::addMedia($data, true);
             if ($result['ok']) {
                 if (!$skipMeta && [] !== $metadata) {
-                    $sql = \rex_sql::factory();
-                    $sql->setTable(\rex::getTable('media'));
+                    $sql = rex_sql::factory();
+                    $sql->setTable(rex::getTable('media'));
                     $sql->setWhere(['filename' => $result['filename']]);
 
                     // Standard-Felder verarbeiten
@@ -709,13 +740,13 @@ class UploadApi extends \rex_api_function
                 return $result['filename'];
             }
 
-            throw new \rex_api_exception(implode(', ', $result['messages']));
-        } catch (\Exception $e) {
-            throw new \rex_api_exception('Upload failed: ' . $e->getMessage());
+            throw new rex_api_exception(implode(', ', $result['messages']));
+        } catch (Exception $e) {
+            throw new rex_api_exception('Upload failed: ' . $e->getMessage());
         } finally {
             // Aufräumen, wenn die Datei eine temporäre war (Chunk-Upload)
             if (str_contains($file['tmp_name'], 'upload/filepond/') && file_exists($file['tmp_name'])) {
-                \rex_file::delete($file['tmp_name']);
+                rex_file::delete($file['tmp_name']);
             }
         }
     }
@@ -741,21 +772,21 @@ class UploadApi extends \rex_api_function
             $this->log('info', 'YCom auth defaults skipped: feature disabled or ycom/media_auth missing');
             return;
         }
-        if (!\rex_backend_login::hasSession()) {
+        if (!rex_backend_login::hasSession()) {
             $this->log('info', 'YCom auth defaults skipped: no backend session (frontend upload)');
             return;
         }
-        if (!YcomAuthSettings::userMayManage(\rex::getUser())) {
+        if (!YcomAuthSettings::userMayManage(rex::getUser())) {
             $this->log('info', 'YCom auth defaults skipped: user lacks permission filepond_uploader[ycom_media_auth]');
             return;
         }
 
         // Bevorzugt POST-Werte aus dem aktuellen Upload, sonst Session-Fallback.
-        $hasPostAuth = null !== \rex_request('ycom_auth_type', 'string', null);
+        $hasPostAuth = null !== rex_request('ycom_auth_type', 'string', null);
         if ($hasPostAuth) {
-            $authType = 1 === \rex_request('ycom_auth_type', 'int', 0) ? 1 : 0;
-            $groupType = \rex_request('ycom_group_type', 'int', 0);
-            $groupsRaw = \rex_request('ycom_groups', 'array', []);
+            $authType = 1 === rex_request('ycom_auth_type', 'int', 0) ? 1 : 0;
+            $groupType = rex_request('ycom_group_type', 'int', 0);
+            $groupsRaw = rex_request('ycom_groups', 'array', []);
             $groups = [];
             foreach ($groupsRaw as $g) {
                 $gid = (int) $g;
@@ -773,8 +804,8 @@ class UploadApi extends \rex_api_function
         }
 
         try {
-            $sql = \rex_sql::factory();
-            $sql->setTable(\rex::getTable('media'));
+            $sql = rex_sql::factory();
+            $sql->setTable(rex::getTable('media'));
             $sql->setWhere(['filename' => $filename]);
             $sql->setValue('ycom_auth_type', $defaults['ycom_auth_type']);
 
@@ -784,7 +815,7 @@ class UploadApi extends \rex_api_function
             }
 
             $sql->update();
-            \rex_media_cache::delete($filename);
+            rex_media_cache::delete($filename);
             $this->log('info', sprintf(
                 'YCom auth defaults applied to %s (auth_type=%d, group_type=%d, groups=[%s], source=%s)',
                 $filename,
@@ -793,8 +824,8 @@ class UploadApi extends \rex_api_function
                 implode(',', $defaults['ycom_groups']),
                 $hasPostAuth ? 'POST' : 'SESSION'
             ));
-        } catch (\rex_sql_exception $e) {
-            \rex_logger::logException($e);
+        } catch (rex_sql_exception $e) {
+            rex_logger::logException($e);
         }
     }
 
@@ -806,9 +837,9 @@ class UploadApi extends \rex_api_function
      */
     protected function processImage($tmpFile)
     {
-        $maxPixel = (int) \rex_config::get('filepond_uploader', 'max_pixel', 1200);
-        $quality = (int) \rex_config::get('filepond_uploader', 'image_quality', 90);
-        $fixExifOrientation = (bool) \rex_config::get('filepond_uploader', 'fix_exif_orientation', false);
+        $maxPixel = (int) rex_config::get('filepond_uploader', 'max_pixel', 1200);
+        $quality = (int) rex_config::get('filepond_uploader', 'image_quality', 90);
+        $fixExifOrientation = (bool) rex_config::get('filepond_uploader', 'fix_exif_orientation', false);
 
         $imageInfo = getimagesize($tmpFile);
         if (false === $imageInfo) {
@@ -1144,7 +1175,7 @@ class UploadApi extends \rex_api_function
         }
 
         // Get image quality setting
-        $quality = \rex_config::get('filepond_uploader', 'image_quality', 90);
+        $quality = rex_config::get('filepond_uploader', 'image_quality', 90);
 
         // Save the corrected image with error handling
         if (!@imagejpeg($image, $tmpFile, $quality)) {
@@ -1163,19 +1194,19 @@ class UploadApi extends \rex_api_function
      */
     protected function handleDelete(): void
     {
-        $filename = trim(\rex_request('filename', 'string', ''));
+        $filename = trim(rex_request('filename', 'string', ''));
 
         if ('' === $filename) {
-            throw new \rex_api_exception('Missing filename');
+            throw new rex_api_exception('Missing filename');
         }
 
         try {
-            $media = \rex_media::get($filename);
+            $media = rex_media::get($filename);
             if (null !== $media) {
                 $inUse = false;
 
-                $sql = \rex_sql::factory();
-                $yformTables = \rex_yform_manager_table::getAll();
+                $sql = rex_sql::factory();
+                $yformTables = rex_yform_manager_table::getAll();
 
                 foreach ($yformTables as $table) {
                     foreach ($table->getFields() as $field) {
@@ -1191,7 +1222,7 @@ class UploadApi extends \rex_api_function
                                     $inUse = true;
                                     break 2;
                                 }
-                            } catch (\Exception $e) {
+                            } catch (Exception $e) {
                                 continue;
                             }
                         }
@@ -1199,7 +1230,7 @@ class UploadApi extends \rex_api_function
                 }
 
                 if (!$inUse) {
-                    \rex_media_service::deleteMedia($filename);
+                    rex_media_service::deleteMedia($filename);
                     $this->sendResponse(['status' => 'success']);
                 } else {
                     $this->sendResponse(['status' => 'success']);
@@ -1207,8 +1238,8 @@ class UploadApi extends \rex_api_function
             } else {
                 $this->sendResponse(['status' => 'success']);
             }
-        } catch (\rex_api_exception $e) {
-            throw new \rex_api_exception('Error deleting file: ' . $e->getMessage());
+        } catch (rex_api_exception $e) {
+            throw new rex_api_exception('Error deleting file: ' . $e->getMessage());
         }
     }
 
@@ -1217,17 +1248,17 @@ class UploadApi extends \rex_api_function
      */
     protected function handleLoad(): void
     {
-        $filename = \rex_request('filename', 'string');
+        $filename = rex_request('filename', 'string');
         if ('' === $filename) {
-            throw new \rex_api_exception('Missing filename');
+            throw new rex_api_exception('Missing filename');
         }
 
-        $media = \rex_media::get($filename);
+        $media = rex_media::get($filename);
         if (null !== $media) {
-            $file = \rex_path::media($filename);
+            $file = rex_path::media($filename);
             if (file_exists($file)) {
-                \rex_response::cleanOutputBuffers();
-                \rex_response::sendFile(
+                rex_response::cleanOutputBuffers();
+                rex_response::sendFile(
                     $file,
                     $media->getType(),
                     'inline',
@@ -1237,7 +1268,7 @@ class UploadApi extends \rex_api_function
             }
         }
 
-        throw new \rex_api_exception('File not found');
+        throw new rex_api_exception('File not found');
     }
 
     /**
@@ -1245,15 +1276,15 @@ class UploadApi extends \rex_api_function
      */
     protected function handleRestore(): void
     {
-        $filename = \rex_request('filename', 'string');
+        $filename = rex_request('filename', 'string');
         if ('' === $filename) {
-            throw new \rex_api_exception('Missing filename');
+            throw new rex_api_exception('Missing filename');
         }
 
-        if (null !== \rex_media::get($filename)) {
+        if (null !== rex_media::get($filename)) {
             $this->sendResponse(['status' => 'success']);
         } else {
-            throw new \rex_api_exception('File not found in media pool');
+            throw new rex_api_exception('File not found in media pool');
         }
     }
 
@@ -1263,9 +1294,9 @@ class UploadApi extends \rex_api_function
     public function handleCleanup(): array
     {
         // Nur Backend-Benutzer mit Admin-Rechten dürfen aufräumen
-        $user = \rex_backend_login::createUser();
+        $user = rex_backend_login::createUser();
         if (null === $user || !$user->isAdmin()) {
-            throw new \rex_api_exception('Unauthorized: Admin privileges required');
+            throw new rex_api_exception('Unauthorized: Admin privileges required');
         }
 
         // Debug-Logging NICHT temporär aktivieren, sondern nur verwenden, wenn es global aktiviert ist
@@ -1308,7 +1339,7 @@ class UploadApi extends \rex_api_function
                         $this->log('info', "Cleaning up chunk directory: $dir (modified: " . date('Y-m-d H:i:s', $dirTime) . ')');
                         $this->cleanupChunks($dir);
                         ++$cleanedChunks;
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         $errors[] = "Failed to clean chunk directory $dir: " . $e->getMessage();
                         $this->log('error', "Failed to clean chunk directory $dir: " . $e->getMessage());
                     }
@@ -1320,9 +1351,9 @@ class UploadApi extends \rex_api_function
 
             // Versuchen, das Verzeichnis zu erstellen
             try {
-                \rex_dir::create($chunksDir);
+                rex_dir::create($chunksDir);
                 $this->log('info', "Created chunks directory: $chunksDir");
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $errors[] = 'Failed to create chunks directory: ' . $e->getMessage();
                 $this->log('error', 'Failed to create chunks directory: ' . $e->getMessage());
             }
@@ -1352,13 +1383,13 @@ class UploadApi extends \rex_api_function
                 if ($fileTime < $expireTime) {
                     try {
                         $this->log('info', "Deleting metadata file: $file (modified: " . date('Y-m-d H:i:s', $fileTime) . ')');
-                        if (!\rex_file::delete($file)) {
+                        if (!rex_file::delete($file)) {
                             $errors[] = "Failed to delete metadata file: $file";
                             $this->log('error', "Failed to delete metadata file: $file");
                         } else {
                             ++$cleanedMetadata;
                         }
-                    } catch (\Exception $e) {
+                    } catch (Exception $e) {
                         $errors[] = "Failed to delete metadata file $file: " . $e->getMessage();
                         $this->log('error', "Failed to delete metadata file $file: " . $e->getMessage());
                     }
@@ -1370,9 +1401,9 @@ class UploadApi extends \rex_api_function
 
             // Versuchen, das Verzeichnis zu erstellen
             try {
-                \rex_dir::create($metadataDir);
+                rex_dir::create($metadataDir);
                 $this->log('info', "Created metadata directory: $metadataDir");
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $errors[] = 'Failed to create metadata directory: ' . $e->getMessage();
                 $this->log('error', 'Failed to create metadata directory: ' . $e->getMessage());
             }
@@ -1393,8 +1424,8 @@ class UploadApi extends \rex_api_function
         }
 
         // Debug-Info nur im Backend anzeigen
-        $currentUser = \rex::getUser();
-        if (\rex::isBackend() && null !== $currentUser && $currentUser->isAdmin()) {
+        $currentUser = rex::getUser();
+        if (rex::isBackend() && null !== $currentUser && $currentUser->isAdmin()) {
             $response['debug'] = $debugInfo;
         }
 
@@ -1409,15 +1440,15 @@ class UploadApi extends \rex_api_function
     protected function handleFinalizeUpload(int $categoryId): array
     {
         // Dateiinformationen aus dem Request holen
-        $fileId = \rex_request('fileId', 'string', '');
-        $fieldName = \rex_request('fieldName', 'string', 'filepond');
-        $fileName = \rex_request('fileName', 'string', '');
-        $totalChunks = \rex_request('totalChunks', 'int', 0);
+        $fileId = rex_request('fileId', 'string', '');
+        $fieldName = rex_request('fieldName', 'string', 'filepond');
+        $fileName = rex_request('fileName', 'string', '');
+        $totalChunks = rex_request('totalChunks', 'int', 0);
 
         $this->log('info', "Finalizing chunk upload for file: $fileName, ID: $fileId, total chunks: $totalChunks");
 
         if ('' === $fileId) {
-            throw new \rex_api_exception('Missing fileId');
+            throw new rex_api_exception('Missing fileId');
         }
 
         // Metadaten laden
@@ -1439,23 +1470,23 @@ class UploadApi extends \rex_api_function
             ];
 
             // Verzeichnis erstellen, wenn es nicht existiert
-            \rex_dir::create($this->metadataDir);
+            rex_dir::create($this->metadataDir);
 
             // Fallback-Metadaten speichern
-            \rex_file::put($metaFile, (string) json_encode($fallbackMetadata));
+            rex_file::put($metaFile, (string) json_encode($fallbackMetadata));
 
             $metaData = $fallbackMetadata;
         } else {
-            $metaContentFinalize = \rex_file::get($metaFile);
+            $metaContentFinalize = rex_file::get($metaFile);
             if (null === $metaContentFinalize) {
-                throw new \rex_api_exception('Could not read metadata file');
+                throw new rex_api_exception('Could not read metadata file');
             }
             $decodedFinalize = json_decode($metaContentFinalize, true);
             $metaData = is_array($decodedFinalize) ? $decodedFinalize : [];
         }
 
         // Temporäre Datei, die alle zusammengeführten Chunks enthält
-        $tmpFile = \rex_path::addonData('filepond_uploader', 'upload/') . $fileId;
+        $tmpFile = rex_path::addonData('filepond_uploader', 'upload/') . $fileId;
         $fileChunkDir = $this->chunksDir . '/' . $fileId;
 
         // Überprüfen, ob die zusammengeführte Datei bereits existiert
@@ -1465,7 +1496,7 @@ class UploadApi extends \rex_api_function
             // Chunks zusammenführen
             $out = fopen($tmpFile, 'w');
             if (false === $out) {
-                throw new \rex_api_exception('Could not create output file');
+                throw new rex_api_exception('Could not create output file');
             }
 
             // Dateisystem-Cache leeren vor dem Auflisten der Chunks
@@ -1473,7 +1504,7 @@ class UploadApi extends \rex_api_function
 
             // Chunk-Zählung und Validierung
             if (!file_exists($fileChunkDir)) {
-                throw new \rex_api_exception("Chunk directory not found: $fileChunkDir");
+                throw new rex_api_exception("Chunk directory not found: $fileChunkDir");
             }
 
             $files = scandir($fileChunkDir);
@@ -1494,7 +1525,7 @@ class UploadApi extends \rex_api_function
 
             if ($actualChunks < $totalChunks) {
                 fclose($out);
-                throw new \rex_api_exception("Expected $totalChunks chunks, but found only $actualChunks");
+                throw new rex_api_exception("Expected $totalChunks chunks, but found only $actualChunks");
             }
 
             // Chunks in der richtigen Reihenfolge zusammenfügen
@@ -1502,13 +1533,13 @@ class UploadApi extends \rex_api_function
                 $chunkPath = $fileChunkDir . '/' . $i;
                 if (!file_exists($chunkPath)) {
                     fclose($out);
-                    throw new \rex_api_exception("Chunk $i is missing");
+                    throw new rex_api_exception("Chunk $i is missing");
                 }
 
                 $in = fopen($chunkPath, 'r');
                 if (false === $in) {
                     fclose($out);
-                    throw new \rex_api_exception("Could not open chunk $i for reading");
+                    throw new rex_api_exception("Could not open chunk $i for reading");
                 }
 
                 stream_copy_to_stream($in, $out);
@@ -1544,7 +1575,7 @@ class UploadApi extends \rex_api_function
         ];
 
         // skipMeta-Parameter berücksichtigen
-        if ('1' === \rex_request('skipMeta', 'string', '')) {
+        if ('1' === rex_request('skipMeta', 'string', '')) {
             /** @phpstan-ignore disallowed.variable */
             $_REQUEST['skipMeta'] = '1'; // Sicherstellen, dass der Parameter auch für processUploadedFile verfügbar ist
         }
@@ -1554,7 +1585,7 @@ class UploadApi extends \rex_api_function
 
         // Aufräumen - Chunks und Metadaten löschen
         $this->cleanupChunks($fileChunkDir);
-        \rex_file::delete($metaFile);
+        rex_file::delete($metaFile);
 
         return [
             'status' => 'success',
@@ -1572,23 +1603,23 @@ class UploadApi extends \rex_api_function
      */
     protected function handleCancelUpload(): array
     {
-        $filename = trim(\rex_request('filename', 'string', ''));
+        $filename = trim(rex_request('filename', 'string', ''));
 
         if ('' === $filename) {
-            throw new \rex_api_exception('Missing filename');
+            throw new rex_api_exception('Missing filename');
         }
 
         $this->log('info', "Removing file after metadata dialog was cancelled: $filename");
 
         try {
-            $media = \rex_media::get($filename);
+            $media = rex_media::get($filename);
             if (null !== $media) {
                 // Prüfen, ob die Datei in Verwendung ist, sollte normalerweise nicht der Fall sein
                 // da sie gerade erst hochgeladen wurde und der Dialog abgebrochen wurde
                 $inUse = false;
 
                 // Lösche die Datei aus dem Medienpool
-                \rex_media_service::deleteMedia($filename);
+                rex_media_service::deleteMedia($filename);
                 $this->log('info', "Successfully removed file from media pool: $filename");
                 return [
                     'status' => 'success',
@@ -1600,9 +1631,9 @@ class UploadApi extends \rex_api_function
                 'status' => 'success',
                 'message' => "File $filename not found in media pool",
             ];
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->log('error', 'Error removing file: ' . $e->getMessage());
-            throw new \rex_api_exception('Error removing file: ' . $e->getMessage());
+            throw new rex_api_exception('Error removing file: ' . $e->getMessage());
         }
     }
 
@@ -1617,7 +1648,7 @@ class UploadApi extends \rex_api_function
     private function convertToMetaInfoLangFormat(array $fieldValue): array
     {
         $result = [];
-        $languages = \rex_clang::getAll();
+        $languages = rex_clang::getAll();
 
         foreach ($fieldValue as $langCode => $value) {
             // Finde Sprach-ID anhand des Codes
@@ -1640,7 +1671,7 @@ class UploadApi extends \rex_api_function
      *
      * @param array<string, mixed> $metadata
      */
-    private function processAdditionalMetaInfoFields(\rex_sql $sql, array $metadata): void
+    private function processAdditionalMetaInfoFields(rex_sql $sql, array $metadata): void
     {
         // Zusätzliche Felder die verarbeitet werden sollen
         $additionalFields = [
