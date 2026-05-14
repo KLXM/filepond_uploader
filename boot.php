@@ -7,12 +7,6 @@ use KLXM\FilePond\YcomAuthSettings;
 use KLXM\FilePond\Helper;
 use KLXM\FilePond\AltTextChecker;
 use KLXM\FilePond\AiAltGenerator;
-use KLXM\FilePond\UploadApi;
-use KLXM\FilePond\AiTestApi;
-use KLXM\FilePond\AltCheckerApi;
-use KLXM\FilePond\AiGenerateApi;
-use KLXM\FilePond\AutoMetainfoApi;
-use KLXM\FilePond\YcomAuthApi;
 
 rex_yform::addTemplatePath($this->getPath('ytemplates'));
 
@@ -182,15 +176,15 @@ rex_perm::register(
     rex_i18n::msg('filepond_perm_ycom_media_auth')
 );
 
-// API-Endpoint zum Speichern der Session-Defaults explizit registrieren
-// (defensiv – sicherstellt, dass `?rex-api-call=filepond_ycom_auth` immer auflöst,
-// auch wenn der Autoload-Cache nach Neuinstallation noch nicht aktualisiert wurde).
-rex_api_function::register('filepond_uploader', UploadApi::class);
-rex_api_function::register('filepond_ai_test', AiTestApi::class);
-rex_api_function::register('filepond_alt_checker', AltCheckerApi::class);
-rex_api_function::register('filepond_ai_generate', AiGenerateApi::class);
-rex_api_function::register('filepond_auto_metainfo', AutoMetainfoApi::class);
-rex_api_function::register('filepond_ycom_auth', YcomAuthApi::class);
+// API-Klassen über Namespace registrieren (REDAXO 5 Namespace-Registrierung).
+// Erwartete Klassen:
+// - \KLXM\FilePond\Api\rex_api_filepond_uploader
+// - \KLXM\FilePond\Api\rex_api_filepond_ai_test
+// - \KLXM\FilePond\Api\rex_api_filepond_alt_checker
+// - \KLXM\FilePond\Api\rex_api_filepond_ai_generate
+// - \KLXM\FilePond\Api\rex_api_filepond_auto_metainfo
+// - \KLXM\FilePond\Api\rex_api_filepond_ycom_auth
+rex_api_function::registerNamespace('KLXM\\FilePond\\Api\\');
 
 
 
