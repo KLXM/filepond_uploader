@@ -9,7 +9,7 @@ abstract class AiProviderAbstract implements AiProviderInterface
     /**
      * Helper für cURL-Error-Handling.
      */
-    protected function handleCurlError(CurlHandle $ch, string|false $response = false): void
+    protected function handleCurlError(\CurlHandle $ch, string|false $response = false): void
     {
         $error = curl_error($ch);
         $errno = curl_errno($ch);

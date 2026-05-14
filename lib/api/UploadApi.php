@@ -1640,7 +1640,7 @@ class UploadApi extends \rex_api_function
      *
      * @param array<string, mixed> $metadata
      */
-    private function processAdditionalMetaInfoFields(rex_sql $sql, array $metadata): void
+    private function processAdditionalMetaInfoFields(\rex_sql $sql, array $metadata): void
     {
         // Zusätzliche Felder die verarbeitet werden sollen
         $additionalFields = [
