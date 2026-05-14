@@ -27,9 +27,9 @@ class AiGenerateApi extends \rex_api_function
             exit;
         }
 
-        $fileId = rex_request('file_id', 'string', '');
-        $mediaName = rex_request('media_name', 'string', '');
-        $language = rex_request('language', 'string', 'de');
+        $fileId = \rex_request('file_id', 'string', '');
+        $mediaName = \rex_request('media_name', 'string', '');
+        $language = \rex_request('language', 'string', 'de');
 
         $generator = new AiAltGenerator();
         $result = ['success' => false, 'error' => 'Unknown error'];

@@ -31,7 +31,7 @@ class AutoMetainfoApi extends \rex_api_function
 
     public function execute(): \rex_api_result
     {
-        $action = rex_request('action', 'string');
+        $action = \rex_request('action', 'string');
 
         match ($action) {
             'get_fields' => $this->getMetaInfoFields(),
@@ -380,8 +380,8 @@ class AutoMetainfoApi extends \rex_api_function
     private function saveMetadata(): void
     {
         try {
-            $fileId = rex_request('file_id', 'string');
-            $metadata = rex_request('metadata', 'array');
+            $fileId = \rex_request('file_id', 'string');
+            $metadata = \rex_request('metadata', 'array');
 
             // Input validation
             if ('' === $fileId) {
@@ -487,7 +487,7 @@ class AutoMetainfoApi extends \rex_api_function
     private function loadMetadata(): void
     {
         try {
-            $fileId = rex_request('file_id', 'string');
+            $fileId = \rex_request('file_id', 'string');
 
             // Input validation
             if ('' === $fileId) {

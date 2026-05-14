@@ -19,7 +19,7 @@ class YcomAuthApi extends \rex_api_function
         \rex_response::cleanOutputBuffers();
 
         // Nur POST – mutiert Session-State, daher GET/HEAD ablehnen.
-        if ('POST' !== strtoupper((string) rex_server('REQUEST_METHOD', 'string', ''))) {
+        if ('POST' !== strtoupper((string) \rex_server('REQUEST_METHOD', 'string', ''))) {
             \rex_response::setStatus('405 Method Not Allowed');
             \rex_response::sendJson(['error' => 'method_not_allowed']);
             exit;
@@ -38,9 +38,9 @@ class YcomAuthApi extends \rex_api_function
             exit;
         }
 
-        $authType = rex_request('ycom_auth_type', 'int', 0);
-        $groupType = rex_request('ycom_group_type', 'int', 0);
-        $groupsRaw = rex_request('ycom_groups', 'array', []);
+        $authType = \rex_request('ycom_auth_type', 'int', 0);
+        $groupType = \rex_request('ycom_group_type', 'int', 0);
+        $groupsRaw = \rex_request('ycom_groups', 'array', []);
 
         $groups = [];
         foreach ($groupsRaw as $g) {
