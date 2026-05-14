@@ -284,7 +284,7 @@ class AiAltGenerator
         // Original laden
         $imageData = $isPath ? @file_get_contents($path) : $path;
         if (false === $imageData) {
-            throw new Exception('Konnte Bilddatei nicht lesen');
+            throw new \Exception('Konnte Bilddatei nicht lesen');
         }
 
         // Mime Type ermitteln
@@ -293,7 +293,7 @@ class AiAltGenerator
 
         // Wenn kein Bild, direkt Abbruch
         if (!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) {
-            throw new Exception('Ungültiges Bildformat: ' . $mimeType);
+            throw new \Exception('Ungültiges Bildformat: ' . $mimeType);
         }
 
         // Versuchen zu resizen mit GD

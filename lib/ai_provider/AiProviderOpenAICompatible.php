@@ -219,17 +219,17 @@ class AiProviderOpenAICompatible extends AiProviderAbstract
         }
 
         if (!is_string($response)) {
-            throw new Exception('Empty response from API');
+            throw new \Exception('Empty response from API');
         }
 
         if (200 !== $httpCode) {
-            throw new Exception('API Error (' . $httpCode . '): ' . $response);
+            throw new \Exception('API Error (' . $httpCode . '): ' . $response);
         }
 
         $result = json_decode($response, true);
 
         if (!isset($result['choices'][0]['message']['content'])) {
-            throw new Exception('Unerwartete API-Antwort: ' . substr($response, 0, 200));
+            throw new \Exception('Unerwartete API-Antwort: ' . substr($response, 0, 200));
         }
 
         $tokens = null;
@@ -286,7 +286,7 @@ class AiProviderOpenAICompatible extends AiProviderAbstract
         if (0 !== curl_errno($ch)) {
             try {
                 $this->handleCurlError($ch);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return ['success' => false, 'message' => 'Verbindungsfehler: ' . $e->getMessage()];
             }
         }

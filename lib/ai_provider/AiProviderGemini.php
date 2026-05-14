@@ -97,7 +97,7 @@ class AiProviderGemini extends AiProviderAbstract
         curl_close($ch);
 
         if (!is_string($response)) {
-            throw new Exception('Empty response from API');
+            throw new \Exception('Empty response from API');
         }
 
         if (200 !== $httpCode) {
@@ -110,16 +110,16 @@ class AiProviderGemini extends AiProviderAbstract
                     $seconds = ceil((float) $matches[1]);
                     $waitTime = " Bitte in {$seconds} Sekunden erneut versuchen.";
                 }
-                throw new Exception('Rate-Limit erreicht! Kostenloses Kontingent aufgebraucht.' . $waitTime);
+                throw new \Exception('Rate-Limit erreicht! Kostenloses Kontingent aufgebraucht.' . $waitTime);
             }
-            throw new Exception('API Error: ' . $errorMessage);
+            throw new \Exception('API Error: ' . $errorMessage);
         }
 
         $result = json_decode($response, true);
 
         if (!isset($result['candidates'][0]['content']['parts'][0]['text'])) {
             $finishReason = $result['candidates'][0]['finishReason'] ?? 'UNKNOWN';
-            throw new Exception('Unerwartete API-Antwort (finishReason: ' . $finishReason . ')');
+            throw new \Exception('Unerwartete API-Antwort (finishReason: ' . $finishReason . ')');
         }
 
         $tokens = null;
@@ -173,7 +173,7 @@ class AiProviderGemini extends AiProviderAbstract
         if (0 !== curl_errno($ch)) {
             try {
                 $this->handleCurlError($ch);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return ['success' => false, 'message' => $e->getMessage()];
             }
         }

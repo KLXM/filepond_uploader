@@ -34,11 +34,11 @@ class AiProviderCloudflare extends AiProviderAbstract
         // Cloudflare expects image bytes (int array)
         $decoded = base64_decode($base64Image, true);
         if (false === $decoded) {
-            throw new Exception('Invalid base64 image data');
+            throw new \Exception('Invalid base64 image data');
         }
         $unpacked = unpack('C*', $decoded);
         if (false === $unpacked) {
-            throw new Exception('Failed to unpack image data');
+            throw new \Exception('Failed to unpack image data');
         }
         $imageBytes = array_values($unpacked);
 
@@ -71,7 +71,7 @@ class AiProviderCloudflare extends AiProviderAbstract
         curl_close($ch);
 
         if (!is_string($response)) {
-            throw new Exception('Empty response from API');
+            throw new \Exception('Empty response from API');
         }
 
         $result = json_decode($response, true);
@@ -82,16 +82,16 @@ class AiProviderCloudflare extends AiProviderAbstract
                 $errorMessage = implode(', ', array_column($result['errors'], 'message'));
             }
             if (429 === $httpCode) {
-                throw new Exception('Rate-Limit erreicht! Bitte später erneut versuchen.');
+                throw new \Exception('Rate-Limit erreicht! Bitte später erneut versuchen.');
             }
-            throw new Exception('Cloudflare API Error: ' . $errorMessage);
+            throw new \Exception('Cloudflare API Error: ' . $errorMessage);
         }
 
         if (!isset($result['result']['description'])) {
             if (is_string($result['result'] ?? null)) {
                 return ['text' => $this->cleanText($result['result']), 'tokens' => null];
             }
-            throw new Exception('Unerwartete API-Antwort: ' . substr((string) json_encode($result), 0, 200));
+            throw new \Exception('Unerwartete API-Antwort: ' . substr((string) json_encode($result), 0, 200));
         }
 
         return [
@@ -126,7 +126,7 @@ class AiProviderCloudflare extends AiProviderAbstract
         if (0 !== curl_errno($ch)) {
             try {
                 $this->handleCurlError($ch);
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 return ['success' => false, 'message' => $e->getMessage()];
             }
         }

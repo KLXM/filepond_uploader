@@ -385,22 +385,22 @@ class AutoMetainfoApi extends \rex_api_function
 
             // Input validation
             if ('' === $fileId) {
-                throw new Exception('Keine Datei-ID angegeben');
+                throw new \Exception('Keine Datei-ID angegeben');
             }
 
             // Validate file_id format (filename pattern)
             if (1 !== preg_match('/^[a-zA-Z0-9._-]+$/', $fileId)) {
-                throw new Exception('Ungültige Datei-ID');
+                throw new \Exception('Ungültige Datei-ID');
             }
 
             if ([] === $metadata) {
-                throw new Exception('Ungültige Metadaten');
+                throw new \Exception('Ungültige Metadaten');
             }
 
             // Prüfe ob Datei existiert
             $media = \rex_media::get($fileId);
             if (null === $media) {
-                throw new Exception('Mediendatei nicht gefunden');
+                throw new \Exception('Mediendatei nicht gefunden');
             }
 
             // SQL für Update vorbereiten
@@ -431,7 +431,7 @@ class AutoMetainfoApi extends \rex_api_function
             try {
                 $sql->update();
             } catch (\rex_sql_exception $e) {
-                throw new Exception('Fehler beim Speichern der Metadaten: ' . $e->getMessage());
+                throw new \Exception('Fehler beim Speichern der Metadaten: ' . $e->getMessage());
             }
 
             $this->sendResponse([
@@ -491,17 +491,17 @@ class AutoMetainfoApi extends \rex_api_function
 
             // Input validation
             if ('' === $fileId) {
-                throw new Exception('Keine Datei-ID angegeben');
+                throw new \Exception('Keine Datei-ID angegeben');
             }
 
             // Validate file_id format (filename pattern)
             if (1 !== preg_match('/^[a-zA-Z0-9._-]+$/', $fileId)) {
-                throw new Exception('Ungültige Datei-ID');
+                throw new \Exception('Ungültige Datei-ID');
             }
 
             $media = \rex_media::get($fileId);
             if (null === $media) {
-                throw new Exception('Mediendatei nicht gefunden');
+                throw new \Exception('Mediendatei nicht gefunden');
             }
 
             $metadata = [];
