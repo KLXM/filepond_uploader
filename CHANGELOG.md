@@ -1,11 +1,6 @@
 # Changelog
 
-## Unreleased
-
-### 🐛 Bugfixes
-- **MetaInfo Lang Fields Speicherung korrigiert**: `processAdditionalMetaInfoFields()` verarbeitet jetzt zusätzlich `med_description_lang` und `med_keywords_lang`. Dadurch werden mehrsprachige Beschreibungen und Keywords beim Upload korrekt in den `*_lang` Feldern persistiert.
-
-## 2.4.2 (2026-05-31)
+## 2.5.0 (2026-05-31)
 
 ### ✨ Verbesserungen
 - **AI-Bereiche getrennt steuerbar**: In den Einstellungen gibt es jetzt separate Schalter für den AI-Zauberbutton im Upload-Metadialog und auf der Medienpool-Detailseite.
