@@ -57,7 +57,14 @@ $cfgQuality = rex_config::get('filepond_uploader', 'image_quality', 90);
 $dataQuality = is_scalar($cfgClientQuality) && $cfgClientQuality !== '' ? (string) $cfgClientQuality : (is_numeric($cfgQuality) ? (string) (int) $cfgQuality : '90');
 $cfgCreateThumbnails = rex_config::get('filepond_uploader', 'create_thumbnails', '');
 $dataClientResize = (is_string($cfgCreateThumbnails) && $cfgCreateThumbnails === '|1|') ? 'true' : 'false';
-$cfgAiEnabled = (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false);
+$isEnabledConfig = static function (string $key, bool $default): bool {
+    $raw = rex_config::get('filepond_uploader', $key, $default ? '1' : '0');
+
+    return in_array($raw, [1, '1', true, 'true', '|1|'], true);
+};
+
+$cfgAiEnabled = $isEnabledConfig('enable_ai_alt', false)
+    && $isEnabledConfig('enable_ai_upload_modal', true);
 $dataAiEnabled = $cfgAiEnabled ? 'true' : 'false';
 $cfgAiTargetFieldVal = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
 $dataAiTargetField = is_string($cfgAiTargetFieldVal) && '' !== trim($cfgAiTargetFieldVal) ? trim($cfgAiTargetFieldVal) : 'med_alt';

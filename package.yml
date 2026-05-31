@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '2.4.1'
+version: '2.4.2'
 author: 'KLXM Crossmedia GmbH Thomas Skerbis'
 supportpage: https://github.com/KLXM/filepond_uploader
 requires:
@@ -49,6 +49,8 @@ default_config:
     client_max_pixel: null
     client_image_quality: null
     enable_ai_alt: false
+    enable_ai_upload_modal: true
+    enable_ai_mediapool_detail: true
     ai_provider: 'gemini'
     ai_target_field: 'med_alt'
     ai_alt_prompt: null

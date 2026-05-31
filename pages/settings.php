@@ -519,6 +519,26 @@ $field->setLabel($addon->i18n('filepond_settings_enable_ai_alt'));
 $field->addOption($addon->i18n('filepond_settings_enable_ai_alt_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_enable_ai_alt_notice'));
 
+// AI-Button im Upload-Metadialog
+$field = $form->addSelectField('enable_ai_upload_modal', null, [
+    'class' => 'form-control selectpicker',
+]);
+$field->setLabel($addon->i18n('filepond_settings_enable_ai_upload_modal'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_status_disabled'), '0');
+$select->addOption($addon->i18n('filepond_settings_status_enabled'), '1');
+$field->setNotice($addon->i18n('filepond_settings_enable_ai_upload_modal_notice'));
+
+// AI-Button auf der Medienpool-Detailseite
+$field = $form->addSelectField('enable_ai_mediapool_detail', null, [
+    'class' => 'form-control selectpicker',
+]);
+$field->setLabel($addon->i18n('filepond_settings_enable_ai_mediapool_detail'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_status_disabled'), '0');
+$select->addOption($addon->i18n('filepond_settings_status_enabled'), '1');
+$field->setNotice($addon->i18n('filepond_settings_enable_ai_mediapool_detail_notice'));
+
 // AI Provider Auswahl
 $field = $form->addSelectField('ai_provider', null, [
     'class' => 'form-control',

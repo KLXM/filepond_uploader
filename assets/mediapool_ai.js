@@ -9,63 +9,90 @@ $(function() {
 
 function initAiButtons() {
     // Nur auf der Medienpool-Detailseite ausführen
-    if (!$('body').hasClass('rex-page-mediapool-media')) {
+    if ($('form input[name="file_id"]').length === 0) {
         return;
     }
-    
-    // Funktion zum Hinzufügen des AI-Buttons
+
     function addAiButton(inputField, langCode) {
         var $input = $(inputField);
-        
+
         // Prüfen ob Button schon existiert
-        if ($input.parent().find('.btn-ai-generate-mp').length > 0) {
+        if ($input.closest('.form-group').find('.btn-ai-generate-mp').length > 0) {
             return;
         }
-        
-        // Button HTML
-        var btnHtml = '<span class="input-group-btn">' +
-            '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI Alt-Text generieren" data-lang="' + langCode + '">' +
-            '<i class="fa fa-magic"></i>' +
-            '</button>' +
-            '</span>';
 
-        // Input in Input-Group wrappen falls noch nicht geschehen
+        var inputName = $input.attr('name') || '';
+        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '"><i class="fa fa-magic"></i></button>';
+
+        if ($input.is('textarea')) {
+            var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin-top:6px;"></div>');
+            $wrap.append(btnHtml);
+            $input.after($wrap);
+            return;
+        }
+
         if (!$input.parent().hasClass('input-group')) {
             $input.wrap('<div class="input-group"></div>');
         }
-        
-        $input.after(btnHtml);
+
+        $input.after('<span class="input-group-btn">' + btnHtml + '</span>');
     }
 
-    // 1. Suche nach med_alt (Standard Metainfo)
-    var mainInput = $('input[name="rex_media[med_alt]"], textarea[name="rex_media[med_alt]"]');
-    if (mainInput.length > 0) {
-        addAiButton(mainInput, 'de'); 
+    function getInputsByExactName(name) {
+        return $('input[type="text"], textarea').filter(function() {
+            return ($(this).attr('name') || '') === name;
+        });
     }
 
-    // 2. Suche nach med_description (Beschreibung)
-    var descInput = $('input[name="rex_media[med_description]"], textarea[name="rex_media[med_description]"]');
-    if (descInput.length > 0) {
-        addAiButton(descInput, 'de');
+    function resolveLanguageFromName(fieldName) {
+        var match = fieldName.match(/_([a-z]{2})(?:_[a-z]{2})?\]$/i);
+        if (match && match[1]) {
+            return match[1].toLowerCase();
+        }
+        return 'de';
     }
 
-    // 3. Suche nach allen Feldern, die wie Alt-Text oder Beschreibung aussehen (Multilang)
-    $('input[type="text"], textarea').each(function() {
-        var name = $(this).attr('name');
-        if (!name) return;
-        
-        // Ignoriere Systemfelder ohne rex_media
-        if (name.indexOf('rex_media') === -1) return;
+    function attachButtonsForTarget(targetField) {
+        var selector = [
+            'input[name="' + targetField + '"]',
+            'textarea[name="' + targetField + '"]',
+            'input[name^="' + targetField + '_"]',
+            'textarea[name^="' + targetField + '_"]',
+            'input[name="rex_media[' + targetField + ']"]',
+            'textarea[name="rex_media[' + targetField + ']"]',
+            'input[name^="rex_media[' + targetField + '_"]',
+            'textarea[name^="rex_media[' + targetField + '_"]'
+        ].join(', ');
+        var $targets = $(selector);
+        if ($targets.length === 0) {
+            return;
+        }
 
-        // Suche nach Sprach-Suffixen (z.B. _en, _fr)
-        // Muster: rex_media[med_alt_en] oder rex_media[med_description_fr]
-        var langMatch = name.match(/_([a-z]{2})\]$/); // Endet auf _en]
-        
-        // Prüfen ob es ein relevantes Feld ist (alt, desc, caption, title)
-        var isRelevant = name.indexOf('alt') !== -1 || name.indexOf('desc') !== -1 || name.indexOf('caption') !== -1;
-        
-        if (langMatch && isRelevant) {
-            addAiButton(this, langMatch[1]);
+        $targets.each(function() {
+            var name = $(this).attr('name') || '';
+            var lang = resolveLanguageFromName(name);
+            addAiButton(this, lang);
+        });
+    }
+
+    // Konfiguration aus API laden (gleiches Addon/API wie Upload-Modal)
+    $.ajax({
+        url: '/redaxo/index.php',
+        dataType: 'json',
+        data: {
+            'rex-api-call': 'filepond_auto_metainfo',
+            'action': 'get_ai_target_field'
+        },
+        success: function(data) {
+            if (!data || !data.success || !data.enabled) {
+                return;
+            }
+
+            var targetField = typeof data.target_field === 'string' && data.target_field.trim() !== ''
+                ? data.target_field.trim()
+                : 'med_alt';
+
+            attachButtonsForTarget(targetField);
         }
     });
 
@@ -74,7 +101,10 @@ function initAiButtons() {
         $(document).on('click', '.btn-ai-generate-mp', function(e) {
             e.preventDefault();
             var btn = $(this);
-            var input = btn.closest('.input-group').find('input, textarea');
+            var targetName = btn.attr('data-target-name') || '';
+            var input = targetName !== ''
+                ? getInputsByExactName(targetName).first()
+                : btn.closest('.form-group').find('input[type="text"], textarea').first();
             var lang = btn.data('lang');
             
             // Dateinamen aus URL holen
@@ -88,10 +118,20 @@ function initAiButtons() {
             
             if (!fileName) {
                 // Fallback: Versuche es aus dem Formular action
-                var action = $('form#rex-form-mediapool-media').attr('action');
+                var action = $('form').first().attr('action');
                 if (action && action.indexOf('file_name=') !== -1) {
                     var match = action.match(/file_name=([^&]+)/);
-                    if (match) fileName = match[1];
+                    if (match) fileName = decodeURIComponent(match[1]);
+                }
+            }
+
+            if (!fileName) {
+                // Fallback: Dateiname aus dem Dateilink im Detailbereich lesen
+                var fileHref = $('.form-control-static a[href*="/media/"]').first().attr('href') || '';
+                if (fileHref !== '') {
+                    var cleanHref = fileHref.split('?')[0];
+                    var parts = cleanHref.split('/');
+                    fileName = decodeURIComponent(parts[parts.length - 1] || '');
                 }
             }
 
@@ -106,7 +146,7 @@ function initAiButtons() {
 
             // API Call
             $.ajax({
-                url: 'index.php',
+                url: '/redaxo/index.php',
                 data: {
                     'rex-api-call': 'filepond_ai_generate',
                     'media_name': fileName,

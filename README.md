@@ -1405,6 +1405,17 @@ Die Funktion ist als Unterseite im **Medienpool → Alt-Text-Checker** verfügba
 
 Das AddOn unterstützt die automatische Generierung von Alt-Texten mittels KI. Zwei Provider stehen zur Auswahl:
 
+### Aktivierung nach Bereich
+
+In den Einstellungen lassen sich die AI-Buttons getrennt aktivieren/deaktivieren:
+
+- **AI-Button im Upload-Metadialog**
+- **AI-Button auf Medienpool-Detailseite**
+
+Pfad: **FilePond Uploader → Einstellungen → AI Alt-Text Generierung**
+
+> **Hinweis:** Beide Bereichs-Schalter greifen zusätzlich zum Hauptschalter **„AI-Generierung aktivieren“**.
+
 ### Google Gemini (empfohlen)
 
 Google Gemini bietet exzellente Bildanalyse mit hervorragender Mehrsprachigkeit.
@@ -1472,6 +1483,12 @@ Nach der Einrichtung erscheint im Alt-Text-Checker:
 - Token-Verbrauch wird nach jeder Generierung angezeigt (nur Gemini)
 
 **Nicht unterstützt:** SVG-Dateien (können von der AI nicht analysiert werden)
+
+### Nutzung im Upload-Metadialog und Medienpool-Detailseite
+
+- Der Zauberbutton erscheint im jeweils aktivierten Bereich am konfigurierten Zielfeld.
+- Das Zielfeld wird über **„Zielfeld für AI-Vorschlag“** gesteuert (Standard: `med_alt`).
+- Mehrsprachige Zielfelder (z. B. `med_alt_en`) werden automatisch berücksichtigt.
 
 ## Hinweise
 

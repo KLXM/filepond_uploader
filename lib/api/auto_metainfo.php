@@ -10,6 +10,13 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 {
     protected $published = true;
 
+    private function isEnabledConfig(string $key, bool $default): bool
+    {
+        $raw = rex_config::get('filepond_uploader', $key, $default ? '1' : '0');
+
+        return in_array($raw, [1, '1', true, 'true', '|1|'], true);
+    }
+
     /**
      * Zentrale Methode für das Senden von JSON-Antworten.
      *
@@ -34,6 +41,10 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
                 $this->getMetaInfoFields();
                 break;
 
+            case 'get_ai_target_field':
+                $this->getAiTargetField();
+                break;
+
             case 'save_metadata':
                 $this->saveMetadata();
                 break;
@@ -50,6 +61,29 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         }
 
         return new rex_api_result(true);
+    }
+
+    private function getAiTargetField(): void
+    {
+        $globalEnabled = $this->isEnabledConfig('enable_ai_alt', false);
+        $mediapoolEnabled = $this->isEnabledConfig('enable_ai_mediapool_detail', true);
+        $enabled = $globalEnabled && $mediapoolEnabled;
+        $targetFieldRaw = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
+        $targetField = is_string($targetFieldRaw) ? trim($targetFieldRaw) : 'med_alt';
+        if ('' === $targetField) {
+            $targetField = 'med_alt';
+        }
+
+        // Nur sichere Feldnamen zulassen
+        if (1 !== preg_match('/^[a-zA-Z0-9_]+$/', $targetField)) {
+            $targetField = 'med_alt';
+        }
+
+        $this->sendResponse([
+            'success' => true,
+            'enabled' => $enabled,
+            'target_field' => $targetField,
+        ]);
     }
 
     /**

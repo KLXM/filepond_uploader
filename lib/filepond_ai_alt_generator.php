@@ -98,7 +98,10 @@ class filepond_ai_alt_generator
      */
     public static function isEnabled(): bool
     {
-        return (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false) && self::isAvailable();
+        $enabledRaw = rex_config::get('filepond_uploader', 'enable_ai_alt', '0');
+        $enabled = in_array($enabledRaw, [1, '1', true, 'true', '|1|'], true);
+
+        return $enabled && self::isAvailable();
     }
 
     /**
