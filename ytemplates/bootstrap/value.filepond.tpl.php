@@ -74,6 +74,10 @@ $dataQuality = is_scalar($cfgClientQuality) && $cfgClientQuality !== '' ? (strin
 $cfgCreateThumbs = rex_config::get('filepond_uploader', 'create_thumbnails', '');
 $dataClientResize = (is_string($cfgCreateThumbs) && $cfgCreateThumbs === '|1|') ? 'true' : 'false';
 $dataTitleRequired = $this->getElement('title_required') ? 'true' : 'false';
+$cfgAiEnabled = (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false);
+$dataAiEnabled = $cfgAiEnabled ? 'true' : 'false';
+$cfgAiTargetFieldVal = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
+$dataAiTargetField = is_string($cfgAiTargetFieldVal) && '' !== trim($cfgAiTargetFieldVal) ? trim($cfgAiTargetFieldVal) : 'med_alt';
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
     <label class="control-label" for="<?= $this->getFieldId() ?>"><?= $this->getLabel() ?></label>
@@ -96,6 +100,8 @@ $dataTitleRequired = $this->getElement('title_required') ? 'true' : 'false';
        data-filepond-max-pixel="<?= $dataMaxPixel ?>" 
        data-filepond-image-quality="<?= $dataQuality ?>" 
        data-filepond-client-resize="<?= $dataClientResize ?>"
+         data-filepond-ai-enabled="<?= $dataAiEnabled ?>"
+         data-filepond-ai-target-field="<?= rex_escape($dataAiTargetField) ?>"
     />
     
     <?php if ($notice = $this->getElement('notice')): ?>

@@ -50,6 +50,7 @@ default_config:
     client_image_quality: null
     enable_ai_alt: false
     ai_provider: 'gemini'
+    ai_target_field: 'med_alt'
     ai_alt_prompt: null
     gemini_api_key: null
     gemini_model: 'gemini-1.5-flash'

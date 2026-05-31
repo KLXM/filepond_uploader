@@ -531,6 +531,14 @@ foreach (filepond_ai_alt_generator::PROVIDERS as $providerId => $providerName) {
 }
 $field->setNotice($addon->i18n('filepond_settings_ai_provider_notice'));
 
+// Ziel-Feld für den AI-Zauberbutton im Upload-Modal
+$field = $form->addTextField('ai_target_field', null, [
+    'class' => 'form-control',
+    'placeholder' => 'med_alt'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_target_field'));
+$field->setNotice($addon->i18n('filepond_settings_ai_target_field_notice'));
+
 // Max Output Tokens
 $field = $form->addInputField('number', 'ai_max_tokens', null, [
     'class' => 'form-control',
@@ -559,7 +567,7 @@ $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
 
 // === GEMINI SETTINGS ===
-$form->addRawField('<div id="gemini-settings" class="ai-provider-settings">');
+$form->addRawField('<div class="filepond-provider-block filepond-provider-gemini">');
 $form->addRawField('<div class="row">');
 $form->addRawField('<div class="col-sm-6">');
 
@@ -568,6 +576,7 @@ $field = $form->addInputField('text', 'gemini_api_key', null, [
     'class' => 'form-control',
     'autocomplete' => 'off'
 ]);
+$field->setAttribute('data-ai-provider-field', 'gemini');
 $field->setLabel($addon->i18n('filepond_settings_gemini_api_key'));
 $field->setNotice(sprintf($addon->i18n('filepond_settings_gemini_api_key_notice'), '<a href="https://aistudio.google.com/apikey" target="_blank">Google AI Studio</a>'));
 
@@ -578,6 +587,7 @@ $form->addRawField('<div class="col-sm-6">');
 $field = $form->addSelectField('gemini_model', null, [
     'class' => 'form-control selectpicker'
 ]);
+$field->setAttribute('data-ai-provider-field', 'gemini');
 $field->setLabel($addon->i18n('filepond_settings_gemini_model'));
 $select = $field->getSelect();
 foreach (filepond_ai_alt_generator::GEMINI_MODELS as $modelId => $modelName) {
@@ -593,7 +603,7 @@ $form->addRawField('</div>'); // Ende row
 $form->addRawField('</div>'); // Ende gemini-settings
 
 // === CLOUDFLARE SETTINGS ===
-$form->addRawField('<div id="cloudflare-settings" class="ai-provider-settings" style="display:none;">');
+$form->addRawField('<div class="filepond-provider-block filepond-provider-cloudflare">');
 $form->addRawField('<div class="row">');
 $form->addRawField('<div class="col-sm-6">');
 
@@ -602,6 +612,7 @@ $field = $form->addInputField('text', 'cloudflare_api_token', null, [
     'class' => 'form-control',
     'autocomplete' => 'off'
 ]);
+$field->setAttribute('data-ai-provider-field', 'cloudflare');
 $field->setLabel($addon->i18n('filepond_settings_cloudflare_token'));
 $field->setNotice(sprintf($addon->i18n('filepond_settings_cloudflare_token_notice'), '<a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare Dashboard</a>'));
 
@@ -613,6 +624,7 @@ $field = $form->addInputField('text', 'cloudflare_account_id', null, [
     'class' => 'form-control',
     'autocomplete' => 'off'
 ]);
+$field->setAttribute('data-ai-provider-field', 'cloudflare');
 $field->setLabel($addon->i18n('filepond_settings_cloudflare_account_id'));
 $field->setNotice(sprintf($addon->i18n('filepond_settings_cloudflare_account_id_notice'), '<a href="https://dash.cloudflare.com/" target="_blank">Workers &amp; Pages</a>'));
 
@@ -621,7 +633,7 @@ $form->addRawField('</div>'); // Ende row
 $form->addRawField('</div>'); // Ende cloudflare-settings
 
 // === OPENWEBUI SETTINGS ===
-$form->addRawField('<div id="openwebui-settings" class="ai-provider-settings" style="display:none;">');
+$form->addRawField('<div class="filepond-provider-block filepond-provider-openwebui">');
 $form->addRawField('<div class="row">');
 
 // Linke Spalte
@@ -632,6 +644,7 @@ $field = $form->addInputField('text', 'openwebui_base_url', null, [
     'class' => 'form-control',
     'placeholder' => 'https://api.openai.com'
 ]);
+$field->setAttribute('data-ai-provider-field', 'openwebui');
 $field->setLabel($addon->i18n('filepond_settings_openwebui_base_url'));
 $field->setNotice($addon->i18n('filepond_settings_openwebui_base_url_notice'));
 
@@ -643,6 +656,7 @@ $field = $form->addInputField('text', 'openwebui_api_key', null, [
     'class' => 'form-control',
     'autocomplete' => 'off'
 ]);
+$field->setAttribute('data-ai-provider-field', 'openwebui');
 $field->setLabel($addon->i18n('filepond_settings_openwebui_api_key'));
 $field->setNotice($addon->i18n('filepond_settings_openwebui_api_key_notice'));
 
@@ -659,6 +673,7 @@ $field = $form->addInputField('text', 'openwebui_model', null, [
     'class' => 'form-control',
     'placeholder' => 'llava'
 ]);
+$field->setAttribute('data-ai-provider-field', 'openwebui');
 $field->setLabel($addon->i18n('filepond_settings_openwebui_model'));
 $field->setNotice($addon->i18n('filepond_settings_openwebui_model_notice'));
 
@@ -860,6 +875,73 @@ echo $fragment->parse('core/page/section.php');
 (function() {
     let updateAiTestButtonState = null;
 
+    function getAiProviderSelect() {
+        return document.getElementById('ai-provider-select')
+            || document.querySelector('select[name="ai_provider"]')
+            || document.querySelector('select[name$="[ai_provider]"]');
+    }
+
+    function getProviderFields(provider) {
+        const selectorMap = {
+            gemini: [
+                '[name="gemini_api_key"]',
+                '[name$="[gemini_api_key]"]',
+                '[id$="_gemini_api_key"]',
+                '[name="gemini_model"]',
+                '[name$="[gemini_model]"]',
+                '[id$="_gemini_model"]',
+            ],
+            cloudflare: [
+                '[name="cloudflare_api_token"]',
+                '[name$="[cloudflare_api_token]"]',
+                '[id$="_cloudflare_api_token"]',
+                '[name="cloudflare_account_id"]',
+                '[name$="[cloudflare_account_id]"]',
+                '[id$="_cloudflare_account_id"]',
+            ],
+            openwebui: [
+                '[name="openwebui_base_url"]',
+                '[name$="[openwebui_base_url]"]',
+                '[id$="_openwebui_base_url"]',
+                '[name="openwebui_api_key"]',
+                '[name$="[openwebui_api_key]"]',
+                '[id$="_openwebui_api_key"]',
+                '[name="openwebui_model"]',
+                '[name$="[openwebui_model]"]',
+                '[id$="_openwebui_model"]',
+            ],
+        };
+
+        const selectors = selectorMap[provider] || [];
+        const fields = [];
+
+        selectors.forEach(function(selector) {
+            document.querySelectorAll(selector).forEach(function(field) {
+                if (!fields.includes(field)) {
+                    fields.push(field);
+                }
+            });
+        });
+
+        return fields;
+    }
+
+    function toggleProviderFieldGroups(provider) {
+        ['gemini', 'cloudflare', 'openwebui'].forEach(function(providerKey) {
+            const visible = providerKey === provider;
+            const fields = getProviderFields(providerKey);
+
+            fields.forEach(function(field) {
+                const group = field.closest('.rex-form-group, .form-group, dl');
+                if (group) {
+                    group.style.display = visible ? '' : 'none';
+                } else {
+                    field.style.display = visible ? '' : 'none';
+                }
+            });
+        });
+    }
+
     function initCombinedSettings() {
         const combinedSettings = document.getElementById("combined-processing-settings");
         if (!combinedSettings) {
@@ -899,7 +981,7 @@ echo $fragment->parse('core/page/section.php');
     function initAiTest() {
         const testBtn = document.getElementById('btn-test-ai-connection');
         const resultSpan = document.getElementById('ai-connection-result');
-        const providerSelect = document.getElementById('ai-provider-select');
+        const providerSelect = getAiProviderSelect();
         const savedConfigMap = <?= json_encode($hasSavedAiConfig, JSON_THROW_ON_ERROR) ?>;
         const missingConfigMessage = <?= json_encode($addon->i18n('filepond_settings_test_connection_save_first'), JSON_THROW_ON_ERROR) ?>;
         const testButtonLabel = '<?= $addon->i18n('filepond_settings_test_ai_connection') ?>';
@@ -969,38 +1051,29 @@ echo $fragment->parse('core/page/section.php');
     
     // AI Provider Toggle
     function initAiProviderToggle() {
-        const providerSelect = document.getElementById('ai-provider-select');
+        const providerSelect = getAiProviderSelect();
         if (!providerSelect) return;
         
         function toggleProviderSettings() {
             const provider = providerSelect.value;
-            const geminiSettings = document.getElementById('gemini-settings');
-            const cloudflareSettings = document.getElementById('cloudflare-settings');
-            const openwebuiSettings = document.getElementById('openwebui-settings');
             
             const geminiUsageLink = document.getElementById('gemini-usage-link');
             const cloudflareUsageLink = document.getElementById('cloudflare-usage-link');
             const openwebuiUsageLink = document.getElementById('openwebui-usage-link');
-            
-            // Alles resetten
-            if (geminiSettings) geminiSettings.style.display = 'none';
-            if (cloudflareSettings) cloudflareSettings.style.display = 'none';
-            if (openwebuiSettings) openwebuiSettings.style.display = 'none';
             
             if (geminiUsageLink) geminiUsageLink.style.display = 'none';
             if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'none';
             if (openwebuiUsageLink) openwebuiUsageLink.style.display = 'none';
             
             if (provider === 'cloudflare') {
-                if (cloudflareSettings) cloudflareSettings.style.display = 'block';
                 if (cloudflareUsageLink) cloudflareUsageLink.style.display = 'inline';
             } else if (provider === 'openwebui') {
-                if (openwebuiSettings) openwebuiSettings.style.display = 'block';
                 if (openwebuiUsageLink) openwebuiUsageLink.style.display = 'inline';
             } else {
-                if (geminiSettings) geminiSettings.style.display = 'block';
                 if (geminiUsageLink) geminiUsageLink.style.display = 'inline';
             }
+
+            toggleProviderFieldGroups(provider);
 
             if (updateAiTestButtonState) {
                 updateAiTestButtonState();

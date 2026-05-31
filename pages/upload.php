@@ -57,6 +57,10 @@ $cfgQuality = rex_config::get('filepond_uploader', 'image_quality', 90);
 $dataQuality = is_scalar($cfgClientQuality) && $cfgClientQuality !== '' ? (string) $cfgClientQuality : (is_numeric($cfgQuality) ? (string) (int) $cfgQuality : '90');
 $cfgCreateThumbnails = rex_config::get('filepond_uploader', 'create_thumbnails', '');
 $dataClientResize = (is_string($cfgCreateThumbnails) && $cfgCreateThumbnails === '|1|') ? 'true' : 'false';
+$cfgAiEnabled = (bool) rex_config::get('filepond_uploader', 'enable_ai_alt', false);
+$dataAiEnabled = $cfgAiEnabled ? 'true' : 'false';
+$cfgAiTargetFieldVal = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
+$dataAiTargetField = is_string($cfgAiTargetFieldVal) && '' !== trim($cfgAiTargetFieldVal) ? trim($cfgAiTargetFieldVal) : 'med_alt';
 
 // Session-Wert setzen für die API
 if ($skipMeta) {
@@ -205,6 +209,8 @@ $content = '
                             data-filepond-max-pixel="'.$dataMaxPixel.'" 
                             data-filepond-image-quality="'.$dataQuality.'" 
                             data-filepond-client-resize="'.$dataClientResize.'"
+                            data-filepond-ai-enabled="'.$dataAiEnabled.'"
+                            data-filepond-ai-target-field="'.rex_escape($dataAiTargetField).'"
                             value=""
                         >
                     </div>

@@ -29,7 +29,12 @@
                 chunkStatus: 'Chunk {current} von {total} hochgeladen',
                 retry: 'Erneut versuchen',
                 resumeUpload: 'Upload fortsetzen',
-                uploadButton: 'Dateien hochladen'
+                uploadButton: 'Dateien hochladen',
+                aiSuggestBtn: 'AI-Vorschlag',
+                aiSuggestBusy: 'Erzeuge Vorschlag...',
+                aiSuggestError: 'AI-Vorschlag fehlgeschlagen',
+                aiSuggestNoImage: 'AI-Vorschlag ist nur für Bilder verfügbar.',
+                aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -48,7 +53,12 @@
                 chunkStatus: 'Chunk {current} of {total} uploaded',
                 retry: 'Retry',
                 resumeUpload: 'Resume upload',
-                uploadButton: 'Upload files'
+                uploadButton: 'Upload files',
+                aiSuggestBtn: 'AI Suggest',
+                aiSuggestBusy: 'Generating suggestion...',
+                aiSuggestError: 'AI suggestion failed',
+                aiSuggestNoImage: 'AI suggestion is only available for images.',
+                aiSuggestDecorative: 'Field is disabled as decorative.'
             }
         };
 
@@ -223,6 +233,9 @@
            // console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
+            const aiEnabled = input.dataset.filepondAiEnabled === 'true';
+            const aiTargetFieldRaw = (input.dataset.filepondAiTargetField || 'med_alt').trim();
+            const aiTargetField = aiTargetFieldRaw !== '' ? aiTargetFieldRaw : 'med_alt';
 
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
@@ -729,6 +742,14 @@
                 };
                 return translationMap[fieldName] || null;
             };
+
+            const getAiMagicButtonMarkup = (fieldName, isImage) => {
+                if (!aiEnabled || fieldName !== aiTargetField || !isImage) {
+                    return '';
+                }
+
+                return `<button type="button" class="btn btn-default btn-xs filepond-ai-magic-btn" data-ai-target="${fieldName}" style="margin-left:8px;"><i class="fa fa-magic"></i> ${t.aiSuggestBtn}</button><span class="help-text" data-ai-status-for="${fieldName}" style="margin-left:8px;"></span>`;
+            };
             
             // Erstellt HTML für ein MetaInfo-Feld
             const createFieldHTML = (field, existingMetadata, currentInput, modalId = '') => {
@@ -756,6 +777,7 @@
                     html += `<label class="simple-modal-label">`;
                     html += `<i class="fa fa-globe"></i> ${translatedLabel}`;
                     html += `</label>`;
+                    html += `<div style="margin-bottom:6px;">${getAiMagicButtonMarkup(field.name, isImage)}</div>`;
                     
                     // Globale dekorative Checkbox für ALT-Felder bei Bildern
                     if (field.name === 'med_alt' && isImage) {
@@ -838,6 +860,7 @@
                     }
                     
                     html += `</label>`;
+                    html += `<div style="margin-bottom:6px;">${getAiMagicButtonMarkup(field.name, isImage)}</div>`;
                     
                     // Globale dekorative Checkbox wird nur einmal angezeigt (bei mehrsprachigen Feldern)
                     
@@ -946,6 +969,129 @@
                         });
                     });
                 }
+
+                // AI-Zauberbutton für das konfigurierte Zielfeld
+                form.querySelectorAll('.filepond-ai-magic-btn').forEach(button => {
+                    button.addEventListener('click', async function() {
+                        const targetField = this.getAttribute('data-ai-target');
+                        const statusNode = form.querySelector(`[data-ai-status-for="${targetField}"]`);
+
+                        const fileBlob = (file instanceof File || file instanceof Blob)
+                            ? file
+                            : (file && file.file instanceof File ? file.file : null);
+
+                        if (!fileBlob) {
+                            if (statusNode) {
+                                statusNode.textContent = t.aiSuggestNoImage;
+                            }
+                            return;
+                        }
+
+                        const targetInputs = form.querySelectorAll(`[data-field="${targetField}"]`);
+                        if (targetInputs.length === 0) {
+                            if (statusNode) {
+                                statusNode.textContent = t.aiSuggestError;
+                            }
+                            return;
+                        }
+
+                        let targetInput = null;
+                        targetInputs.forEach((candidate) => {
+                            if (targetInput) {
+                                return;
+                            }
+                            const pane = candidate.closest('.fp-tab-pane');
+                            if (!pane || window.getComputedStyle(pane).display !== 'none') {
+                                targetInput = candidate;
+                            }
+                        });
+
+                        if (!targetInput) {
+                            targetInput = targetInputs[0];
+                        }
+
+                        if (targetInput.disabled) {
+                            if (statusNode) {
+                                statusNode.textContent = t.aiSuggestDecorative;
+                            }
+                            return;
+                        }
+
+                        const languageValue = targetInput.getAttribute('data-lang') || lang;
+                        const languageCode = languageValue.split('_')[0] || 'de';
+
+                        const originalButtonHtml = this.innerHTML;
+                        this.disabled = true;
+                        this.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${t.aiSuggestBusy}`;
+                        if (statusNode) {
+                            statusNode.textContent = '';
+                        }
+
+                        try {
+                            const requestData = new FormData();
+                            requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
+                            requestData.append('language', languageCode);
+
+                            requestData.append('rex-api-call', 'filepond_ai_generate');
+
+                            const response = await fetch(basePath, {
+                                method: 'POST',
+                                body: requestData,
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (jsonError) {
+                                throw new Error(`${t.aiSuggestError} (ungültige Server-Antwort)`);
+                            }
+
+                            if (!response.ok || !data.success || !data.alt_text) {
+                                throw new Error(data.error || t.aiSuggestError);
+                            }
+
+                            const suggestion = String(data.alt_text).trim();
+                            if ('' === suggestion) {
+                                throw new Error(t.aiSuggestError);
+                            }
+
+                            const writableInputs = Array.from(targetInputs).filter((inputEl) => !inputEl.disabled);
+                            if (writableInputs.length === 0) {
+                                throw new Error(t.aiSuggestDecorative);
+                            }
+
+                            const preferredInputs = writableInputs.filter((inputEl) => {
+                                const langAttr = inputEl.getAttribute('data-lang');
+                                return !langAttr || langAttr === languageValue;
+                            });
+
+                            const destinationInputs = preferredInputs.length > 0 ? preferredInputs : writableInputs;
+
+                            destinationInputs.forEach((inputEl) => {
+                                inputEl.value = suggestion;
+                                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+
+                            if (statusNode) {
+                                statusNode.textContent = 'OK';
+                                setTimeout(() => {
+                                    statusNode.textContent = '';
+                                }, 1800);
+                            }
+                        } catch (error) {
+                            if (statusNode) {
+                                statusNode.textContent = error.message || t.aiSuggestError;
+                            }
+                        } finally {
+                            this.disabled = false;
+                            this.innerHTML = originalButtonHtml;
+                        }
+                    });
+                });
                 
                 // Alte individuelle Checkbox-Handler entfernt - nutze nur noch globale Checkbox
             };
