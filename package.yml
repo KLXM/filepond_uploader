@@ -44,6 +44,7 @@ default_config:
     upload_skip_meta: false
     delayed_upload_mode: false
     title_required_default: false
+    alt_required_default: true
     fix_exif_orientation: true
     enable_alt_checker: true
     client_max_pixel: null
