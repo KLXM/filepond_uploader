@@ -5,9 +5,11 @@
 ### ✨ Verbesserungen
 - **AI-Bereiche getrennt steuerbar**: In den Einstellungen gibt es jetzt separate Schalter für den AI-Zauberbutton im Upload-Metadialog und auf der Medienpool-Detailseite.
 - **Konfigurierbares Zielfeld auch im Medienpool**: Der AI-Button auf der Medienpool-Detailseite nutzt jetzt ebenfalls das konfigurierte Zielfeld (`ai_target_field`) inkl. Sprachvarianten.
+- **ALT-Pflicht im Upload-Metadialog konfigurierbar**: Neue Einstellung `alt_required_default` zum Ein-/Ausschalten der Pflicht für `med_alt` bei Bildern.
 
 ### 🐛 Bugfixes
 - **Medienpool-Detailseite Button-Anzeige**: Feldsuche und Seitenerkennung wurden robust gemacht, damit der AI-Button zuverlässig am richtigen Feld erscheint.
+- **ALT-Pflicht respektiert Settings**: Die bisher harte JS-Pflichtvalidierung für `med_alt` wurde an die neue Konfiguration gebunden und ist bei deaktivierter ALT-Pflicht nicht mehr erzwungen.
 
 
 ## 2.4.1 (2026.05.04)

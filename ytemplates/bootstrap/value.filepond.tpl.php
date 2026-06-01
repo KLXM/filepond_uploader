@@ -80,6 +80,8 @@ $isEnabledConfig = static function (string $key, bool $default): bool {
     return in_array($raw, [1, '1', true, 'true', '|1|'], true);
 };
 
+$dataAltRequired = $isEnabledConfig('alt_required_default', true) ? 'true' : 'false';
+
 $cfgAiEnabled = $isEnabledConfig('enable_ai_alt', false)
     && $isEnabledConfig('enable_ai_upload_modal', true);
 $dataAiEnabled = $cfgAiEnabled ? 'true' : 'false';
@@ -104,6 +106,7 @@ $dataAiTargetField = is_string($cfgAiTargetFieldVal) && '' !== trim($cfgAiTarget
        data-filepond-delayed-upload="<?= (1 === $delayed_upload || 2 === $delayed_upload) ? 'true' : 'false' ?>"
        data-filepond-delayed-type="<?= $delayed_upload ?>"
        data-filepond-title-required="<?= $dataTitleRequired ?>" 
+    data-filepond-alt-required="<?= $dataAltRequired ?>"
        data-filepond-max-pixel="<?= $dataMaxPixel ?>" 
        data-filepond-image-quality="<?= $dataQuality ?>" 
        data-filepond-client-resize="<?= $dataClientResize ?>"

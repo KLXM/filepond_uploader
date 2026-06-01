@@ -8,8 +8,12 @@ $(function() {
 });
 
 function initAiButtons() {
-    // Nur auf der Medienpool-Detailseite ausführen
-    if ($('form input[name="file_id"]').length === 0) {
+    // Nur auf der echten Medienpool-Detailseite ausführen, nicht auf Unterseiten wie mediapool/cropper
+    var urlParams = new URLSearchParams(window.location.search);
+    var currentPage = urlParams.get('page') || '';
+    var hasFileId = $('form input[name="file_id"]').length > 0;
+
+    if (currentPage !== 'mediapool/media' || !hasFileId) {
         return;
     }
 
@@ -108,7 +112,6 @@ function initAiButtons() {
             var lang = btn.data('lang');
             
             // Dateinamen aus URL holen
-            var urlParams = new URLSearchParams(window.location.search);
             var fileName = urlParams.get('file_name');
             
             if (!fileName) {

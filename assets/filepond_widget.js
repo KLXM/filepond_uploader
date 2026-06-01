@@ -236,6 +236,7 @@
             const aiEnabled = input.dataset.filepondAiEnabled === 'true';
             const aiTargetFieldRaw = (input.dataset.filepondAiTargetField || 'med_alt').trim();
             const aiTargetField = aiTargetFieldRaw !== '' ? aiTargetFieldRaw : 'med_alt';
+            const altRequiredByDefault = input.dataset.filepondAltRequired !== 'false';
 
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
@@ -780,7 +781,7 @@
                     html += `<div style="margin-bottom:6px;">${getAiMagicButtonMarkup(field.name, isImage)}</div>`;
                     
                     // Globale dekorative Checkbox für ALT-Felder bei Bildern
-                    if (field.name === 'med_alt' && isImage) {
+                    if (field.name === 'med_alt' && isImage && altRequiredByDefault) {
                         const decorativeCheckboxId = `decorative_global`;
                         html += `<div class="decorative-checkbox-group">`;
                         html += `<label for="${decorativeCheckboxId}" class="simple-modal-checkbox-label">`;
@@ -831,10 +832,10 @@
                         let langRequired = '';
                         if (field.name === 'med_title_lang') {
                             langRequired = 'required'; 
-                        } else if (field.name === 'med_alt' && isImage) {
+                        } else if (field.name === 'med_alt' && isImage && altRequiredByDefault) {
                             langRequired = 'required';
                         }
-                        const langDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                        const langDisabled = (field.name === 'med_alt' && isImage && altRequiredByDefault) ? 'data-decorative-target="true"' : '';
                         
                         if (field.type === 'textarea') {
                             html += `<textarea class="simple-modal-input" name="${field.name}[${lang.code}]" `;
@@ -876,11 +877,11 @@
                         if (titleRequiredAttr === 'true') {
                             isRequired = 'required';
                         }
-                    } else if (field.name === 'med_alt' && isImage) {
+                    } else if (field.name === 'med_alt' && isImage && altRequiredByDefault) {
                         isRequired = 'required';
                     }
                     
-                    const isDisabled = (field.name === 'med_alt' && isImage) ? 'data-decorative-target="true"' : '';
+                    const isDisabled = (field.name === 'med_alt' && isImage && altRequiredByDefault) ? 'data-decorative-target="true"' : '';
                     
                     if (field.type === 'textarea') {
                         html += `<textarea id="${fieldId}" name="${field.name}" class="simple-modal-input" `;
@@ -1135,12 +1136,16 @@
                 for (const field of fields) {
                     let isFieldRequired = field.required;
                     
-                    // ALT-Felder sind bei Bildern automatisch Pflicht (außer bei dekorativen Bildern)
+                    // ALT-Felder sind bei Bildern optional/required je nach Konfiguration
                     if (field.name === 'med_alt') {
                         const isImage = currentFileType && currentFileType.startsWith('image/');
                         if (!isImage) continue; // ALT-Feld nicht erforderlich bei Nicht-Bildern
-                        
-                        isFieldRequired = true; // ALT ist bei Bildern immer Pflicht
+
+                        if (!altRequiredByDefault) {
+                            continue;
+                        }
+
+                        isFieldRequired = true; // ALT ist bei Bildern nur bei aktivierter Pflicht erforderlich
                         
                         // Prüfen ob die globale dekorative Checkbox aktiviert ist
                         const globalDecorativeCheckbox = form.querySelector('.decorative-checkbox-global');

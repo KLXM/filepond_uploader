@@ -39,8 +39,9 @@ $skipMeta = rex_config::get('filepond_uploader', 'upload_skip_meta', false);
 // Prüfen, ob verzögerter Upload-Modus aktiviert ist
 $delayedUpload = rex_config::get('filepond_uploader', 'delayed_upload_mode', false);
 
-// Prüfen, ob das title-Feld required sein soll
-$titleRequired = rex_config::get('filepond_uploader', 'title_required_default', false);
+// Prüfen, ob title/alt im Metadialog required sein sollen
+$titleRequired = false;
+$altRequired = true;
 
 // Config-Werte für data-Attribute vorab typsicher extrahieren
 $cfgMaxFiles = rex_config::get('filepond_uploader', 'max_files', 30);
@@ -62,6 +63,9 @@ $isEnabledConfig = static function (string $key, bool $default): bool {
 
     return in_array($raw, [1, '1', true, 'true', '|1|'], true);
 };
+
+$titleRequired = $isEnabledConfig('title_required_default', false);
+$altRequired = $isEnabledConfig('alt_required_default', true);
 
 $cfgAiEnabled = $isEnabledConfig('enable_ai_alt', false)
     && $isEnabledConfig('enable_ai_upload_modal', true);
@@ -212,6 +216,7 @@ $content = '
                             data-filepond-skip-meta="'.($skipMeta ? 'true' : 'false').'"
                             data-filepond-delayed-upload="'.($delayedUpload ? 'true' : 'false').'"
                             data-filepond-title-required="'.($titleRequired ? 'true' : 'false').'"
+                            data-filepond-alt-required="'.($altRequired ? 'true' : 'false').'"
                             data-filepond-opener-field="'.rex_escape($openerInputField).'"
                             data-filepond-max-pixel="'.$dataMaxPixel.'" 
                             data-filepond-image-quality="'.$dataQuality.'" 

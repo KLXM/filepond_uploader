@@ -355,6 +355,14 @@ $field->setLabel($addon->i18n('filepond_settings_title_required'));
 $field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
 
+// ALT-Feld als Pflichtfeld
+$field = $form->addSelectField('alt_required_default');
+$field->setLabel($addon->i18n('filepond_settings_alt_required'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_status_disabled'), '0');
+$select->addOption($addon->i18n('filepond_settings_status_enabled'), '1');
+$field->setNotice($addon->i18n('filepond_settings_alt_required_notice'));
+
 // Erforderliche Metadaten-Felder
 $field = $form->addTextField('required_metadata_fields');
 $field->setLabel($addon->i18n('filepond_settings_required_fields'));
