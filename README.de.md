@@ -276,7 +276,8 @@ Mit der Option `delayed_upload` wird gesteuert, wann die Dateien tatsächlich ho
     data-filepond-chunk-enabled="true"
     data-filepond-chunk-size="5242880"
     data-filepond-title-required="true"
-    data-filepond-metainfo-lang="true"
+    data-filepond-ai-enabled="true"
+    data-filepond-ai-target-field="med_alt"
 >
 ```
 
@@ -464,11 +465,12 @@ Folgende `data`-Attribute können zur Konfiguration verwendet werden:
 | `data-filepond-delayed-upload` | Verzögerter Upload-Modus              | `false`      |
 | `data-filepond-delayed-type` | Upload-Modus-Typ (1=Button, 2=Submit) | `1` wenn delayed-upload aktiv |
 | `data-filepond-title-required` | Titel-Feld als Pflichtfeld           | `false`      |
-| `data-filepond-title-lang-required` | Mehrsprachiger Titel als Pflichtfeld (deprecated) | `true` |
-| `data-filepond-metainfo-lang` | MetaInfo Lang Fields Integration aktivieren | `false` |
+| `data-filepond-alt-required` | Alt-Text bei Bildern als Pflichtfeld  | `true` |
 | `data-filepond-max-pixel`    |  Maximale Bildgröße in Pixeln für clientseitige Verkleinerung | `2100` |
 | `data-filepond-image-quality` | JPEG/WebP Kompressionsqualität (10-100) | `90` |
 | `data-filepond-client-resize` | *Clientseitige Bildverkleinerung aktivieren (`true`/`false`) | `false` |
+| `data-filepond-ai-enabled` | AI-Vorschlagsbutton im Upload-Metadialog aktivieren | `false` |
+| `data-filepond-ai-target-field` | Zielfeld für AI-Vorschläge (z. B. `med_alt`) | `med_alt` |
 | `data-filepond-opener-field`  | Opener Input Field für Media Widget Integration | - |
 
 
@@ -484,14 +486,46 @@ Steuert, ob das einfache `title` Feld (für interne Verwaltung) als Pflichtfeld 
 <input data-filepond-title-required="false" data-widget="filepond" ...>
 ```
 
-**`data-filepond-metainfo-lang`**
-Aktiviert die automatische Erkennung und Integration von MetaInfo Lang Fields:
+**`data-filepond-alt-required`**
+Steuert, ob `med_alt` bei Bild-Uploads ein Pflichtfeld ist:
+
 ```html
-<!-- MetaInfo Lang Fields aktivieren -->
-<input data-filepond-metainfo-lang="true" data-widget="filepond" ...>
+<input data-filepond-alt-required="true" data-widget="filepond" ...>
+<input data-filepond-alt-required="false" data-widget="filepond" ...>
 ```
 
-> **Hinweis:** Das Attribut `data-filepond-title-lang-required` ist deprecated. Mehrsprachige Titel (`med_title_lang`) sind automatisch Pflichtfelder und können nicht deaktiviert werden. Verwenden Sie stattdessen `data-filepond-title-required` für das einfache Titel-Feld.
+**`data-filepond-ai-enabled`**
+Aktiviert den AI-Vorschlagsbutton im Upload-Metadialog:
+
+```html
+<input data-filepond-ai-enabled="true" data-widget="filepond" ...>
+<input data-filepond-ai-enabled="false" data-widget="filepond" ...>
+```
+
+**`data-filepond-ai-target-field`**
+Definiert das Metadaten-Feld, in das AI-Vorschläge geschrieben werden:
+
+```html
+<input data-filepond-ai-target-field="med_alt" data-widget="filepond" ...>
+```
+
+Praktisches AI-Beispiel für Bild-Uploads:
+
+```html
+<input
+    type="hidden"
+    name="REX_INPUT_VALUE[1]"
+    value="REX_VALUE[1]"
+    data-widget="filepond"
+    data-filepond-types="image/*"
+    data-filepond-title-required="true"
+    data-filepond-alt-required="true"
+    data-filepond-ai-enabled="true"
+    data-filepond-ai-target-field="med_alt"
+>
+```
+
+> **Hinweis:** Die Attribute `data-filepond-title-lang-required` und `data-filepond-metainfo-lang` sind Legacy-Doku aus älteren Ständen und für die aktuelle Frontendeinbindung nicht mehr erforderlich.
 
 ### Erlaubte Dateitypen (MIME-Types)
 
