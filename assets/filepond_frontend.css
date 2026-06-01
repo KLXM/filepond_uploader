@@ -27,4 +27,26 @@ input[data-widget="filepond"] + .filepond--root .filepond--panel-root,
 .filepond-demo-uploader .filepond--panel-root {
     border-color: var(--fp-fe-drop-border);
     background: var(--fp-fe-drop-bg);
+    min-height: 90px !important;
+}
+
+/*
+ * Stabilisierung fuer Frontend-Seiten ohne Doctype (Quirks-Mode):
+ * In diesem Modus kann der FilePond-Root auf 0px kollabieren.
+ */
+input[data-widget="filepond"] ~ .filepond--root,
+input[data-widget="filepond"] + .filepond--root,
+.filepond-demo-uploader .filepond--root {
+    min-height: 90px !important;
+    position: relative;
+}
+
+input[data-widget="filepond"] ~ .filepond--root .filepond--drop-label,
+input[data-widget="filepond"] + .filepond--root .filepond--drop-label,
+.filepond-demo-uploader .filepond--drop-label {
+    min-height: 72px !important;
+}
+
+.filepond-demo-uploader {
+    margin-bottom: 22px;
 }

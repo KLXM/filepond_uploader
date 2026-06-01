@@ -5,7 +5,7 @@ declare(strict_types=1);
 $addon = rex_addon::get('filepond_uploader');
 
 if (!$addon->isAvailable()) {
-    echo '<p>Das AddOn filepond_uploader ist nicht installiert oder nicht aktiviert.</p>';
+    echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><p>Das AddOn filepond_uploader ist nicht installiert oder nicht aktiviert.</p></body></html>';
     return;
 }
 
@@ -46,13 +46,59 @@ if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
 
 $demoHasUploadAuth = $isBackendUser || $isYComUser || '' !== $apiToken;
 
-$submittedFiles = trim((string) rex_post('demo_filepond_files', 'string', ''));
-
-echo filepond_helper::getStyles();
+$styles = filepond_helper::getStyles();
+$scripts = filepond_helper::getScripts();
 
 
 ?>
-<div class="container" style="max-width: 900px; margin: 40px auto; padding: 0 15px;">
+<!doctype html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FilePond Frontend-Demo</title>
+    <?= $styles ?>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #222;
+            background: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 15px;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 4px;
+        }
+
+        .alert-warning {
+            border: 1px solid #f0c36d;
+            background: #fff9e8;
+            color: #6a531a;
+        }
+
+        .btn {
+            border: 1px solid transparent;
+            border-radius: 4px;
+            padding: 8px 14px;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
     <h1>FilePond Frontend-Demo</h1>
     <p>
         Diese Seite ist eine echte Frontend-Referenz für das AddOn.
@@ -65,47 +111,34 @@ echo filepond_helper::getStyles();
         </div>
     <?php endif; ?>
 
-    <form method="post" action="" class="filepond-demo-form">
-        <div class="form-group filepond-demo-uploader" id="demo-filepond-wrapper">
-            <label class="control-label" for="demo-filepond-upload">Upload</label>
-            <input
-                id="demo-filepond-upload"
-                type="hidden"
-                name="demo_filepond_files"
-                value="<?= rex_escape($submittedFiles) ?>"
-                data-widget="filepond"
-                data-filepond-cat="<?= rex_escape($categoryId) ?>"
-                data-filepond-maxfiles="<?= rex_escape($maxFiles) ?>"
-                data-filepond-types="<?= rex_escape($allowedTypes) ?>"
-                data-filepond-maxsize="<?= rex_escape($maxFilesize) ?>"
-                data-filepond-lang="<?= rex_escape($langCode) ?>"
-                data-filepond-skip-meta="false"
-                data-filepond-chunk-enabled="false"
-                data-filepond-chunk-size="1048576"
-                data-filepond-delayed-upload="false"
-                data-filepond-delayed-type="0"
-                data-filepond-title-required="<?= $titleRequired ? 'true' : 'false' ?>"
-                data-filepond-alt-required="<?= $altRequired ? 'true' : 'false' ?>"
-                data-filepond-max-pixel="2100"
-                data-filepond-image-quality="90"
-                data-filepond-client-resize="false"
-                data-filepond-ai-enabled="<?= $aiEnabled ? 'true' : 'false' ?>"
-                data-filepond-ai-target-field="<?= rex_escape($aiTargetField) ?>"
-            >
-            <p class="help-block">Der Uploader wird per JavaScript direkt in diesem Wrapper initialisiert.</p>
-        </div>
-
-        <div style="margin-top: 18px;">
-            <button type="submit" class="btn btn-primary">Formular senden</button>
-        </div>
-    </form>
-
-    <?php if ('' !== $submittedFiles): ?>
-        <hr>
-        <h3>Gesendeter Wert</h3>
-        <p>So kommt der Wert im Formular an (kommagetrennte Dateinamen):</p>
-        <pre><?= rex_escape($submittedFiles) ?></pre>
-    <?php endif; ?>
+    <div class="form-group filepond-demo-uploader" id="demo-filepond-wrapper">
+        <label class="control-label" for="demo-filepond-upload">Upload</label>
+        <input
+            id="demo-filepond-upload"
+            type="hidden"
+            name="demo_filepond_files"
+            value=""
+            data-widget="filepond"
+            data-filepond-cat="<?= rex_escape($categoryId) ?>"
+            data-filepond-maxfiles="<?= rex_escape($maxFiles) ?>"
+            data-filepond-types="<?= rex_escape($allowedTypes) ?>"
+            data-filepond-maxsize="<?= rex_escape($maxFilesize) ?>"
+            data-filepond-lang="<?= rex_escape($langCode) ?>"
+            data-filepond-skip-meta="false"
+            data-filepond-chunk-enabled="false"
+            data-filepond-chunk-size="1048576"
+            data-filepond-delayed-upload="true"
+            data-filepond-delayed-type="1"
+            data-filepond-title-required="<?= $titleRequired ? 'true' : 'false' ?>"
+            data-filepond-alt-required="<?= $altRequired ? 'true' : 'false' ?>"
+            data-filepond-max-pixel="2100"
+            data-filepond-image-quality="90"
+            data-filepond-client-resize="false"
+            data-filepond-ai-enabled="<?= $aiEnabled ? 'true' : 'false' ?>"
+            data-filepond-ai-target-field="<?= rex_escape($aiTargetField) ?>"
+        >
+        <p class="help-block">Verzögerter Upload ist aktiv. Dateien werden erst über den FilePond-Upload-Button hochgeladen.</p>
+    </div>
 
     <hr>
     <h3>Einbau in dein Projekt</h3>
@@ -117,4 +150,6 @@ echo filepond_helper::getStyles();
     </ol>
 </div>
 
-<?php echo filepond_helper::getScripts();
+<?= $scripts ?>
+</body>
+</html>

@@ -75,6 +75,10 @@ class filepond_helper
             $addon->getAssetsUrl('filepond_metainfo_lang.css'),  // MetaInfo Lang Fields Styles
         ];
 
+        if (!rex::isBackend()) {
+            $cssFiles[] = $addon->getAssetsUrl('filepond_frontend.css');
+        }
+
         if (rex::isBackend()) {
             foreach ($cssFiles as $file) {
                 rex_view::addCssFile($file);
