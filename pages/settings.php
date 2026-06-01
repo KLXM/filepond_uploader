@@ -13,13 +13,13 @@ if ('post' === strtolower(rex_server('REQUEST_METHOD', 'string', ''))) {
 $form = rex_config_form::factory('filepond_uploader');
 
 // ============================================================================
-// 1. UPLOAD-EINSTELLUNGEN
+// 0. ALLGEMEIN (WICHTIGSTE EINSTELLUNGEN)
 // ============================================================================
-$form->addFieldset($addon->i18n('filepond_upload_settings'));
+$form->addFieldset('Allgemein (Wichtigste Einstellungen)');
 
 $form->addRawField('<div class="row">');
 
-// Linke Spalte – Upload-Einstellungen
+// Linke Spalte
 $form->addRawField('<div class="col-sm-6">');
 
 // Maximale Anzahl Dateien
@@ -38,6 +38,83 @@ $field = $form->addInputField('number', 'max_filesize', null, [
 ]);
 $field->setLabel($addon->i18n('filepond_settings_maxsize'));
 $field->setNotice($addon->i18n('filepond_settings_maxsize_notice'));
+
+// Verzögerter Upload-Modus
+$field = $form->addCheckboxField('delayed_upload_mode');
+$field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
+$field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
+
+// Fallback Medienkategorie
+$field = $form->addSelectField('category_id', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_fallback_category'));
+$field->setNotice($addon->i18n('filepond_settings_fallback_category_notice'));
+
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_upload_no_category'), 0);
+
+// Alle Medienkategorien laden und zum Select hinzufügen
+$mediaCategories = rex_media_category::getRootCategories();
+if (!empty($mediaCategories)) {
+    $addCategories = function($categories, $level = 0) use (&$addCategories, $select) {
+        foreach ($categories as $category) {
+            if ($level > 0) {
+                $prefix = str_repeat('· ', $level - 1) . '└─ ';
+            } else {
+                $prefix = '';
+            }
+            $select->addOption($prefix . $category->getName(), $category->getId());
+            if ($children = $category->getChildren()) {
+                $addCategories($children, $level + 1);
+            }
+        }
+    };
+    $addCategories($mediaCategories);
+}
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Sprache
+$field = $form->addSelectField('lang', null, [
+    'class' => 'form-control selectpicker'
+]);
+$field->setLabel($addon->i18n('filepond_settings_lang'));
+$select = $field->getSelect();
+$select->addOption('Deutsch', 'de_de');
+$select->addOption('English', 'en_gb');
+$field->setNotice($addon->i18n('filepond_settings_lang_notice'));
+
+// Titel-Feld als Pflichtfeld
+$field = $form->addCheckboxField('title_required_default');
+$field->setLabel($addon->i18n('filepond_settings_title_required'));
+$field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
+
+// ALT-Feld als Pflichtfeld
+$field = $form->addSelectField('alt_required_default');
+$field->setLabel($addon->i18n('filepond_settings_alt_required'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_status_disabled'), '0');
+$select->addOption($addon->i18n('filepond_settings_status_enabled'), '1');
+$field->setNotice($addon->i18n('filepond_settings_alt_required_notice'));
+
+$form->addRawField('</div>');
+$form->addRawField('</div>'); // Ende row
+
+// ============================================================================
+// 1. UPLOAD-EINSTELLUNGEN
+// ============================================================================
+$form->addFieldset($addon->i18n('filepond_upload_settings'));
+
+$form->addRawField('<div class="row">');
+
+// Linke Spalte – Upload-Einstellungen
+$form->addRawField('<div class="col-sm-6">');
 
 // Chunk-Upload aktivieren/deaktivieren
 $field = $form->addCheckboxField('enable_chunks');
@@ -68,12 +145,6 @@ $field = $form->addInputField('number', 'chunk_size', null, [
 ]);
 $field->setLabel($addon->i18n('filepond_settings_chunk_size'));
 $field->setNotice($addon->i18n('filepond_settings_chunk_size_notice', $phpMaxUploadMb, $uploadMaxFilesize, $postMaxSize));
-
-// Verzögerter Upload-Modus
-$field = $form->addCheckboxField('delayed_upload_mode');
-$field->setLabel($addon->i18n('filepond_settings_delayed_upload'));
-$field->addOption($addon->i18n('filepond_settings_delayed_upload_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_delayed_upload_notice'));
 
 $form->addRawField('</div>');
 
@@ -349,20 +420,6 @@ $form->addRawField('</div>');
 // Rechte Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Titel-Feld als Pflichtfeld
-$field = $form->addCheckboxField('title_required_default');
-$field->setLabel($addon->i18n('filepond_settings_title_required'));
-$field->addOption($addon->i18n('filepond_settings_title_required_label'), 1);
-$field->setNotice($addon->i18n('filepond_settings_title_required_notice'));
-
-// ALT-Feld als Pflichtfeld
-$field = $form->addSelectField('alt_required_default');
-$field->setLabel($addon->i18n('filepond_settings_alt_required'));
-$select = $field->getSelect();
-$select->addOption($addon->i18n('filepond_settings_status_disabled'), '0');
-$select->addOption($addon->i18n('filepond_settings_status_enabled'), '1');
-$field->setNotice($addon->i18n('filepond_settings_alt_required_notice'));
-
 // Erforderliche Metadaten-Felder
 $field = $form->addTextField('required_metadata_fields');
 $field->setLabel($addon->i18n('filepond_settings_required_fields'));
@@ -417,50 +474,6 @@ $form->addRawField('<div class="row">');
 // Linke Spalte
 $form->addRawField('<div class="col-sm-6">');
 
-// Fallback Medienkategorie
-$field = $form->addSelectField('category_id', null, [
-    'class' => 'form-control selectpicker'
-]);
-$field->setLabel($addon->i18n('filepond_settings_fallback_category'));
-$field->setNotice($addon->i18n('filepond_settings_fallback_category_notice'));
-
-$select = $field->getSelect();
-$select->addOption($addon->i18n('filepond_upload_no_category'), 0);
-
-// Alle Medienkategorien laden und zum Select hinzufügen
-$mediaCategories = rex_media_category::getRootCategories();
-if (!empty($mediaCategories)) {
-    $addCategories = function($categories, $level = 0) use (&$addCategories, $select) {
-        foreach ($categories as $category) {
-            if ($level > 0) {
-                $prefix = str_repeat('· ', $level - 1) . '└─ ';
-            } else {
-                $prefix = '';
-            }
-            $select->addOption($prefix . $category->getName(), $category->getId());
-            if ($children = $category->getChildren()) {
-                $addCategories($children, $level + 1);
-            }
-        }
-    };
-    $addCategories($mediaCategories);
-}
-
-// Sprache
-$field = $form->addSelectField('lang', null, [
-    'class' => 'form-control selectpicker'
-]);
-$field->setLabel($addon->i18n('filepond_settings_lang'));
-$select = $field->getSelect();
-$select->addOption('Deutsch', 'de_de');
-$select->addOption('English', 'en_gb');
-$field->setNotice($addon->i18n('filepond_settings_lang_notice'));
-
-$form->addRawField('</div>');
-
-// Rechte Spalte
-$form->addRawField('<div class="col-sm-6">');
-
 // Auto-Cleanup für ungenutzte Medien
 $field = $form->addSelectField('auto_cleanup_enabled');
 $field->setLabel($addon->i18n('filepond_auto_cleanup'));
@@ -468,12 +481,6 @@ $select = $field->getSelect();
 $select->addOption($addon->i18n('filepond_auto_cleanup_disabled'), '0');
 $select->addOption($addon->i18n('filepond_auto_cleanup_enabled_label'), '1');
 $field->setNotice($addon->i18n('filepond_auto_cleanup_notice'));
-
-// Debug-Logging aktivieren
-$field = $form->addCheckboxField('enable_debug_logging');
-$field->setLabel($addon->i18n('filepond_enable_debug_logging'));
-$field->addOption($addon->i18n('filepond_enable_debug_logging_label'), 1);
-$field->setNotice($addon->i18n('filepond_enable_debug_logging_notice'));
 
 // Medienpool ersetzen
 $field = $form->addCheckboxField('replace_mediapool');
@@ -486,6 +493,17 @@ $field = $form->addCheckboxField('mediapool_subpage');
 $field->setLabel($addon->i18n('filepond_settings_mediapool_subpage'));
 $field->addOption($addon->i18n('filepond_settings_mediapool_subpage_label'), 1);
 $field->setNotice($addon->i18n('filepond_settings_mediapool_subpage_notice'));
+
+$form->addRawField('</div>');
+
+// Rechte Spalte
+$form->addRawField('<div class="col-sm-6">');
+
+// Debug-Logging aktivieren
+$field = $form->addCheckboxField('enable_debug_logging');
+$field->setLabel($addon->i18n('filepond_enable_debug_logging'));
+$field->addOption($addon->i18n('filepond_enable_debug_logging_label'), 1);
+$field->setNotice($addon->i18n('filepond_enable_debug_logging_notice'));
 
 // Alt-Text-Checker aktivieren
 $field = $form->addCheckboxField('enable_alt_checker');
