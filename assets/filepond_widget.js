@@ -195,6 +195,7 @@
             return window.location.origin;
         };
         const basePath = getBasePath();
+        const magicIconUrl = `${window.location.origin}/assets/addons/filepond_uploader/icons/magic.svg`;
         // console.log('Basepath ermittelt:', basePath);
 
         // Hilfsfunktion: hängt – sofern auf der Seite vorhanden – die YCom-Media-Auth-Defaults
@@ -749,7 +750,7 @@
                     return '';
                 }
 
-                return `<button type="button" class="btn btn-default btn-xs filepond-ai-magic-btn" data-ai-target="${fieldName}" style="margin-left:8px;"><i class="fa fa-magic"></i> ${t.aiSuggestBtn}</button><span class="help-text" data-ai-status-for="${fieldName}" style="margin-left:8px;"></span>`;
+                return `<button type="button" class="btn btn-default btn-xs filepond-ai-magic-btn" data-ai-target="${fieldName}" style="margin-left:8px;"><img src="${magicIconUrl}" class="filepond-magic-icon" alt="" aria-hidden="true"> ${t.aiSuggestBtn}</button><span class="help-text" data-ai-status-for="${fieldName}" style="margin-left:8px;"></span>`;
             };
             
             // Erstellt HTML für ein MetaInfo-Feld
@@ -1023,7 +1024,7 @@
 
                         const originalButtonHtml = this.innerHTML;
                         this.disabled = true;
-                        this.innerHTML = `<i class="fa fa-spinner fa-spin"></i> ${t.aiSuggestBusy}`;
+                        this.innerHTML = `<img src="${magicIconUrl}" class="filepond-magic-icon filepond-magic-icon--spin" alt="" aria-hidden="true"> ${t.aiSuggestBusy}`;
                         if (statusNode) {
                             statusNode.textContent = '';
                         }

@@ -12,6 +12,8 @@ if (!rex::getUser() || (!rex::getUser()->isAdmin() && !rex::getUser()->hasPerm('
 }
 
 $addon = rex_addon::get('filepond_uploader');
+$magicIconUrl = $addon->getAssetsUrl('icons/magic.svg');
+$magicIconHtml = '<img src="' . rex_escape($magicIconUrl) . '" class="filepond-magic-icon" alt="" aria-hidden="true">';
 
 // Filter und Pagination zuerst definieren
 $configItemsPerPage = $addon->getConfig('items_per_page');
@@ -171,7 +173,7 @@ $currentPage = rex_be_controller::getCurrentPage();
     <?php if (!$aiEnabled): ?>
     <div class="alert alert-info alert-dismissible" style="margin-bottom: 15px; padding: 10px 15px;">
         <button type="button" class="close" data-dismiss="alert" style="right: 10px;">&times;</button>
-        <i class="fa fa-magic"></i> 
+        <?= $magicIconHtml ?>
         <?= $addon->i18n('alt_checker_ai_hint') ?>
     </div>
     <?php endif; ?>
@@ -208,7 +210,7 @@ $currentPage = rex_be_controller::getCurrentPage();
                 <div class="pull-right">
                     <?php if (filepond_ai_alt_generator::isEnabled() && count($images) > 0): ?>
                     <button type="button" class="btn btn-info btn-xs" id="btn-ai-generate-all">
-                        <i class="fa fa-magic"></i> <?= $addon->i18n('alt_checker_ai_generate_all') ?>
+                        <?= $magicIconHtml ?><?= $addon->i18n('alt_checker_ai_generate_all') ?>
                     </button>
                     <?php endif; ?>
                     <button type="button" class="btn btn-success btn-xs" id="btn-save-all" disabled>
@@ -304,7 +306,7 @@ $currentPage = rex_be_controller::getCurrentPage();
                             <?php if ($aiEnabled && !$isSvg): ?>
                             <button type="button" class="btn btn-info btn-xs btn-ai-generate" 
                                     data-filename="<?= rex_escape($imgFilename) ?>" title="<?= $addon->i18n('alt_checker_ai_generate') ?>">
-                                <i class="fa fa-magic"></i>
+                                <?= $magicIconHtml ?>
                             </button>
                             <?php endif; ?>
                             <button type="button" class="btn btn-success btn-xs btn-save-row" 
@@ -548,6 +550,27 @@ tr:hover .btn-save-row,
     font-size: 10px;
     font-weight: 600;
 }
+
+.fp-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    vertical-align: -2px;
+    animation: fpSpin 0.7s linear infinite;
+}
+
+@keyframes fpSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
 </style>
 
 <script nonce="' . rex_response::getNonce() . '">
@@ -558,6 +581,7 @@ $(document).on('rex:ready', function() {
         languages: <?= json_encode($languages) ?>,
         currentLangId: <?= json_encode($currentLangId) ?>,
         aiEnabled: <?= json_encode(filepond_ai_alt_generator::isEnabled()) ?>,
+        spinnerMarkup: '<span class="fp-spinner" aria-hidden="true"></span>',
         modifiedImages: new Set(),
         
         init() {
@@ -751,7 +775,7 @@ $(document).on('rex:ready', function() {
                 return;
             }
             
-            $('#btn-save-all').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Speichern...');
+            $('#btn-save-all').prop('disabled', true).html(this.spinnerMarkup + 'Speichern...');
             
             $.post(this.apiEndpoint, {
                 action: 'bulk_update',
@@ -823,7 +847,7 @@ $(document).on('rex:ready', function() {
             
             // Button-Status ändern
             const originalHtml = $btn.html();
-            $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            $btn.prop('disabled', true).html(this.spinnerMarkup);
             $row.addClass('saving');
             
             // Bei Mehrsprachigkeit: Alle Sprachen generieren (nur wenn leer)
@@ -921,7 +945,7 @@ $(document).on('rex:ready', function() {
             
             for (const filename of visibleImages) {
                 processed++;
-                $btn.html(`<i class="fa fa-spinner fa-spin"></i> ${processed}/${total}`);
+                $btn.html(`${this.spinnerMarkup} ${processed}/${total}`);
                 
                 const $row = $(`tr.image-row[data-filename="${this.escapeHtml(filename)}"]`);
                 const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);

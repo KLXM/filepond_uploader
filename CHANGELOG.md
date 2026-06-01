@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.5.1 (2026-06-01)
+
+### ✨ Verbesserungen
+- **YForm-Value erweitert**: Zusätzliche Optionen sind jetzt direkt im `filepond`-Value verfügbar (u.a. `chunk_enabled`, `chunk_size`, `alt_required`, `max_pixel`, `image_quality`, `client_resize`, `ai_enabled`, `ai_target_field`) statt nur über Template-/Config-Fallbacks.
+- **YForm-Template priorisiert Value-Optionen**: Das Bootstrap-Template nutzt jetzt vorrangig die per Value gesetzten Optionen und fällt nur bei fehlenden Werten auf die Addon-Konfiguration zurück.
+- **README/README.de Frontendeinbindung aktualisiert**: Frontend-Beispiele wurden auf benannte YForm-Optionen, optionalen Token-Fallback und die tatsächliche Auto-Initialisierung (`filepond:init` bei dynamischem Markup) angepasst.
+
+### 🐛 Bugfixes
+- **Doku-Konsistenz verbessert**: Veraltete Frontend-Hinweise und nicht mehr benötigte Sonderattribute in den Frontend-Beispielen wurden bereinigt.
+
 ## 2.5.0 (2026-05-31)
 
 ### ✨ Verbesserungen

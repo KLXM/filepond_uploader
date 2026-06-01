@@ -29,9 +29,12 @@ class filepond_helper
             $addon->getAssetsUrl('filepond/filepond.js'),
             $addon->getAssetsUrl('filepond_modal.js'),
             $addon->getAssetsUrl('filepond_widget.js'),
-            $addon->getAssetsUrl('mediapool_ai.js'),
             $addon->getAssetsUrl('filepond_auto_metainfo.js'),  // Unser neues MetaInfo JavaScript
         ];
+
+        if (rex::isBackend()) {
+            $jsFiles[] = $addon->getAssetsUrl('mediapool_ai.js');
+        }
 
         if (rex::isBackend()) {
             foreach ($jsFiles as $file) {

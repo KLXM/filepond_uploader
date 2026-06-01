@@ -13,6 +13,37 @@
     --filepond-upload-btn-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+.filepond-magic-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-block;
+    vertical-align: -2px;
+    color: currentColor;
+    margin-right: 4px;
+}
+
+/* Auf farbigen Buttons braucht das SVG einen hellen Kontrast. */
+.btn-info .filepond-magic-icon,
+.btn-primary .filepond-magic-icon,
+.btn-success .filepond-magic-icon,
+.btn-warning .filepond-magic-icon,
+.btn-danger .filepond-magic-icon {
+    filter: brightness(0) invert(1);
+}
+
+.filepond-magic-icon--spin {
+    animation: filepondMagicSpin 0.9s linear infinite;
+}
+
+@keyframes filepondMagicSpin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Container für den Upload-Button direkt nach dem FilePond-Element */
 .filepond-upload-button-container {
     margin-top: 0;

@@ -1,0 +1,30 @@
+/*
+ * Frontend Zusatz-CSS (dezent)
+ *
+ * Wichtig: Keine Geometrie-/Layout-Eingriffe mehr.
+ * Das Verhalten bleibt beim FilePond-Standard + filepond_widget.css.
+ */
+
+:root {
+    --fp-fe-drop-bg: #f6fbff;
+    --fp-fe-drop-border: #8eb8dd;
+}
+
+body.rex-theme-dark {
+    --fp-fe-drop-bg: #2a3b4a;
+    --fp-fe-drop-border: #6f8ea8;
+}
+
+@media (prefers-color-scheme: dark) {
+    body.rex-has-theme:not(.rex-theme-light) {
+        --fp-fe-drop-bg: #2a3b4a;
+        --fp-fe-drop-border: #6f8ea8;
+    }
+}
+
+input[data-widget="filepond"] ~ .filepond--root .filepond--panel-root,
+input[data-widget="filepond"] + .filepond--root .filepond--panel-root,
+.filepond-demo-uploader .filepond--panel-root {
+    border-color: var(--fp-fe-drop-border);
+    background: var(--fp-fe-drop-bg);
+}

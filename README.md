@@ -218,13 +218,28 @@ The media widget integration supports full multilingual UI:
 $yform->setValueField('filepond', [
     'name' => 'bilder',
     'label' => 'Bildergalerie',
-    'allowed_max_files' => 5,
-    'allowed_types' => 'image/*',
-    'allowed_filesize' => 10,
     'category' => 1,
-    'delayed_upload' => 0
+    'allowed_types' => 'image/*,application/pdf',
+    'allowed_filesize' => 10,
+    'allowed_max_files' => 5,
+    'required' => 0,
+    'notice' => 'Please upload your files here.',
+    'empty_value' => 'Please select at least one file.',
+    'skip_meta' => 0,
+    'chunk_enabled' => 1,
+    'chunk_size' => 5,
+    'delayed_upload' => 0,
+    'title_required' => 1,
+    'alt_required' => 1,
+    'max_pixel' => 2100,
+    'image_quality' => 90,
+    'client_resize' => 0,
+    'ai_enabled' => 0,
+    'ai_target_field' => 'med_alt',
 ]);
 ```
+
+Supported YForm value options: name, label, category, allowed_types, allowed_filesize, allowed_max_files, required, notice, empty_value, skip_meta, chunk_enabled, chunk_size, delayed_upload, title_required, alt_required, max_pixel, image_quality, client_resize, ai_enabled, ai_target_field.
 
 ### Option: delayed_upload
 
@@ -271,17 +286,22 @@ Complete frontend form example that also works for guests (without login).
 
 ```php
 <?php
-// 1. Start session and set token (required for guests without backend login)
+// 1. Start session
 rex_login::startSession();
-rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
 
-// 2. Include FilePond assets
+// 2. Optional token fallback for guests (if no backend/ycom login is available)
+$apiToken = (string) rex_config::get('filepond_uploader', 'api_token', '');
+if ('' !== trim($apiToken)) {
+    rex_set_session('filepond_token', trim($apiToken));
+}
+
+// 3. Include FilePond assets
 if (rex::isFrontend()) {
     echo filepond_helper::getStyles();
     echo filepond_helper::getScripts();
 }
 
-// 3. Configure YForm instance
+// 4. Configure YForm instance
 $yform = new rex_yform();
 $yform->setObjectparams('form_name', 'upload-form');
 $yform->setObjectparams('form_action', rex_getUrl(rex_article::getCurrentId()));
@@ -289,35 +309,44 @@ $yform->setObjectparams('form_ytemplate', 'bootstrap');
 $yform->setObjectparams('form_showformafterupdate', 0);
 $yform->setObjectparams('real_field_names', true);
 
-// 4. Add FilePond field
+// 5. Add FilePond field (named options)
 $yform->setValueField('filepond', [
-    'attachment',
-    'Datei-Upload',
-    '0',
-    'image/*,application/pdf',
-    '50',
-    '5',
-    '0',
-    'Bitte laden Sie Ihre Dateien hier hoch.',
-    'Bitte wählen Sie mindestens eine Datei aus.',
-    '0',
-    '0',
-    '1'
+    'name' => 'attachment',
+    'label' => 'Datei-Upload',
+    'category' => 0,
+    'allowed_types' => 'image/*,application/pdf',
+    'allowed_filesize' => 50,
+    'allowed_max_files' => 5,
+    'required' => 0,
+    'notice' => 'Bitte laden Sie Ihre Dateien hier hoch.',
+    'empty_value' => 'Bitte wählen Sie mindestens eine Datei aus.',
+    'skip_meta' => 0,
+    'chunk_enabled' => 1,
+    'chunk_size' => 5,
+    'delayed_upload' => 0,
+    'title_required' => 1,
+    'alt_required' => 1,
+    'max_pixel' => 2100,
+    'image_quality' => 90,
+    'client_resize' => 0,
+    'ai_enabled' => 0,
+    'ai_target_field' => 'med_alt',
 ]);
 
-// 5. Save to DB
+// 6. Save to DB
 $yform->setActionField('db', ['rex_my_yform_table']);
 
-// 6. Success message
+// 7. Success message
 $yform->setActionField('html', ['<div class="alert alert-success">Vielen Dank! Der Upload war erfolgreich.</div>']);
 
 echo $yform->getForm();
 ?>
 ```
 
-**Notes on new attributes:**
-- `data-filepond-title-required="true"`: Marks title as required in metadata dialog
-- `data-filepond-metainfo-lang="true"`: Enables automatic detection of multilingual MetaInfo fields
+**Notes:**
+- FilePond initializes automatically after DOM ready. No manual init script is required.
+- If you inject form HTML dynamically (AJAX/PJAX), trigger re-init via `document.dispatchEvent(new Event('filepond:init'));`.
+- The metadata field mapping is handled automatically via backend API; no `data-filepond-metainfo-lang` attribute is required.
 
 **Notes on data-filepond-types:**
 - MIME types are preferred: image/*, video/*, application/pdf
@@ -541,12 +570,6 @@ rex_set_session('filepond_no_meta', true);
 rex_set_session('filepond_title_required', true);
 ```
 
-### Enable MetaInfo Lang Fields
-
-```php
-rex_set_session('filepond_metainfo_lang', true);
-```
-
 ### Module Example
 
 ```php
@@ -555,7 +578,6 @@ rex_login::startSession();
 rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
 rex_set_session('filepond_no_meta', true);
 rex_set_session('filepond_title_required', true);
-rex_set_session('filepond_metainfo_lang', true);
 
 if (rex::isFrontend()) {
     echo filepond_helper::getStyles();
@@ -576,7 +598,6 @@ if (rex::isFrontend()) {
         data-filepond-lang="de_de"
         data-filepond-skip-meta="<?= rex_session('filepond_no_meta', 'boolean', false) ? 'true' : 'false' ?>"
         data-filepond-title-required="<?= rex_session('filepond_title_required', 'boolean', false) ? 'true' : 'false' ?>"
-        data-filepond-metainfo-lang="<?= rex_session('filepond_metainfo_lang', 'boolean', false) ? 'true' : 'false' ?>"
         data-filepond-chunk-enabled="true"
         data-filepond-chunk-size="5242880"
     >
@@ -586,27 +607,16 @@ if (rex::isFrontend()) {
 ## Frontend Initialization and Tips
 
 ```js
-document.addEventListener('DOMContentLoaded', function() {
-  initFilePond();
-});
+// Usually not needed: filepond_widget.js initializes automatically.
+// Only for dynamically injected markup:
+document.dispatchEvent(new Event('filepond:init'));
 ```
 
 ### jQuery Variant
 
 ```js
-document.addEventListener('DOMContentLoaded', function() {
-  $('body').trigger('rex:ready', [$('body')]);
-});
-```
-
-### Frontend Style Fix
-
-```css
-.filepond--panel-root {
-    border: 1px solid var(--fp-border);
-    background-color: #eedede;
-    min-height: 150px;
-}
+// Optional in jQuery/PJAX contexts
+jQuery(document).trigger('rex:ready');
 ```
 
 ## Customizing FilePond Styles

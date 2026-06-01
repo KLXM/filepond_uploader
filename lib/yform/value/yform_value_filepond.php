@@ -316,12 +316,81 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             $skipMeta = true;
         }
 
-        // Chunk-Upload-Einstellungen
-        $enableChunks = rex_config::get('filepond_uploader', 'enable_chunks', true);
-        $chunkSize = rex_config::get('filepond_uploader', 'chunk_size', 5) * 1024 * 1024;
+        // Chunk-Upload-Einstellungen (Element-Einstellung > Config)
+        $chunkEnabledElement = $this->getElement('chunk_enabled');
+        if (null !== $chunkEnabledElement && '' !== (string) $chunkEnabledElement) {
+            $enableChunks = '1' === (string) $chunkEnabledElement;
+        } else {
+            $enableChunks = (bool) rex_config::get('filepond_uploader', 'enable_chunks', true);
+        }
+
+        $chunkSizeElement = $this->getElement('chunk_size');
+        if (null !== $chunkSizeElement && '' !== (string) $chunkSizeElement && is_numeric((string) $chunkSizeElement)) {
+            $chunkSize = (int) $chunkSizeElement * 1024 * 1024;
+        } else {
+            $chunkSize = (int) rex_config::get('filepond_uploader', 'chunk_size', 5) * 1024 * 1024;
+        }
 
         // Verzögerter Upload-Modus
         $delayedUpload = $this->getElement('delayed_upload');
+
+        // Zusätzliche optionale Einstellungen (Element-Einstellung > Config)
+        $altRequiredElement = $this->getElement('alt_required');
+        if (null !== $altRequiredElement && '' !== (string) $altRequiredElement) {
+            $altRequired = '1' === (string) $altRequiredElement;
+        } else {
+            $altRequiredRaw = rex_config::get('filepond_uploader', 'alt_required_default', '1');
+            $altRequired = in_array($altRequiredRaw, [1, '1', true, 'true', '|1|'], true);
+        }
+
+        $maxPixelElement = $this->getElement('max_pixel');
+        if (null !== $maxPixelElement && '' !== (string) $maxPixelElement && is_numeric((string) $maxPixelElement)) {
+            $maxPixel = (int) $maxPixelElement;
+        } else {
+            $clientMaxPixel = rex_config::get('filepond_uploader', 'client_max_pixel', '');
+            $cfgMaxPixel = rex_config::get('filepond_uploader', 'max_pixel', 2100);
+            $maxPixel = (is_scalar($clientMaxPixel) && '' !== (string) $clientMaxPixel)
+                ? (int) $clientMaxPixel
+                : (int) $cfgMaxPixel;
+        }
+
+        $imageQualityElement = $this->getElement('image_quality');
+        if (null !== $imageQualityElement && '' !== (string) $imageQualityElement && is_numeric((string) $imageQualityElement)) {
+            $imageQuality = (int) $imageQualityElement;
+        } else {
+            $clientImageQuality = rex_config::get('filepond_uploader', 'client_image_quality', '');
+            $cfgImageQuality = rex_config::get('filepond_uploader', 'image_quality', 90);
+            $imageQuality = (is_scalar($clientImageQuality) && '' !== (string) $clientImageQuality)
+                ? (int) $clientImageQuality
+                : (int) $cfgImageQuality;
+        }
+
+        $clientResizeElement = $this->getElement('client_resize');
+        if (null !== $clientResizeElement && '' !== (string) $clientResizeElement) {
+            $clientResize = '1' === (string) $clientResizeElement;
+        } else {
+            $createThumbs = rex_config::get('filepond_uploader', 'create_thumbnails', '');
+            $clientResize = '|1|' === (string) $createThumbs;
+        }
+
+        $aiEnabledElement = $this->getElement('ai_enabled');
+        if (null !== $aiEnabledElement && '' !== (string) $aiEnabledElement) {
+            $aiEnabled = '1' === (string) $aiEnabledElement;
+        } else {
+            $enableAiAltRaw = rex_config::get('filepond_uploader', 'enable_ai_alt', '0');
+            $enableAiUploadModalRaw = rex_config::get('filepond_uploader', 'enable_ai_upload_modal', '1');
+            $enableAiAlt = in_array($enableAiAltRaw, [1, '1', true, 'true', '|1|'], true);
+            $enableAiUploadModal = in_array($enableAiUploadModalRaw, [1, '1', true, 'true', '|1|'], true);
+            $aiEnabled = $enableAiAlt && $enableAiUploadModal;
+        }
+
+        $aiTargetFieldElement = $this->getElement('ai_target_field');
+        if (null !== $aiTargetFieldElement && '' !== trim((string) $aiTargetFieldElement)) {
+            $aiTargetField = trim((string) $aiTargetFieldElement);
+        } else {
+            $aiTargetFieldRaw = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
+            $aiTargetField = is_string($aiTargetFieldRaw) && '' !== trim($aiTargetFieldRaw) ? trim($aiTargetFieldRaw) : 'med_alt';
+        }
 
         $categoryElement = $this->getElement('category');
         $this->params['form_output'][$this->getId()] = $this->parse('value.filepond.tpl.php', [
@@ -332,12 +401,18 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
             'chunk_size' => $chunkSize,
             'skip_meta' => $skipMeta,
             'delayed_upload' => $delayedUpload,
+            'alt_required' => $altRequired,
+            'max_pixel' => $maxPixel,
+            'image_quality' => $imageQuality,
+            'client_resize' => $clientResize,
+            'ai_enabled' => $aiEnabled,
+            'ai_target_field' => $aiTargetField,
         ]);
     }
 
     public function getDescription(): string
     {
-        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|error_msg_empty|skip_meta[0,1]|delayed_upload[0,1,2]|title_required[0,1]
+        return 'filepond|name|label|category|allowed_types[MIME-Types oder Dateiendungen]|allowed_filesize|allowed_max_files|required|notice|empty_value|skip_meta[0,1]|chunk_enabled[0,1]|chunk_size[MB]|delayed_upload[0,1,2]|title_required[0,1]|alt_required[0,1]|max_pixel|image_quality|client_resize[0,1]|ai_enabled[0,1]|ai_target_field
         
         Parameter-Details:
         - title_required[0,1]: Wenn auf 1 gesetzt, muss der Benutzer für jede hochgeladene Datei einen Titel angeben. Bei 0 ist der Titel optional.
@@ -386,6 +461,18 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     'default' => 'Bitte eine Datei auswählen.',
                 ],
                 'skip_meta' => ['type' => 'checkbox',  'label' => 'Metaabfrage deaktivieren', 'default' => '0', 'options' => '0,1'],
+                'chunk_enabled' => [
+                    'type' => 'checkbox',
+                    'label' => 'Chunk-Upload aktivieren',
+                    'choices' => ['0' => 'Nein', '1' => 'Ja'],
+                    'default' => (bool) rex_config::get('filepond_uploader', 'enable_chunks', true) ? '1' : '0',
+                ],
+                'chunk_size' => [
+                    'type' => 'text',
+                    'label' => 'Chunk-Größe (MB)',
+                    'notice' => 'Größe eines Upload-Chunks in Megabyte',
+                    'default' => (string) rex_config::get('filepond_uploader', 'chunk_size', 5),
+                ],
                 'delayed_upload' => [
                     'type' => 'choice',
                     'label' => 'Verzögerter Upload-Modus',
@@ -399,6 +486,46 @@ class rex_yform_value_filepond extends rex_yform_value_abstract
                     'choices' => ['0' => 'Nein', '1' => 'Ja'],
                     'notice' => 'Wenn aktiviert, wird das title Feld im Metadaten-Dialog als Pflichtfeld markiert',
                     'default' => '0',
+                ],
+                'alt_required' => [
+                    'type' => 'checkbox',
+                    'label' => 'ALT-Feld als Pflichtfeld',
+                    'choices' => ['0' => 'Nein', '1' => 'Ja'],
+                    'notice' => 'Wenn aktiviert, ist das med_alt Feld im Metadaten-Dialog ein Pflichtfeld',
+                    'default' => in_array(rex_config::get('filepond_uploader', 'alt_required_default', '1'), [1, '1', true, 'true', '|1|'], true) ? '1' : '0',
+                ],
+                'max_pixel' => [
+                    'type' => 'text',
+                    'label' => 'Maximale Bildgröße (Pixel)',
+                    'notice' => 'Wird für clientseitige Größenanpassung verwendet',
+                    'default' => (string) rex_config::get('filepond_uploader', 'max_pixel', 2100),
+                ],
+                'image_quality' => [
+                    'type' => 'text',
+                    'label' => 'Bildqualität (10-100)',
+                    'notice' => 'Qualität für JPEG/WebP bei clientseitiger Verarbeitung',
+                    'default' => (string) rex_config::get('filepond_uploader', 'image_quality', 90),
+                ],
+                'client_resize' => [
+                    'type' => 'checkbox',
+                    'label' => 'Clientseitige Bildverkleinerung',
+                    'choices' => ['0' => 'Nein', '1' => 'Ja'],
+                    'default' => '|1|' === (string) rex_config::get('filepond_uploader', 'create_thumbnails', '') ? '1' : '0',
+                ],
+                'ai_enabled' => [
+                    'type' => 'checkbox',
+                    'label' => 'AI-Vorschläge im Upload-Dialog',
+                    'choices' => ['0' => 'Nein', '1' => 'Ja'],
+                    'default' => (
+                        in_array(rex_config::get('filepond_uploader', 'enable_ai_alt', '0'), [1, '1', true, 'true', '|1|'], true)
+                        && in_array(rex_config::get('filepond_uploader', 'enable_ai_upload_modal', '1'), [1, '1', true, 'true', '|1|'], true)
+                    ) ? '1' : '0',
+                ],
+                'ai_target_field' => [
+                    'type' => 'text',
+                    'label' => 'AI-Zielfeld',
+                    'notice' => 'Feldname, in das AI-Vorschläge geschrieben werden (z.B. med_alt)',
+                    'default' => (string) rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt'),
                 ],
             ],
             'description' => 'Filepond Dateiupload mit Medienpool-Integration und Chunk-Upload',

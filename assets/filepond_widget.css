@@ -96,6 +96,35 @@ body.rex-theme-dark {
 .filepond--panel-root {
     border: 1px solid var(--fp-border);
     background-color: var(--fp-background);
+    min-height: 150px;
+}
+
+/* Frontend-only: Items in der Bühne halten */
+body:not(.rex-backend) .filepond--root {
+    --fp-fe-stage-height: 17em;
+    min-height: var(--fp-fe-stage-height);
+    overflow: visible;
+}
+
+body:not(.rex-backend) .filepond--root .filepond--panel-root {
+    min-height: var(--fp-fe-stage-height);
+}
+
+body:not(.rex-backend) .filepond--root .filepond--list-scroller {
+    height: calc(var(--fp-fe-stage-height) - 5.5em);
+    overflow-y: auto;
+}
+
+body:not(.rex-backend) .filepond--root .filepond--list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-content: flex-start;
+    gap: 0.5rem;
+}
+
+body:not(.rex-backend) .filepond--root .filepond--item {
+    width: calc(33.33% - 0.5rem) !important;
+    margin: 0 !important;
 }
 
 /* Drop Label */

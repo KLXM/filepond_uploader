@@ -1,13 +1,26 @@
-$(document).on('rex:ready', function() {
-    initAiButtons();
-});
+(function() {
+    if (typeof window.jQuery === 'undefined') {
+        return;
+    }
 
-// Auch beim initialen Laden ausführen
-$(function() {
-    initAiButtons();
-});
+    var $ = window.jQuery;
 
-function initAiButtons() {
+    $(document).on('rex:ready', function() {
+        initAiButtons();
+    });
+
+    // Auch beim initialen Laden ausführen
+    $(function() {
+        initAiButtons();
+    });
+
+    function initAiButtons() {
+    var magicIconUrl = window.location.origin + '/assets/addons/filepond_uploader/icons/magic.svg';
+    var getMagicIcon = function(isSpinning) {
+        var spinClass = isSpinning ? ' filepond-magic-icon--spin' : '';
+        return '<img src="' + magicIconUrl + '" class="filepond-magic-icon' + spinClass + '" alt="" aria-hidden="true">';
+    };
+
     // Nur auf der echten Medienpool-Detailseite ausführen, nicht auf Unterseiten wie mediapool/cropper
     var urlParams = new URLSearchParams(window.location.search);
     var currentPage = urlParams.get('page') || '';
@@ -26,7 +39,7 @@ function initAiButtons() {
         }
 
         var inputName = $input.attr('name') || '';
-        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '"><i class="fa fa-magic"></i></button>';
+        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '">' + getMagicIcon(false) + '</button>';
 
         if ($input.is('textarea')) {
             var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin-top:6px;"></div>');
@@ -145,7 +158,7 @@ function initAiButtons() {
 
             // Loading State
             var originalIcon = btn.html();
-            btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+            btn.prop('disabled', true).html(getMagicIcon(true));
 
             // API Call
             $.ajax({
@@ -176,4 +189,5 @@ function initAiButtons() {
         });
         window.aiBtnHandlerBound = true;
     }
-}
+    }
+})();
