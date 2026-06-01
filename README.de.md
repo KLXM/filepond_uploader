@@ -37,7 +37,7 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   **Wichtig:** Beide Optionen deaktiviert = Original-Dateien werden hochgeladen (empfohlen für professionelle Fotografie)
 
 *   **Barrierefreiheit & rechtliche Sicherheit:**
-    *   Erzwingt das Setzen von Alt-Texten für Bilder
+    *   Alt-Text-Pflicht für Bilder ist konfigurierbar (standardmäßig aktiviert)
     *   Legt automatisch Metafelder an, falls sie noch nicht existieren
     *   Optionale Abfrage des Copyrights und der Beschreibung für Mediendateien
 
@@ -1067,7 +1067,7 @@ Bei mehrsprachigen Feldern wird eine benutzerfreundliche Oberfläche angezeigt:
 Die Felder werden in folgender Reihenfolge angezeigt:
 1. `title` (einfacher Titel für interne Verwaltung)
 2. `med_title_lang` (mehrsprachiger Titel) - **Pflichtfeld**
-3. `med_alt` (Alt-Text für Bilder) - **Pflichtfeld bei Bildern**
+3. `med_alt` (Alt-Text für Bilder) - **standardmäßig Pflichtfeld (in Settings deaktivierbar)**
 4. `med_copyright` (Copyright-Information)
 5. `med_description` oder `med_description_lang` (Beschreibung)
 6. Weitere Felder alphabetisch sortiert
@@ -1076,7 +1076,7 @@ Die Felder werden in folgender Reihenfolge angezeigt:
 
 #### Automatische Validierung
 - **`med_title_lang`:** Immer Pflichtfeld bei mehrsprachigen Titeln
-- **`med_alt`:** Pflichtfeld bei Bildern (kann per "dekorativ" deaktiviert werden)
+- **`med_alt`:** Standardmäßig Pflichtfeld bei Bildern (in den Settings deaktivierbar; kann per "dekorativ" deaktiviert werden)
 - **`title`:** Optional (kann in Settings/YForm als Pflichtfeld konfiguriert werden)
 
 #### Dekorative Bilder
@@ -1257,7 +1257,7 @@ Folgende Metadaten können für jede hochgeladene Datei erfasst werden:
 **Konfigurierbare Pflichtfelder:**
 - `title` (einfacher Titel): Optional als Pflichtfeld konfigurierbar über Settings oder data-Attribut
 - `med_title_lang` (mehrsprachiger Titel): Immer Pflichtfeld, nicht deaktivierbar
-- `med_alt` (Alt-Text): Pflichtfeld bei Bildern, kann pro Sprache als "dekorativ" markiert werden
+- `med_alt` (Alt-Text): Standardmäßig Pflichtfeld bei Bildern, kann in den AddOn-Settings deaktiviert und pro Sprache als "dekorativ" markiert werden
 
 > **Hinweis:** Die Felder werden automatisch in der Datenbank angelegt, falls sie noch nicht existieren. Bei mehrsprachigen Feldern muss das MetaInfo Lang Fields AddOn installiert sein.
 
@@ -1493,7 +1493,8 @@ Nach der Einrichtung erscheint im Alt-Text-Checker:
 ## Hinweise
 
 *   Die maximale Dateigröße wird serverseitig überprüft.
-*   Das Copyright-Feld und die Beschreibung sind optional, Titel und Alt-Text sind Pflicht.
+*   Das Copyright-Feld und die Beschreibung sind optional.
+*   Der Titel ist optional (außer als Pflichtfeld konfiguriert), der Alt-Text ist bei Bildern standardmäßig Pflicht und kann in den Einstellungen deaktiviert werden.
 *   Uploads landen automatisch im Medienpool.
 *   Metadaten werden im Medienpool gespeichert.
 *   Videos können direkt im Upload-Dialog betrachtet werden.

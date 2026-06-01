@@ -37,7 +37,7 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   **Important:** If both options are disabled, original files are uploaded (recommended for professional photography)
 
 *   **Accessibility and legal safety:**
-    *   Enforces alt text for images
+    *   ALT text requirement for images is configurable (enabled by default)
     *   Automatically creates meta fields if they do not exist
     *   Optional prompt for copyright and description metadata
 
@@ -775,7 +775,7 @@ Multilingual fields:
 ### Validation
 
 - med_title_lang: always required
-- med_alt: required for images (can be marked decorative)
+- med_alt: required for images by default, can be disabled in settings, and can be marked decorative
 - title: optional unless configured as required
 
 ## Metadata
@@ -792,6 +792,11 @@ Multilingual metadata:
 1. med_title_lang
 2. med_description_lang
 3. med_keywords_lang
+
+Configurable required fields:
+- title: optional by default, configurable as required
+- med_title_lang: always required
+- med_alt: required for images by default (setting: Alt text for images as required field)
 
 ## Alt Text Checker
 
