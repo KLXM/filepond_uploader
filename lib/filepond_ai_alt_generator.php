@@ -210,6 +210,106 @@ class filepond_ai_alt_generator
     }
 
     /**
+     * Generiert Alt-Texte für mehrere Sprachen in einem einzigen Vision-Request.
+     *
+     * @param list<string> $languages Sprachcodes, z.B. ['de', 'en']
+     * @return array{success: bool, alt_texts: array<string, string>, tokens?: array{prompt: int, response: int, total: int}|null, error: string|null}
+     */
+    public function generateAltTexts(string $filename, array $languages): array
+    {
+        if (!$this->provider->isConfigured()) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'AI Provider nicht korrekt konfiguriert',
+            ];
+        }
+
+        $media = rex_media::get($filename);
+        if (null === $media) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'Datei nicht gefunden',
+            ];
+        }
+
+        if (!$media->isImage()) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'Keine Bilddatei',
+            ];
+        }
+
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if ('svg' === $extension) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'SVG-Dateien werden nicht unterstützt',
+            ];
+        }
+
+        $filePath = rex_path::media($filename);
+        if (!file_exists($filePath)) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'Datei nicht auf dem Server gefunden',
+            ];
+        }
+
+        return $this->executeGenerationMultiple($filePath, $languages);
+    }
+
+    /**
+     * Generiert Alt-Texte für mehrere Sprachen aus einem Dateipfad.
+     *
+     * @param list<string> $languages Sprachcodes, z.B. ['de', 'en']
+     * @return array{success: bool, alt_texts: array<string, string>, tokens?: array{prompt: int, response: int, total: int}|null, error: string|null}
+     */
+    public function generateAltTextsFromPath(string $filePath, array $languages): array
+    {
+        if (!$this->provider->isConfigured()) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'AI Provider nicht korrekt konfiguriert',
+            ];
+        }
+
+        if (!file_exists($filePath)) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'Datei nicht gefunden',
+            ];
+        }
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($filePath);
+
+        if (!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'Keine Bilddatei',
+            ];
+        }
+
+        if ('image/svg+xml' === $mimeType) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => 'SVG-Dateien werden nicht unterstützt',
+            ];
+        }
+
+        return $this->executeGenerationMultiple($filePath, $languages);
+    }
+
+    /**
      * Interne Methode zur Ausführung der Generierung.
      *
      * @return array{success: bool, alt_text: string, error: string|null, tokens?: array{prompt: int, response: int, total: int}|null}
@@ -259,6 +359,56 @@ class filepond_ai_alt_generator
     }
 
     /**
+     * @param list<string> $languages
+     * @return array{success: bool, alt_texts: array<string, string>, tokens?: array{prompt: int, response: int, total: int}|null, error: string|null}
+     */
+    private function executeGenerationMultiple(string $filePath, array $languages): array
+    {
+        $normalizedLanguages = $this->normalizeLanguageCodes($languages);
+        if ([] === $normalizedLanguages) {
+            $normalizedLanguages = ['de'];
+        }
+
+        try {
+            $prepared = $this->prepareImage($filePath, true);
+            $base64Image = $prepared['data'];
+            $mimeType = $prepared['mime'];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        $prompt = $this->buildMultiLanguagePrompt($normalizedLanguages);
+
+        $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
+        if ($maxTokens <= 0) {
+            $maxTokens = 2048;
+        }
+
+        try {
+            $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
+            $altTexts = $this->parseMultiLanguageResponse((string) ($result['text'] ?? ''), $normalizedLanguages);
+
+            return [
+                'success' => true,
+                'alt_texts' => $altTexts,
+                'tokens' => $result['tokens'] ?? null,
+                'error' => null,
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'alt_texts' => [],
+                'tokens' => null,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Generiert Alt-Texte für mehrere Bilder (Bulk).
      *
      * @param list<string> $filenames Array von Dateinamen
@@ -289,7 +439,14 @@ class filepond_ai_alt_generator
      */
     private function prepareImage(string $path, bool $isPath = true): array
     {
-        $maxDimension = 1024;
+        $configuredMaxDimension = (int) rex_config::get('filepond_uploader', 'ai_max_image_dimension', 1024);
+        if ($configuredMaxDimension < 256) {
+            $configuredMaxDimension = 256;
+        }
+        if ($configuredMaxDimension > 2048) {
+            $configuredMaxDimension = 2048;
+        }
+        $maxDimension = $configuredMaxDimension;
 
         // Original laden
         $imageData = $isPath ? @file_get_contents($path) : $path;
@@ -382,6 +539,116 @@ class filepond_ai_alt_generator
 
             Antworte NUR mit dem Alt-Text, ohne Anführungszeichen oder Erklärungen.
             PROMPT;
+    }
+
+    /**
+     * @param list<string> $languages
+     */
+    private function buildMultiLanguagePrompt(array $languages): string
+    {
+        $languageParts = [];
+        foreach ($languages as $language) {
+            $languageParts[] = $language . ' (' . $this->getLanguageName($language) . ')';
+        }
+
+        $languageList = implode(', ', $languageParts);
+        $jsonTemplateParts = [];
+        foreach ($languages as $language) {
+            $jsonTemplateParts[] = '  "' . $language . '": "<alt text in ' . $this->getLanguageName($language) . '>"';
+        }
+
+        $jsonTemplate = "{\n" . implode(",\n", $jsonTemplateParts) . "\n}";
+
+        return <<<PROMPT
+            Analysiere dieses Bild einmal und erstelle Alt-Texte für diese Sprachen: $languageList.
+
+            Regeln:
+            - Pro Sprache genau ein vollständiger Satz
+            - Kurz und präzise (ca. 10-15 Wörter)
+            - Keine Phrasen wie "Bild von", "Foto zeigt" oder "Abbildung"
+            - Beschreibe konkret sichtbare Inhalte
+            - Für Screenreader gut verständlich
+            - Keine Halluzinationen über nicht sichtbare Details
+
+            Antworte NUR mit gültigem JSON in exakt diesem Format und ohne weiteren Text:
+            $jsonTemplate
+            PROMPT;
+    }
+
+    /**
+     * @param list<string> $languages
+     * @return list<string>
+     */
+    private function normalizeLanguageCodes(array $languages): array
+    {
+        $normalized = [];
+
+        foreach ($languages as $language) {
+            if (!is_string($language)) {
+                continue;
+            }
+
+            $trimmed = trim($language);
+            if ('' === $trimmed) {
+                continue;
+            }
+
+            $short = strtolower(substr($trimmed, 0, 2));
+            if (!preg_match('/^[a-z]{2}$/', $short)) {
+                continue;
+            }
+
+            if (!in_array($short, $normalized, true)) {
+                $normalized[] = $short;
+            }
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param list<string> $languages
+     * @return array<string, string>
+     */
+    private function parseMultiLanguageResponse(string $rawText, array $languages): array
+    {
+        $json = trim($rawText);
+
+        if (str_starts_with($json, '```')) {
+            $json = preg_replace('/^```(?:json)?\s*/i', '', $json) ?? $json;
+            $json = preg_replace('/\s*```$/', '', $json) ?? $json;
+            $json = trim($json);
+        }
+
+        if (!str_starts_with($json, '{')) {
+            if (preg_match('/\{.*\}/s', $json, $matches) && isset($matches[0])) {
+                $json = $matches[0];
+            }
+        }
+
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            throw new Exception('Mehrsprachen-Antwort konnte nicht als JSON gelesen werden');
+        }
+
+        $result = [];
+        foreach ($languages as $language) {
+            $value = $decoded[$language] ?? null;
+            if (!is_string($value)) {
+                continue;
+            }
+
+            $clean = trim($value);
+            if ('' !== $clean) {
+                $result[$language] = $clean;
+            }
+        }
+
+        if ([] === $result) {
+            throw new Exception('Mehrsprachen-Antwort enthält keine verwertbaren Alt-Texte');
+        }
+
+        return $result;
     }
 
     /**

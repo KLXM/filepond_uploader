@@ -595,6 +595,17 @@ $field = $form->addInputField('number', 'ai_max_tokens', null, [
 $field->setLabel($addon->i18n('filepond_settings_ai_max_tokens'));
 $field->setNotice($addon->i18n('filepond_settings_ai_max_tokens_notice'));
 
+// Maximale Bildkante für AI (Resize vor Upload an den Provider)
+$field = $form->addInputField('number', 'ai_max_image_dimension', null, [
+    'class' => 'form-control',
+    'min' => '256',
+    'max' => '2048',
+    'step' => '64',
+    'placeholder' => '1024'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_max_image_dimension'));
+$field->setNotice($addon->i18n('filepond_settings_ai_max_image_dimension_notice'));
+
 $form->addRawField('</div>');
 
 // Rechte Spalte - Custom Prompt

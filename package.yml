@@ -54,6 +54,7 @@ default_config:
     enable_ai_mediapool_detail: true
     ai_provider: 'gemini'
     ai_target_field: 'med_alt'
+    ai_max_image_dimension: 1024
     ai_alt_prompt: null
     gemini_api_key: null
     gemini_model: 'gemini-1.5-flash'

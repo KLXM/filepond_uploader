@@ -21,6 +21,10 @@
         return '<img src="' + magicIconUrl + '" class="filepond-magic-icon' + spinClass + '" alt="" aria-hidden="true">';
     };
 
+    var getButtonContent = function(label, isSpinning) {
+        return getMagicIcon(isSpinning) + '<span class="filepond-ai-btn-label">' + label + '</span>';
+    };
+
     // Nur auf der echten Medienpool-Detailseite ausführen, nicht auf Unterseiten wie mediapool/cropper
     var urlParams = new URLSearchParams(window.location.search);
     var currentPage = urlParams.get('page') || '';
@@ -50,7 +54,7 @@
         }
 
         var inputName = $input.attr('name') || '';
-        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '">' + getMagicIcon(false) + '</button>';
+        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI Alt-Text generieren" aria-label="AI Alt-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '">' + getButtonContent('AI ALT', false) + '</button>';
 
         if ($input.is('textarea')) {
             var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin-top:6px;"></div>');
@@ -98,7 +102,7 @@
         }
         $container.data('filepondAiAttached', true);
 
-        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-lang" type="button" title="AI-Text generieren (alle Sprachen)">' + getMagicIcon(false) + '</button>';
+        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-lang" type="button" title="AI Alt-Text generieren (alle Sprachen)" aria-label="AI Alt-Text generieren (alle Sprachen)">' + getButtonContent('AI ALT alle', false) + '</button>';
         var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml);
 
         var $label = $container.find('> label.meta_lang_main_label').first();
@@ -177,6 +181,20 @@
         });
     }
 
+    function generateForLanguages(fileName, langCodes) {
+        return $.ajax({
+            url: '/redaxo/index.php',
+            method: 'POST',
+            traditional: true,
+            data: {
+                'rex-api-call': 'filepond_ai_generate',
+                'media_name': fileName,
+                'languages[]': langCodes
+            },
+            dataType: 'json'
+        });
+    }
+
     // Konfiguration aus API laden (gleiches Addon/API wie Upload-Modal)
     $.ajax({
         url: '/redaxo/index.php',
@@ -223,7 +241,7 @@
 
             // Loading State
             var originalIcon = btn.html();
-            btn.prop('disabled', true).html(getMagicIcon(true));
+            btn.prop('disabled', true).html(getButtonContent('AI ALT', true));
 
             generateForLanguage(fileName, lang)
                 .done(function(data) {
@@ -266,20 +284,19 @@
             }
 
             var originalIcon = btn.html();
-            btn.prop('disabled', true).html(getMagicIcon(true));
+            btn.prop('disabled', true).html(getButtonContent('AI ALT alle', true));
 
             (async function() {
                 try {
+                    var groupedInputs = {};
+
                     for (var i = 0; i < $inputs.length; i++) {
                         var $input = $($inputs[i]);
-
-                        // Bereits gefüllte Felder überspringen
                         var currentVal = ($input.val() || '').toString().trim();
                         if (currentVal !== '') {
                             continue;
                         }
 
-                        // Sprachcode ermitteln
                         var clangId = $input.data('clang-id') || $input.data('clangId') ||
                                       $input.closest('[data-clang-id]').data('clangId') ||
                                       $input.closest('[data-clang-id]').data('clang-id');
@@ -288,20 +305,51 @@
                             langCode = languagesMap[String(clangId)];
                         }
 
-                        try {
-                            var data = await generateForLanguage(fileName, langCode);
-                            if (data && data.success && data.alt_text) {
-                                $input.val(data.alt_text);
-                                $input.trigger('input').trigger('change');
-                            } else if (data && data.error) {
-                                console.error('AI-Fehler (' + langCode + '): ' + data.error);
-                            }
-                        } catch (err) {
-                            console.error('AI-Fehler (' + langCode + ')', err);
+                        if (!groupedInputs[langCode]) {
+                            groupedInputs[langCode] = [];
+                        }
+                        groupedInputs[langCode].push($input);
+                    }
+
+                    var languageCodes = Object.keys(groupedInputs);
+                    if (languageCodes.length === 0) {
+                        return;
+                    }
+
+                    var batchData = null;
+                    try {
+                        batchData = await generateForLanguages(fileName, languageCodes);
+                    } catch (batchError) {
+                        console.error('AI-Mehrsprachen-Fehler', batchError);
+                    }
+
+                    for (var j = 0; j < languageCodes.length; j++) {
+                        var code = languageCodes[j];
+                        var suggestion = '';
+
+                        if (batchData && batchData.success && batchData.alt_texts && typeof batchData.alt_texts[code] === 'string') {
+                            suggestion = batchData.alt_texts[code].trim();
                         }
 
-                        // Kleine Pause zwischen Sprachen
-                        await new Promise(function(r) { setTimeout(r, 150); });
+                        if (suggestion === '') {
+                            try {
+                                var fallbackData = await generateForLanguage(fileName, code);
+                                if (fallbackData && fallbackData.success && fallbackData.alt_text) {
+                                    suggestion = String(fallbackData.alt_text).trim();
+                                } else if (fallbackData && fallbackData.error) {
+                                    console.error('AI-Fehler (' + code + '): ' + fallbackData.error);
+                                }
+                            } catch (fallbackError) {
+                                console.error('AI-Fehler (' + code + ')', fallbackError);
+                            }
+                        }
+
+                        if (suggestion !== '') {
+                            groupedInputs[code].forEach(function($targetInput) {
+                                $targetInput.val(suggestion);
+                                $targetInput.trigger('input').trigger('change');
+                            });
+                        }
                     }
                 } finally {
                     btn.prop('disabled', false).html(originalIcon);

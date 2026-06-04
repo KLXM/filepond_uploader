@@ -1048,33 +1048,101 @@
                             return suggestion;
                         };
 
+                        const requestAiSuggestions = async (languageCodes) => {
+                            const requestData = new FormData();
+                            requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
+                            languageCodes.forEach((code) => {
+                                requestData.append('languages[]', code);
+                            });
+                            requestData.append('rex-api-call', 'filepond_ai_generate');
+
+                            const response = await fetch(basePath, {
+                                method: 'POST',
+                                body: requestData,
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (jsonError) {
+                                throw new Error(`${t.aiSuggestError} (ungueltige Server-Antwort)`);
+                            }
+
+                            if (!response.ok || !data.success || !data.alt_texts || typeof data.alt_texts !== 'object') {
+                                throw new Error(data.error || t.aiSuggestError);
+                            }
+
+                            return data.alt_texts;
+                        };
+
                         try {
                             if (isMultilingual) {
-                                // Pro Sprache generieren, nur leere Felder befüllen
+                                // Ein Vision-Call fuer alle benoetigten Sprachen, fehlende Werte optional einzeln nachziehen.
                                 let successCount = 0;
                                 let lastError = null;
 
-                                for (const inputEl of writableInputs) {
+                                const targetByLanguage = {};
+                                writableInputs.forEach((inputEl) => {
                                     const currentVal = (inputEl.value || '').toString().trim();
                                     if (currentVal !== '') {
-                                        continue;
+                                        return;
                                     }
 
                                     const langAttr = inputEl.getAttribute('data-lang') || 'de';
                                     const languageCode = langAttr.split('_')[0] || 'de';
 
-                                    try {
-                                        const suggestion = await requestAiSuggestion(languageCode);
-                                        inputEl.value = suggestion;
-                                        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                                        successCount++;
-                                    } catch (err) {
-                                        lastError = err;
+                                    if (!targetByLanguage[languageCode]) {
+                                        targetByLanguage[languageCode] = [];
+                                    }
+                                    targetByLanguage[languageCode].push(inputEl);
+                                });
+
+                                const languageCodes = Object.keys(targetByLanguage);
+
+                                if (languageCodes.length === 0) {
+                                    if (statusNode) {
+                                        statusNode.textContent = 'OK';
+                                        setTimeout(() => {
+                                            statusNode.textContent = '';
+                                        }, 1800);
+                                    }
+                                    return;
+                                }
+
+                                let batchSuggestions = {};
+                                try {
+                                    batchSuggestions = await requestAiSuggestions(languageCodes);
+                                } catch (batchError) {
+                                    lastError = batchError;
+                                }
+
+                                for (const languageCode of languageCodes) {
+                                    let suggestion = '';
+                                    const batchValue = batchSuggestions && typeof batchSuggestions[languageCode] === 'string'
+                                        ? batchSuggestions[languageCode].trim()
+                                        : '';
+
+                                    if (batchValue !== '') {
+                                        suggestion = batchValue;
+                                    } else {
+                                        try {
+                                            suggestion = await requestAiSuggestion(languageCode);
+                                        } catch (err) {
+                                            lastError = err;
+                                        }
                                     }
 
-                                    // kleine Pause zwischen Anfragen
-                                    await new Promise((r) => setTimeout(r, 150));
+                                    if (suggestion !== '') {
+                                        targetByLanguage[languageCode].forEach((inputEl) => {
+                                            inputEl.value = suggestion;
+                                            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                        });
+                                        successCount++;
+                                    }
                                 }
 
                                 if (successCount === 0 && lastError) {
