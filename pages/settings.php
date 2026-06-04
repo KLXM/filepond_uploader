@@ -733,7 +733,11 @@ $hasSavedAiConfig = [
     'gemini' => '' !== trim((string) rex_config::get('filepond_uploader', 'gemini_api_key', '')),
     'cloudflare' => '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_api_token', ''))
         && '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_account_id', '')),
-    'openwebui' => '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_api_key', '')),
+    'openwebui' => '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_model', 'llava'))
+        && (
+            '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_api_key', ''))
+            || '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_base_url', ''))
+        ),
 ];
 
 $isAiTestEnabled = $hasSavedAiConfig[$savedAiProvider] ?? false;

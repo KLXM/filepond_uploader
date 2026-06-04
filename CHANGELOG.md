@@ -2,8 +2,16 @@
 
 ## Unreleased
 
+## 2.5.2 (2026-06-04)
+
 ### 🐛 Bugfixes
 - **AI-Textgenerierung füllt MetaInfo-Lang-Felder (z. B. `lang_textarea_all`) im Upload-Metadialog und auf der Medienpool-Detailseite**: Auf der Detailseite wird der Zauberbutton jetzt am Sprachen-Container des Felds platziert und schreibt die generierten Texte direkt in die einzelnen Sprach-Inputs (statt nur ins versteckte JSON-Feld). Im Upload-Metadialog werden bei mehrsprachigen Zielfeldern jetzt alle (leeren) Sprach-Tabs nacheinander befüllt – analog zum Verhalten im Alt-Text-Checker.
+- **OpenWebUI-Konfigurationsprüfung korrigiert**: Die Verbindungstest-Logik erkennt OpenWebUI jetzt auch ohne API-Key als konfiguriert, wenn Base-URL und Modell gesetzt sind (analog zu lokalen OpenWebUI/Ollama-Setups).
+- **Leerer Authorization-Header vermieden**: Beim OpenAI-kompatiblen Provider wird der `Authorization: Bearer ...` Header nur noch gesendet, wenn tatsächlich ein API-Key hinterlegt ist.
+- **AI-Icon in Medien-Details besser sichtbar**: Der Zauberbutton für die Medienpool-Detailseite wurde kontrastreicher gestaltet (inkl. Light/Dark/Auto-Theme-Unterstützung).
+
+### ✨ Verbesserungen
+- **Empfehlung für mehrsprachige ALT-Felder dokumentiert**: Für ALT-Zielfelder mit mehreren Sprachen wird der MetaInfo-Typ `lang_text_all` empfohlen.
 
 ## 2.5.1 (2026-06-01)
 
