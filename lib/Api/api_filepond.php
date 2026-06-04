@@ -65,7 +65,7 @@ class rex_api_filepond_uploader extends rex_api_function
     /**
      * @return never
      */
-    protected function sendResponse(mixed $data, string $statusCode = '200'): void
+    protected function sendResponse(mixed $data, string $statusCode = '200'): never
     {
         rex_response::cleanOutputBuffers();
         if ('200' !== $statusCode) {

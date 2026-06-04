@@ -13,15 +13,15 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         
         // Set success message with token
         $message = '<div class="alert alert-info">';
-        $message .= '<p><strong>Installation erfolgreich!</strong></p>';
-        $message .= '<p>Ihr API-Token wurde generiert. Bitte notieren Sie sich den Token, er wird aus Sicherheitsgründen nur einmal angezeigt:</p>';
+        $message .= '<p><strong>' . $addon->i18n('filepond_install_success_title') . '</strong></p>';
+        $message .= '<p>' . $addon->i18n('filepond_install_token_created_notice') . '</p>';
         $message .= '<div class="input-group fp-token-input-group">';
         $message .= '<input type="text" class="form-control" id="initial-token" value="' . rex_escape($token) . '" readonly>';
         $message .= '<span class="input-group-btn">';
-        $message .= '<clipboard-copy for="initial-token" class="btn btn-default"><i class="fa fa-clipboard"></i> Token kopieren</clipboard-copy>';
+        $message .= '<clipboard-copy for="initial-token" class="btn btn-default"><i class="fa fa-clipboard"></i> ' . $addon->i18n('filepond_install_copy_token') . '</clipboard-copy>';
         $message .= '</span>';
         $message .= '</div>';
-        $message .= '<p><strong>Wichtig:</strong> Bewahren Sie den Token sicher auf. Er wird später nur noch verschlüsselt angezeigt.</p>';
+        $message .= '<p><strong>' . $addon->i18n('filepond_install_important_label') . '</strong> ' . $addon->i18n('filepond_install_token_store_notice') . '</p>';
         $message .= '</div>';
 
         // Log token generation
@@ -36,7 +36,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
         // Prüfe ob die notwendigen Felder bereits existieren
         $fields = [
             'med_alt' => [
-                'title' => 'Alternative Text',
+                'title' => rex_i18n::msg('filepond_install_metainfo_alt_title'),
                 'priority' => 2,
                 'type_id' => 1, // Text Input
                 'params' => '',
@@ -44,7 +44,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
                 'restrictions' => ''
             ],
             'med_copyright' => [
-                'title' => 'Copyright',
+                'title' => rex_i18n::msg('filepond_install_metainfo_copyright_title'),
                 'priority' => 3,
                 'type_id' => 1, // Text Input
                 'params' => '',
@@ -72,7 +72,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
             foreach ($fields as $name => $field) {
                 $sql->setQuery('SELECT * FROM ' . rex::getTable('metainfo_field') . ' WHERE name = :name', [':name' => $name]);
                 
-                if ($sql->getRows() == 0) {
+                if (0 === $sql->getRows()) {
                     $metaField = [
                         'title' => $field['title'],
                         'name' => $name,
@@ -97,9 +97,7 @@ if (rex::isBackend() && rex::getUser()?->isAdmin()) {
 
             // Prüfe ob der Upload-Ordner existiert
             $uploadPath = rex_path::pluginData('yform', 'manager', 'upload/filepond');
-            if (!file_exists($uploadPath)) {
-                mkdir($uploadPath, 0775, true);
-            }
+            rex_dir::create($uploadPath);
 
            
 

@@ -216,6 +216,15 @@ filepond_regenerate_token_warning = Achtung: Bestehende API-Integrationen müsse
 filepond_regenerate_token_confirm = Sind Sie sicher? Alle bestehenden API-Integrationen müssen aktualisiert werden!
 filepond_token_regenerated = API Token wurde neu generiert.
 
+# Installation
+filepond_install_success_title = Installation erfolgreich!
+filepond_install_token_created_notice = Ihr API-Token wurde generiert. Bitte notieren Sie sich den Token, er wird aus Sicherheitsgründen nur einmal angezeigt:
+filepond_install_copy_token = Token kopieren
+filepond_install_important_label = Wichtig:
+filepond_install_token_store_notice = Bewahren Sie den Token sicher auf. Er wird später nur noch verschlüsselt angezeigt.
+filepond_install_metainfo_alt_title = Alternativer Text
+filepond_install_metainfo_copyright_title = Copyright
+
 # Maintenance section
 filepond_maintenance_section = Wartung und Pflege
 filepond_maintenance_cleanup = Temporäre Dateien aufräumen

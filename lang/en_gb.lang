@@ -217,6 +217,15 @@ filepond_regenerate_token_warning = Warning: Existing API integrations must be u
 filepond_regenerate_token_confirm = Are you sure? All existing API integrations must be updated!
 filepond_token_regenerated = API Token has been regenerated.
 
+# Installation
+filepond_install_success_title = Installation successful!
+filepond_install_token_created_notice = Your API token has been generated. Please store it securely, as it is shown only once for security reasons:
+filepond_install_copy_token = Copy token
+filepond_install_important_label = Important:
+filepond_install_token_store_notice = Keep this token in a safe place. It will only be shown in masked form later.
+filepond_install_metainfo_alt_title = Alternative Text
+filepond_install_metainfo_copyright_title = Copyright
+
 # General Settings
 filepond_general_settings = General Settings
 filepond_save = Save

@@ -17,29 +17,33 @@ class rex_api_filepond_ai_test extends rex_api_function
 {
     protected $published = false; // Nur für Backend-User
 
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function sendJson(array $data): never
+    {
+        rex_response::cleanOutputBuffers();
+        rex_response::sendJson($data);
+        exit;
+    }
+
     public function execute(): rex_api_result
     {
         // Prüfe ob User eingeloggt
         if (null === rex::getUser()) {
-            rex_response::cleanOutputBuffers();
-            rex_response::sendJson(['success' => false, 'message' => 'Nicht autorisiert']);
-            exit;
+            $this->sendJson(['success' => false, 'message' => 'Nicht autorisiert']);
         }
 
         try {
             $generator = new AiAltGenerator();
             $result = $generator->testConnection();
 
-            rex_response::cleanOutputBuffers();
-            rex_response::sendJson($result);
-            exit;
+            $this->sendJson($result);
         } catch (Throwable $e) {
-            rex_response::cleanOutputBuffers();
-            rex_response::sendJson([
+            $this->sendJson([
                 'success' => false,
                 'message' => 'Fehler: ' . $e->getMessage(),
             ]);
-            exit;
         }
     }
 }

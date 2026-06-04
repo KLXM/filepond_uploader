@@ -7,6 +7,7 @@ namespace KLXM\FilePond\Api;
 use KLXM\FilePond\YcomAuthSettings;
 use rex;
 use rex_api_function;
+use rex_api_result;
 use rex_backend_login;
 use rex_response;
 use rex_server;
@@ -21,7 +22,7 @@ class rex_api_filepond_ycom_auth extends rex_api_function
 {
     protected $published = false;
 
-    public function execute()
+    public function execute(): rex_api_result
     {
         rex_response::cleanOutputBuffers();
 

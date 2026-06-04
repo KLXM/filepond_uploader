@@ -63,8 +63,8 @@ class rex_api_filepond_alt_checker extends rex_api_function
      */
     private function sendJson(array $data): never
     {
-        rex_response::setHeader('Content-Type', 'application/json');
-        rex_response::sendContent((string) json_encode($data, JSON_UNESCAPED_UNICODE));
+        rex_response::cleanOutputBuffers();
+        rex_response::sendJson($data);
         exit;
     }
 
