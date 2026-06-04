@@ -138,6 +138,25 @@ class rex_api_filepond_ai_generate extends rex_api_function
         $fileId = rex_request('file_id', 'string', '');
         $mediaName = rex_request('media_name', 'string', '');
         $language = rex_request('language', 'string', 'de');
+        $languagesRaw = rex_request('languages', 'array', []);
+
+        $languages = [];
+        foreach ($languagesRaw as $languageItem) {
+            if (!is_string($languageItem)) {
+                continue;
+            }
+            $trimmed = trim($languageItem);
+            if ('' === $trimmed) {
+                continue;
+            }
+            $short = strtolower(substr($trimmed, 0, 2));
+            if (!preg_match('/^[a-z]{2}$/', $short)) {
+                continue;
+            }
+            if (!in_array($short, $languages, true)) {
+                $languages[] = $short;
+            }
+        }
 
         $generator = new filepond_ai_alt_generator();
         $result = ['success' => false, 'error' => 'Unknown error'];
@@ -145,7 +164,11 @@ class rex_api_filepond_ai_generate extends rex_api_function
         try {
             // Fall 1: Existierendes Bild im Medienpool
             if ('' !== $mediaName) {
-                $result = $generator->generateAltText($mediaName, $language);
+                if ([] !== $languages) {
+                    $result = $generator->generateAltTexts($mediaName, $languages);
+                } else {
+                    $result = $generator->generateAltText($mediaName, $language);
+                }
             }
             // Fall 2: Temporärer Upload (FilePond)
             else {
@@ -163,7 +186,11 @@ class rex_api_filepond_ai_generate extends rex_api_function
                 }
 
                 if ('' !== $filePath) {
-                    $result = $generator->generateAltTextFromPath($filePath, $language);
+                    if ([] !== $languages) {
+                        $result = $generator->generateAltTextsFromPath($filePath, $languages);
+                    } else {
+                        $result = $generator->generateAltTextFromPath($filePath, $language);
+                    }
                 } else {
                     $errorMessage = null !== $uploaded['error'] ? $uploaded['error'] : 'No file provided';
                     $result = ['success' => false, 'error' => $errorMessage];

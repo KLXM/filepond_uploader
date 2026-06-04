@@ -79,10 +79,56 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             $targetField = 'med_alt';
         }
 
+        // Sprach-Mapping (clang_id => code) für mehrsprachige Felder
+        $languages = [];
+        foreach (rex_clang::getAll() as $clang) {
+            $languages[(string) $clang->getId()] = $clang->getCode();
+        }
+
+        $fallbackLanguageRaw = rex_config::get('filepond_uploader', 'ai_fallback_language', 'en');
+        $fallbackLanguage = is_string($fallbackLanguageRaw) ? strtolower(substr(trim($fallbackLanguageRaw), 0, 2)) : 'en';
+        if (1 !== preg_match('/^[a-z]{2}$/', $fallbackLanguage)) {
+            $fallbackLanguage = 'en';
+        }
+
+        $blockedRaw = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
+        $blockedLanguages = [];
+        if (is_array($blockedRaw)) {
+            $parts = $blockedRaw;
+        } elseif (is_string($blockedRaw)) {
+            if (str_contains($blockedRaw, '|')) {
+                $parts = array_values(array_filter(explode('|', $blockedRaw), static fn (string $v): bool => '' !== $v));
+            } else {
+                $parts = preg_split('/[\s,;]+/', strtolower($blockedRaw));
+            }
+        } else {
+            $parts = [];
+        }
+
+        if (is_array($parts)) {
+            foreach ($parts as $part) {
+                if (!is_string($part)) {
+                    continue;
+                }
+
+                $short = strtolower(substr(trim($part), 0, 2));
+                if (1 !== preg_match('/^[a-z]{2}$/', $short)) {
+                    continue;
+                }
+
+                if (!in_array($short, $blockedLanguages, true) && $short !== $fallbackLanguage) {
+                    $blockedLanguages[] = $short;
+                }
+            }
+        }
+
         $this->sendResponse([
             'success' => true,
             'enabled' => $enabled,
             'target_field' => $targetField,
+            'languages' => $languages,
+            'fallback_language' => $fallbackLanguage,
+            'blocked_languages' => $blockedLanguages,
         ]);
     }
 

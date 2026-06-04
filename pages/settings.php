@@ -595,10 +595,115 @@ $field = $form->addInputField('number', 'ai_max_tokens', null, [
 $field->setLabel($addon->i18n('filepond_settings_ai_max_tokens'));
 $field->setNotice($addon->i18n('filepond_settings_ai_max_tokens_notice'));
 
+// Maximale Bildkante für AI (Resize vor Upload an den Provider)
+$field = $form->addInputField('number', 'ai_max_image_dimension', null, [
+    'class' => 'form-control',
+    'min' => '256',
+    'max' => '2048',
+    'step' => '64',
+    'placeholder' => '1024'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_max_image_dimension'));
+$field->setNotice($addon->i18n('filepond_settings_ai_max_image_dimension_notice'));
+
+// Fallback-Sprache, wenn Modell eine Zielsprache nicht direkt liefern kann
+$field = $form->addInputField('text', 'ai_fallback_language', null, [
+    'class' => 'form-control',
+    'maxlength' => '5',
+    'placeholder' => 'en'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_fallback_language'));
+$field->setNotice($addon->i18n('filepond_settings_ai_fallback_language_notice'));
+
+// Negativliste: Sprachen, die das aktuelle Modell nicht direkt erzeugen soll
+$field = $form->addSelectField('ai_blocked_languages', null, [
+    'class' => 'form-control selectpicker',
+]);
+$field->setAttribute('multiple', 'multiple');
+$field->setLabel($addon->i18n('filepond_settings_ai_blocked_languages'));
+$field->setNotice($addon->i18n('filepond_settings_ai_blocked_languages_notice'));
+
+$selectedBlockedLanguages = [];
+$blockedConfigRaw = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
+if (is_array($blockedConfigRaw)) {
+    $selectedBlockedLanguages = $blockedConfigRaw;
+} elseif (is_string($blockedConfigRaw)) {
+    if (str_contains($blockedConfigRaw, '|')) {
+        $selectedBlockedLanguages = array_values(array_filter(explode('|', $blockedConfigRaw), static fn (string $v): bool => '' !== $v));
+    } elseif ('' !== trim($blockedConfigRaw)) {
+        $parts = preg_split('/[\s,;]+/', $blockedConfigRaw);
+        if (is_array($parts)) {
+            $selectedBlockedLanguages = $parts;
+        }
+    }
+}
+
+$selectedBlockedLanguages = array_values(array_unique(array_filter(array_map(static function ($value): string {
+    if (!is_string($value)) {
+        return '';
+    }
+
+    $trimmed = trim($value);
+    if ('' === $trimmed) {
+        return '';
+    }
+
+    return strtolower(substr($trimmed, 0, 2));
+}, $selectedBlockedLanguages), static fn (string $v): bool => preg_match('/^[a-z]{2}$/', $v) === 1)));
+
+$select = $field->getSelect();
+$seenLanguageCodes = [];
+foreach (rex_clang::getAll() as $clang) {
+    $clangCode = strtolower((string) $clang->getCode());
+    $shortCode = substr($clangCode, 0, 2);
+    if (!preg_match('/^[a-z]{2}$/', $shortCode)) {
+        continue;
+    }
+
+    if (in_array($shortCode, $seenLanguageCodes, true)) {
+        continue;
+    }
+
+    $seenLanguageCodes[] = $shortCode;
+    $label = $clang->getName() . ' (' . $shortCode . ')';
+    $select->addOption($label, $shortCode);
+}
+
+if ([] !== $selectedBlockedLanguages) {
+    $field->setValue($selectedBlockedLanguages);
+}
+
 $form->addRawField('</div>');
 
 // Rechte Spalte - Custom Prompt
 $form->addRawField('<div class="col-sm-6">');
+
+// Prompt-Profil Auswahl
+$field = $form->addSelectField('ai_prompt_profile', null, [
+    'class' => 'form-control selectpicker',
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_prompt_profile'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_accessibility'), 'accessibility');
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_neutral'), 'neutral');
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_seo'), 'seo');
+$field->setNotice($addon->i18n('filepond_settings_ai_prompt_profile_notice'));
+
+// AI Result-Cache aktivieren
+$field = $form->addCheckboxField('ai_result_cache_enabled');
+$field->setLabel($addon->i18n('filepond_settings_ai_result_cache_enabled'));
+$field->addOption($addon->i18n('filepond_settings_ai_result_cache_enabled_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_ai_result_cache_enabled_notice'));
+
+// AI Result-Cache TTL (Stunden)
+$field = $form->addInputField('number', 'ai_result_cache_ttl_hours', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'max' => '8760',
+    'placeholder' => '168',
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_result_cache_ttl_hours'));
+$field->setNotice($addon->i18n('filepond_settings_ai_result_cache_ttl_hours_notice'));
 
 // Custom AI Prompt
 $field = $form->addTextAreaField('ai_alt_prompt', null, [
@@ -733,7 +838,11 @@ $hasSavedAiConfig = [
     'gemini' => '' !== trim((string) rex_config::get('filepond_uploader', 'gemini_api_key', '')),
     'cloudflare' => '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_api_token', ''))
         && '' !== trim((string) rex_config::get('filepond_uploader', 'cloudflare_account_id', '')),
-    'openwebui' => '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_api_key', '')),
+    'openwebui' => '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_model', 'llava'))
+        && (
+            '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_api_key', ''))
+            || '' !== trim((string) rex_config::get('filepond_uploader', 'openwebui_base_url', ''))
+        ),
 ];
 
 $isAiTestEnabled = $hasSavedAiConfig[$savedAiProvider] ?? false;

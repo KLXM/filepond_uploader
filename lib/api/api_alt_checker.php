@@ -173,13 +173,35 @@ class rex_api_filepond_alt_checker extends rex_api_function
 
         $filename = rex_request('filename', 'string', '');
         $language = rex_request('language', 'string', 'de');
+        $languages = rex_request('languages', 'array', []);
 
         if ('' === $filename) {
             $this->sendJson(['error' => 'Kein Dateiname angegeben']);
         }
 
         $generator = new filepond_ai_alt_generator();
-        $result = $generator->generateAltText($filename, $language);
+
+        $normalizedLanguages = [];
+        foreach ($languages as $languageItem) {
+            if (!is_string($languageItem)) {
+                continue;
+            }
+
+            $short = strtolower(substr(trim($languageItem), 0, 2));
+            if (1 !== preg_match('/^[a-z]{2}$/', $short)) {
+                continue;
+            }
+
+            if (!in_array($short, $normalizedLanguages, true)) {
+                $normalizedLanguages[] = $short;
+            }
+        }
+
+        if ([] !== $normalizedLanguages) {
+            $result = $generator->generateAltTexts($filename, $normalizedLanguages);
+        } else {
+            $result = $generator->generateAltText($filename, $language);
+        }
 
         $this->sendJson($result);
     }

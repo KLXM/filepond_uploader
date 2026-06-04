@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+## 2.6.0 (2026-06-04)
+
+### 🎉 Neue Features
+- **AI-Result-Cache eingeführt**: Generierte Alt-Texte werden jetzt optional dateibasiert zwischengespeichert (konfigurierbare Gültigkeit in Stunden), sodass identische Anfragen keine unnötigen AI-Requests mehr auslösen.
+- **Konfigurierbare Prompt-Profile**: Neue Profile `Barrierefrei (Standard)`, `Kurz / neutral` und `SEO-fokussiert` steuern den Stil der generierten Alt-Texte ohne Custom-Prompt.
+
+### ✨ Verbesserungen
+- **Empfehlung für mehrsprachige ALT-Felder dokumentiert**: Für ALT-Zielfelder mit mehreren Sprachen wird der MetaInfo-Typ `lang_text_all` empfohlen.
+- **Mehrsprachige AI-Generierung beschleunigt**: Bei mehrsprachigen Zielfeldern wird die Bilderkennung jetzt bevorzugt in einem einzigen Request für alle benötigten Sprachen ausgeführt. Fehlende Einzelsprachen werden bei Bedarf per Fallback nachgezogen.
+- **Fallbacksprache konfigurierbar**: Neue Einstellung `ai_fallback_language` (Default `en`) für den Fall, dass ein Modell einzelne Zielsprachen nicht liefert.
+- **Negativliste für Modellsprachen**: Neue Einstellung `ai_blocked_languages` (z.B. `sl, cs, hr`), damit ausgewählte Sprachen nicht direkt vom Modell angefragt werden. Diese Sprachen werden stattdessen mit dem Text der Fallbacksprache befüllt.
+- **Transparenter Fallback-Hinweis im Alt-Text-Checker**: Am Listenanfang wird jetzt angezeigt, welche Zielsprachen direkt übersprungen werden und stattdessen den Fallback-Text nutzen.
+- **Neue AI-Einstellung für Bildgröße**: Die maximale Bildkante vor dem AI-Request ist jetzt konfigurierbar (`ai_max_image_dimension`, 256-2048 px). Standard bleibt 1024 px; kleinere Werte (z.B. 768) beschleunigen die Verarbeitung.
+- **GD-Pfad bewusst eingeschränkt**: Wenn nur GD verfügbar ist, werden nur gängige Formate (`JPEG`, `PNG`, `GIF`) für die AI-Vorbereitung akzeptiert; Spezialformate benötigen Imagick oder CLI-Konvertierung.
+- **Alt-Text-Checker UI neu ausbalanciert**: Die Dateiname-Spalte wurde in die Alt-Text-Zelle integriert (Dateiname + Meta oberhalb des Inputs), damit das Eingabefeld mehr Breite bekommt und lange Dateinamen die Zeilenstruktur nicht mehr zerziehen.
+
+### 🐛 Bugfixes
+- **AI-Textgenerierung füllt MetaInfo-Lang-Felder (z. B. `lang_textarea_all`) im Upload-Metadialog und auf der Medienpool-Detailseite**: Auf der Detailseite wird der Zauberbutton jetzt am Sprachen-Container des Felds platziert und schreibt die generierten Texte direkt in die einzelnen Sprach-Inputs (statt nur ins versteckte JSON-Feld). Im Upload-Metadialog werden bei mehrsprachigen Zielfeldern jetzt alle (leeren) Sprach-Tabs nacheinander befüllt – analog zum Verhalten im Alt-Text-Checker.
+- **Medienpool-Detail: Mehrsprachen-Request-Parameter korrigiert**: Die Sprachliste wird jetzt korrekt als `languages[]` per POST übergeben, damit der Sammel-Request greift und nicht unnötig in Einzelsprachen-Fallbacks läuft.
+- **Alt-Text-Checker auf Sammelrequest umgestellt**: Pro Bild wird die AI-Generierung für alle Sprachen in einem Request ausgeführt (inkl. Negativlisten-/Fallback-Handling), wodurch das erste sichtbare Eingabefeld wieder zuverlässig befüllt wird und keine teilweisen Einzelupdates mehr entstehen.
+- **Sprachmapping erweitert (u.a. Slowenisch `sl`)**: Unbekannte Sprachcodes fallen im Prompt nicht mehr automatisch auf Deutsch zurück.
+- **OpenWebUI-Konfigurationsprüfung korrigiert**: Die Verbindungstest-Logik erkennt OpenWebUI jetzt auch ohne API-Key als konfiguriert, wenn Base-URL und Modell gesetzt sind (analog zu lokalen OpenWebUI/Ollama-Setups).
+- **Leerer Authorization-Header vermieden**: Beim OpenAI-kompatiblen Provider wird der `Authorization: Bearer ...` Header nur noch gesendet, wenn tatsächlich ein API-Key hinterlegt ist.
+- **AI-Icon in Medien-Details besser sichtbar**: Der Zauberbutton für die Medienpool-Detailseite wurde kontrastreicher gestaltet (inkl. Light/Dark/Auto-Theme-Unterstützung).
+- **AI-Bildvorverarbeitung robuster gemacht**: HEIC/HEIF/AVIF/WEBP werden jetzt bevorzugt über Imagick verarbeitet (mit CLI-Fallback über `magick`/`convert`/`sips`), um langsame oder fehleranfällige GD-Pfade zu vermeiden.
+- **HEIC/HEIF in der AI-Erkennung stabilisiert**: Bilder mit uneinheitlicher MIME-Erkennung werden zusätzlich über die Dateiendung als Bild akzeptiert, damit nicht fälschlich „Keine Bilddatei“ zurückkommt.
+
 ## 2.5.1 (2026-06-01)
 
 ### ✨ Verbesserungen

@@ -147,7 +147,14 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
 
     public function isConfigured(): bool
     {
-        return '' !== trim($this->apiKey);
+        $hasApiKey = '' !== trim($this->apiKey);
+        $hasBaseUrl = '' !== trim($this->baseUrl);
+        $hasModel = '' !== trim($this->model);
+
+        // OpenWebUI/Ollama darf ohne API-Key laufen.
+        // Konfiguriert ist der Provider, wenn ein Modell gesetzt ist
+        // und entweder API-Key oder Base-URL vorhanden ist.
+        return $hasModel && ($hasApiKey || $hasBaseUrl);
     }
 
     public function generate(string $base64Image, string $mimeType, string $prompt, int $maxTokens): array
@@ -199,15 +206,20 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         ];
 
         $ch = curl_init();
+        $headers = [
+            'Content-Type: application/json',
+        ];
+
+        if ('' !== trim($this->apiKey)) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiKey;
+        }
+
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode($data, JSON_THROW_ON_ERROR),
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Bearer ' . $this->apiKey,
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => 60,
         ]);
 
@@ -250,7 +262,7 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
     public function testConnection(): array
     {
         if (!$this->isConfigured()) {
-            return ['success' => false, 'message' => 'Base URL nicht konfiguriert'];
+            return ['success' => false, 'message' => 'OpenWebUI ist nicht konfiguriert (Base URL oder API-Key + Modell erforderlich)'];
         }
 
         // Smart URL handling für Models Check
@@ -270,13 +282,18 @@ class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstra
         }
 
         $ch = curl_init();
+        $headers = [
+            'Content-Type: application/json',
+        ];
+
+        if ('' !== trim($this->apiKey)) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiKey;
+        }
+
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HTTPHEADER => [
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Type: application/json',
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_TIMEOUT => 10,
         ]);
 

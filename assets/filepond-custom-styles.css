@@ -14,12 +14,97 @@
 }
 
 .filepond-magic-icon {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     display: inline-block;
     vertical-align: -2px;
     color: currentColor;
     margin-right: 4px;
+}
+
+.btn-ai-generate-mp .filepond-magic-icon,
+.btn-ai-generate-mp-lang .filepond-magic-icon {
+    margin-right: 6px;
+}
+
+.filepond-ai-btn-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Mehrsprachige Metainfo-Felder: Hauptsprachenfeld darf nicht kollabieren. */
+.filepond-ai-multilang-container .meta_lang_field_row_primary .input-group {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.filepond-ai-multilang-container .meta_lang_field_row_primary .meta_lang_field_input {
+    width: 100% !important;
+    min-width: 260px;
+}
+
+.filepond-ai-multilang-container .meta_lang_field_row_primary .input-group-btn {
+    white-space: nowrap;
+    width: 1%;
+}
+
+.btn-ai-generate-mp,
+.btn-ai-generate-mp-lang {
+    min-width: 78px;
+    min-height: 30px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: #8eb8dd;
+    background-color: #eef5ff;
+    color: #2f5d89;
+}
+
+.btn-ai-generate-mp:hover,
+.btn-ai-generate-mp:focus,
+.btn-ai-generate-mp-lang:hover,
+.btn-ai-generate-mp-lang:focus {
+    border-color: #5f92c2;
+    background-color: #dfeeff;
+    color: #1f4569;
+}
+
+body.rex-theme-dark .btn-ai-generate-mp,
+body.rex-theme-dark .btn-ai-generate-mp-lang {
+    border-color: #4d6175;
+    background-color: #263342;
+    color: #d5e6f7;
+}
+
+body.rex-theme-dark .btn-ai-generate-mp:hover,
+body.rex-theme-dark .btn-ai-generate-mp:focus,
+body.rex-theme-dark .btn-ai-generate-mp-lang:hover,
+body.rex-theme-dark .btn-ai-generate-mp-lang:focus {
+    border-color: #6f86a0;
+    background-color: #2f3f51;
+    color: #f0f7ff;
+}
+
+@media (prefers-color-scheme: dark) {
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang {
+        border-color: #4d6175;
+        background-color: #263342;
+        color: #d5e6f7;
+    }
+
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp:hover,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp:focus,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang:hover,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang:focus {
+        border-color: #6f86a0;
+        background-color: #2f3f51;
+        color: #f0f7ff;
+    }
 }
 
 /* Auf farbigen Buttons braucht das SVG einen hellen Kontrast. */

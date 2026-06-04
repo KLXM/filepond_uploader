@@ -34,7 +34,8 @@
                 aiSuggestBusy: 'Erzeuge Vorschlag...',
                 aiSuggestError: 'AI-Vorschlag fehlgeschlagen',
                 aiSuggestNoImage: 'AI-Vorschlag ist nur für Bilder verfügbar.',
-                aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.'
+                aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.',
+                aiSuggestSkippedDirect: 'Direkte Generierung ausgelassen für: {langs} (Fallback: {fallback})'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -58,7 +59,8 @@
                 aiSuggestBusy: 'Generating suggestion...',
                 aiSuggestError: 'AI suggestion failed',
                 aiSuggestNoImage: 'AI suggestion is only available for images.',
-                aiSuggestDecorative: 'Field is disabled as decorative.'
+                aiSuggestDecorative: 'Field is disabled as decorative.',
+                aiSuggestSkippedDirect: 'Direct generation skipped for: {langs} (fallback: {fallback})'
             }
         };
 
@@ -997,30 +999,17 @@
                             return;
                         }
 
-                        let targetInput = null;
-                        targetInputs.forEach((candidate) => {
-                            if (targetInput) {
-                                return;
-                            }
-                            const pane = candidate.closest('.fp-tab-pane');
-                            if (!pane || window.getComputedStyle(pane).display !== 'none') {
-                                targetInput = candidate;
-                            }
-                        });
-
-                        if (!targetInput) {
-                            targetInput = targetInputs[0];
-                        }
-
-                        if (targetInput.disabled) {
+                        const writableInputs = Array.from(targetInputs).filter((inputEl) => !inputEl.disabled);
+                        if (writableInputs.length === 0) {
                             if (statusNode) {
                                 statusNode.textContent = t.aiSuggestDecorative;
                             }
                             return;
                         }
 
-                        const languageValue = targetInput.getAttribute('data-lang') || lang;
-                        const languageCode = languageValue.split('_')[0] || 'de';
+                        // Mehrsprachiges Feld? Dann pro Sprache generieren (nur leere Felder).
+                        const isMultilingual = writableInputs.some((inputEl) => !!inputEl.getAttribute('data-lang'))
+                            && writableInputs.length > 1;
 
                         const originalButtonHtml = this.innerHTML;
                         this.disabled = true;
@@ -1029,11 +1018,10 @@
                             statusNode.textContent = '';
                         }
 
-                        try {
+                        const requestAiSuggestion = async (languageCode) => {
                             const requestData = new FormData();
                             requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
                             requestData.append('language', languageCode);
-
                             requestData.append('rex-api-call', 'filepond_ai_generate');
 
                             const response = await fetch(basePath, {
@@ -1059,30 +1047,177 @@
                             if ('' === suggestion) {
                                 throw new Error(t.aiSuggestError);
                             }
+                            return suggestion;
+                        };
 
-                            const writableInputs = Array.from(targetInputs).filter((inputEl) => !inputEl.disabled);
-                            if (writableInputs.length === 0) {
-                                throw new Error(t.aiSuggestDecorative);
+                        const requestAiSuggestions = async (languageCodes) => {
+                            const requestData = new FormData();
+                            requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
+                            languageCodes.forEach((code) => {
+                                requestData.append('languages[]', code);
+                            });
+                            requestData.append('rex-api-call', 'filepond_ai_generate');
+
+                            const response = await fetch(basePath, {
+                                method: 'POST',
+                                body: requestData,
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+
+                            let data = null;
+                            try {
+                                data = await response.json();
+                            } catch (jsonError) {
+                                throw new Error(`${t.aiSuggestError} (ungueltige Server-Antwort)`);
                             }
 
-                            const preferredInputs = writableInputs.filter((inputEl) => {
-                                const langAttr = inputEl.getAttribute('data-lang');
-                                return !langAttr || langAttr === languageValue;
-                            });
+                            if (!response.ok || !data.success || !data.alt_texts || typeof data.alt_texts !== 'object') {
+                                throw new Error(data.error || t.aiSuggestError);
+                            }
 
-                            const destinationInputs = preferredInputs.length > 0 ? preferredInputs : writableInputs;
+                            const skippedLanguages = Array.isArray(data.blocked_languages_used)
+                                ? data.blocked_languages_used.filter((code) => typeof code === 'string').map((code) => code.toLowerCase().slice(0, 2))
+                                : [];
+                            const fallbackLanguage = typeof data.fallback_language === 'string' && data.fallback_language.trim() !== ''
+                                ? data.fallback_language.toLowerCase().slice(0, 2)
+                                : 'en';
 
-                            destinationInputs.forEach((inputEl) => {
-                                inputEl.value = suggestion;
-                                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            });
+                            return {
+                                altTexts: data.alt_texts,
+                                skippedLanguages,
+                                fallbackLanguage,
+                            };
+                        };
 
-                            if (statusNode) {
-                                statusNode.textContent = 'OK';
-                                setTimeout(() => {
-                                    statusNode.textContent = '';
-                                }, 1800);
+                        try {
+                            if (isMultilingual) {
+                                // Ein Vision-Call fuer alle benoetigten Sprachen, fehlende Werte optional einzeln nachziehen.
+                                let successCount = 0;
+                                let lastError = null;
+
+                                const targetByLanguage = {};
+                                writableInputs.forEach((inputEl) => {
+                                    const currentVal = (inputEl.value || '').toString().trim();
+                                    if (currentVal !== '') {
+                                        return;
+                                    }
+
+                                    const langAttr = inputEl.getAttribute('data-lang') || 'de';
+                                    const languageCode = langAttr.split('_')[0] || 'de';
+
+                                    if (!targetByLanguage[languageCode]) {
+                                        targetByLanguage[languageCode] = [];
+                                    }
+                                    targetByLanguage[languageCode].push(inputEl);
+                                });
+
+                                const languageCodes = Object.keys(targetByLanguage);
+
+                                if (languageCodes.length === 0) {
+                                    if (statusNode) {
+                                        statusNode.textContent = 'OK';
+                                        setTimeout(() => {
+                                            statusNode.textContent = '';
+                                        }, 1800);
+                                    }
+                                    return;
+                                }
+
+                                let batchSuggestions = {};
+                                let skippedLanguages = [];
+                                let fallbackLanguage = 'en';
+                                try {
+                                    const batchResult = await requestAiSuggestions(languageCodes);
+                                    batchSuggestions = batchResult.altTexts || {};
+                                    skippedLanguages = batchResult.skippedLanguages || [];
+                                    fallbackLanguage = batchResult.fallbackLanguage || 'en';
+                                } catch (batchError) {
+                                    lastError = batchError;
+                                }
+
+                                for (const languageCode of languageCodes) {
+                                    let suggestion = '';
+                                    const batchValue = batchSuggestions && typeof batchSuggestions[languageCode] === 'string'
+                                        ? batchSuggestions[languageCode].trim()
+                                        : '';
+
+                                    if (batchValue !== '') {
+                                        suggestion = batchValue;
+                                    } else {
+                                        try {
+                                            suggestion = await requestAiSuggestion(languageCode);
+                                        } catch (err) {
+                                            lastError = err;
+                                        }
+                                    }
+
+                                    if (suggestion !== '') {
+                                        targetByLanguage[languageCode].forEach((inputEl) => {
+                                            inputEl.value = suggestion;
+                                            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                        });
+                                        successCount++;
+                                    }
+                                }
+
+                                if (successCount === 0 && lastError) {
+                                    throw lastError;
+                                }
+
+                                if (statusNode) {
+                                    if (skippedLanguages.length > 0) {
+                                        statusNode.textContent = t.aiSuggestSkippedDirect
+                                            .replace('{langs}', skippedLanguages.join(', '))
+                                            .replace('{fallback}', fallbackLanguage);
+                                    } else {
+                                        statusNode.textContent = 'OK';
+                                        setTimeout(() => {
+                                            statusNode.textContent = '';
+                                        }, 1800);
+                                    }
+                                }
+                            } else {
+                                // Einsprachig: aktuelles sichtbares Feld bevorzugen
+                                let targetInput = null;
+                                writableInputs.forEach((candidate) => {
+                                    if (targetInput) {
+                                        return;
+                                    }
+                                    const pane = candidate.closest('.fp-tab-pane');
+                                    if (!pane || window.getComputedStyle(pane).display !== 'none') {
+                                        targetInput = candidate;
+                                    }
+                                });
+                                if (!targetInput) {
+                                    targetInput = writableInputs[0];
+                                }
+
+                                const languageValue = targetInput.getAttribute('data-lang') || 'de';
+                                const languageCode = languageValue.split('_')[0] || 'de';
+
+                                const suggestion = await requestAiSuggestion(languageCode);
+
+                                const destinationInputs = writableInputs.filter((inputEl) => {
+                                    const langAttr = inputEl.getAttribute('data-lang');
+                                    return !langAttr || langAttr === languageValue;
+                                });
+                                const finalInputs = destinationInputs.length > 0 ? destinationInputs : writableInputs;
+
+                                finalInputs.forEach((inputEl) => {
+                                    inputEl.value = suggestion;
+                                    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                if (statusNode) {
+                                    statusNode.textContent = 'OK';
+                                    setTimeout(() => {
+                                        statusNode.textContent = '';
+                                    }, 1800);
+                                }
                             }
                         } catch (error) {
                             if (statusNode) {
