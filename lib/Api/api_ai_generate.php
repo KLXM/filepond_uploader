@@ -14,6 +14,7 @@ use rex_request;
 use rex_request_interface;
 use rex_response;
 use rex_ycom_auth;
+use function rex_session;
 
 /**
  * API Endpoint für AI Alt-Text Generierung.
@@ -34,7 +35,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
 
         foreach ($candidateFields as $field) {
             $files = rex_request::files($field, 'array', []);
-            if (!is_array($files) || [] === $files) {
+            if ([] === $files) {
                 continue;
             }
 
@@ -102,10 +103,10 @@ class rex_api_filepond_ai_generate extends rex_api_function
      * @param array<string, mixed> $data
      * @return never
      */
-    private function sendJson(array $data, int $statusCode = 200): never
+    private function sendJson(array $data, string $statusCode = '200'): never
     {
         rex_response::cleanOutputBuffers();
-        if (200 !== $statusCode) {
+        if ('200' !== $statusCode) {
             rex_response::setStatus($statusCode);
         }
         rex_response::sendJson($data);

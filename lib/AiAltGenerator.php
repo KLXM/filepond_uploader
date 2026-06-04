@@ -385,7 +385,7 @@ class AiAltGenerator
         try {
             $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
 
-            $resolvedText = (string) ($result['text'] ?? '');
+            $resolvedText = $result['text'];
             if ('' !== trim($resolvedText)) {
                 $this->writeCache($cacheKey, ['alt_text' => $resolvedText]);
             }
@@ -479,7 +479,7 @@ class AiAltGenerator
 
         try {
             $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
-            $allAltTexts = $this->parseMultiLanguageResponse((string) ($result['text'] ?? ''), $promptLanguages);
+            $allAltTexts = $this->parseMultiLanguageResponse($result['text'], $promptLanguages);
 
             $resolvedAltTexts = [];
             $fallbackText = $allAltTexts[$fallbackLanguage] ?? '';
@@ -652,9 +652,6 @@ class AiAltGenerator
 
         $width = imagesx($image);
         $height = imagesy($image);
-        if ($width <= 0 || $height <= 0) {
-            return null;
-        }
 
         $targetWidth = $width;
         $targetHeight = $height;
@@ -715,9 +712,7 @@ class AiAltGenerator
                 $image = $image->getImage();
             }
 
-            if (method_exists($image, 'autoOrient')) {
-                $image->autoOrient();
-            }
+            $image->autoOrient();
 
             $image->thumbnailImage($maxDimension, $maxDimension, true, true);
             $image->stripImage();
@@ -725,7 +720,7 @@ class AiAltGenerator
             $image->setImageCompressionQuality(85);
 
             $blob = $image->getImageBlob();
-            if (!is_string($blob) || '' === $blob) {
+            if ('' === $blob) {
                 return null;
             }
 
@@ -971,10 +966,6 @@ class AiAltGenerator
         $normalized = [];
 
         foreach ($languages as $language) {
-            if (!is_string($language)) {
-                continue;
-            }
-
             $trimmed = trim($language);
             if ('' === $trimmed) {
                 continue;
@@ -1215,7 +1206,7 @@ class AiAltGenerator
         }
 
         if (!str_starts_with($json, '{')) {
-            if (preg_match('/\{.*\}/s', $json, $matches) && isset($matches[0])) {
+            if (preg_match('/\{.*\}/s', $json, $matches)) {
                 $json = $matches[0];
             }
         }

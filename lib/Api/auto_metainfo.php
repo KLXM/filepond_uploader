@@ -11,8 +11,10 @@ use rex_clang;
 use rex_config;
 use rex_i18n;
 use rex_logger;
+use rex_media;
 use rex_response;
 use rex_sql;
+use rex_sql_exception;
 use rex;
 
 /**
