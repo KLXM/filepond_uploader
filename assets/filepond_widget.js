@@ -34,7 +34,8 @@
                 aiSuggestBusy: 'Erzeuge Vorschlag...',
                 aiSuggestError: 'AI-Vorschlag fehlgeschlagen',
                 aiSuggestNoImage: 'AI-Vorschlag ist nur für Bilder verfügbar.',
-                aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.'
+                aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.',
+                aiSuggestSkippedDirect: 'Direkte Generierung ausgelassen für: {langs} (Fallback: {fallback})'
             },
             en_gb: {
                 labelIdle: 'Drag & Drop your files or <span class="filepond--label-action">Browse</span>',
@@ -58,7 +59,8 @@
                 aiSuggestBusy: 'Generating suggestion...',
                 aiSuggestError: 'AI suggestion failed',
                 aiSuggestNoImage: 'AI suggestion is only available for images.',
-                aiSuggestDecorative: 'Field is disabled as decorative.'
+                aiSuggestDecorative: 'Field is disabled as decorative.',
+                aiSuggestSkippedDirect: 'Direct generation skipped for: {langs} (fallback: {fallback})'
             }
         };
 
@@ -1075,7 +1077,18 @@
                                 throw new Error(data.error || t.aiSuggestError);
                             }
 
-                            return data.alt_texts;
+                            const skippedLanguages = Array.isArray(data.blocked_languages_used)
+                                ? data.blocked_languages_used.filter((code) => typeof code === 'string').map((code) => code.toLowerCase().slice(0, 2))
+                                : [];
+                            const fallbackLanguage = typeof data.fallback_language === 'string' && data.fallback_language.trim() !== ''
+                                ? data.fallback_language.toLowerCase().slice(0, 2)
+                                : 'en';
+
+                            return {
+                                altTexts: data.alt_texts,
+                                skippedLanguages,
+                                fallbackLanguage,
+                            };
                         };
 
                         try {
@@ -1113,8 +1126,13 @@
                                 }
 
                                 let batchSuggestions = {};
+                                let skippedLanguages = [];
+                                let fallbackLanguage = 'en';
                                 try {
-                                    batchSuggestions = await requestAiSuggestions(languageCodes);
+                                    const batchResult = await requestAiSuggestions(languageCodes);
+                                    batchSuggestions = batchResult.altTexts || {};
+                                    skippedLanguages = batchResult.skippedLanguages || [];
+                                    fallbackLanguage = batchResult.fallbackLanguage || 'en';
                                 } catch (batchError) {
                                     lastError = batchError;
                                 }
@@ -1150,10 +1168,16 @@
                                 }
 
                                 if (statusNode) {
-                                    statusNode.textContent = 'OK';
-                                    setTimeout(() => {
-                                        statusNode.textContent = '';
-                                    }, 1800);
+                                    if (skippedLanguages.length > 0) {
+                                        statusNode.textContent = t.aiSuggestSkippedDirect
+                                            .replace('{langs}', skippedLanguages.join(', '))
+                                            .replace('{fallback}', fallbackLanguage);
+                                    } else {
+                                        statusNode.textContent = 'OK';
+                                        setTimeout(() => {
+                                            statusNode.textContent = '';
+                                        }, 1800);
+                                    }
                                 }
                             } else {
                                 // Einsprachig: aktuelles sichtbares Feld bevorzugen

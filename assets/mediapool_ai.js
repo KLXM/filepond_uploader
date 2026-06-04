@@ -25,6 +25,15 @@
         return getMagicIcon(isSpinning) + '<span class="filepond-ai-btn-label">' + label + '</span>';
     };
 
+    function normalizeLanguageCode(code) {
+        if (typeof code !== 'string') {
+            return '';
+        }
+
+        var normalized = code.trim().toLowerCase().slice(0, 2);
+        return /^[a-z]{2}$/.test(normalized) ? normalized : '';
+    }
+
     // Nur auf der echten Medienpool-Detailseite ausführen, nicht auf Unterseiten wie mediapool/cropper
     var urlParams = new URLSearchParams(window.location.search);
     var currentPage = urlParams.get('page') || '';
@@ -87,6 +96,13 @@
     // Liefert die Sprachinputs eines metainfo_lang_fields Containers
     // ($container = .meta_lang_field_all oder .meta_lang_field)
     function collectLangInputs($container) {
+        if ($container.hasClass('meta_lang_field_all')) {
+            var $allRows = $container.find('.meta_lang_field_row').find('.meta_lang_field_input');
+            if ($allRows.length > 0) {
+                return $allRows;
+            }
+        }
+
         // "Alle Sprachen"-Modus: .meta_lang_field_input mit data-clang-id
         var $all = $container.find('.meta_lang_field_input');
         if ($all.length > 0) {
@@ -102,8 +118,23 @@
         }
         $container.data('filepondAiAttached', true);
 
+        $container.addClass('filepond-ai-multilang-container');
+
+        // Falls zuvor ein Einzelbutton an Inputs angehängt wurde, im Gruppenmodus wieder entfernen.
+        $container.find('.btn-ai-generate-mp').closest('.input-group-btn').remove();
+        $container.find('.btn-ai-generate-mp').remove();
+
+        // Defensiv: leere input-group-btn entfernen, die das Hauptfeld schmal drücken können.
+        $container.find('.meta_lang_field_row_primary .input-group-btn').each(function() {
+            var $btnWrap = $(this);
+            if ($btnWrap.find('button').length === 0) {
+                $btnWrap.remove();
+            }
+        });
+
         var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-lang" type="button" title="AI Alt-Text generieren (alle Sprachen)" aria-label="AI Alt-Text generieren (alle Sprachen)">' + getButtonContent('AI ALT alle', false) + '</button>';
-        var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml);
+        var statusHtml = '<span class="filepond-ai-status" style="margin-left:8px; color:#6c757d; font-size:12px;"></span>';
+        var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml).append(statusHtml);
 
         var $label = $container.find('> label.meta_lang_main_label').first();
         if ($label.length > 0) {
@@ -121,6 +152,11 @@
     }
 
     function attachButtonsForTarget(targetField) {
+        var langContainerSelector = '.meta_lang_field_all[data-field-name="' + targetField + '"], .meta_lang_field[data-field-name="' + targetField + '"]';
+        if ($(langContainerSelector).length > 0) {
+            return;
+        }
+
         var selector = [
             'input[name="' + targetField + '"]',
             'textarea[name="' + targetField + '"]',
@@ -145,6 +181,8 @@
 
     // Sprachen-Mapping (clang_id => code) für mehrsprachige Felder
     var languagesMap = window.filepondAiLanguagesMap || {};
+    var blockedLanguages = [];
+    var fallbackLanguage = 'en';
 
     function resolveFileName() {
         var fileName = urlParams.get('file_name');
@@ -217,6 +255,17 @@
                 window.filepondAiLanguagesMap = languagesMap;
             }
 
+            if (Array.isArray(data.blocked_languages)) {
+                blockedLanguages = data.blocked_languages
+                    .filter(function(code) { return typeof code === 'string'; })
+                    .map(function(code) { return normalizeLanguageCode(code); })
+                    .filter(function(code) { return code !== ''; });
+            }
+
+            if (typeof data.fallback_language === 'string' && data.fallback_language.trim() !== '') {
+                fallbackLanguage = normalizeLanguageCode(data.fallback_language) || 'en';
+            }
+
             attachButtonsForTarget(targetField);
             attachButtonsForLangContainers(targetField);
         }
@@ -284,6 +333,10 @@
             }
 
             var originalIcon = btn.html();
+            var $statusNode = btn.closest('.filepond-ai-btn-wrap').find('.filepond-ai-status').first();
+            if ($statusNode.length > 0) {
+                $statusNode.text('');
+            }
             btn.prop('disabled', true).html(getButtonContent('AI ALT alle', true));
 
             (async function() {
@@ -300,10 +353,18 @@
                         var clangId = $input.data('clang-id') || $input.data('clangId') ||
                                       $input.closest('[data-clang-id]').data('clangId') ||
                                       $input.closest('[data-clang-id]').data('clang-id');
-                        var langCode = 'de';
+
+                        var langCode = '';
                         if (clangId && languagesMap[String(clangId)]) {
                             langCode = languagesMap[String(clangId)];
                         }
+
+                        if (!langCode) {
+                            var nameAttr = ($input.attr('name') || '').toString();
+                            langCode = resolveLanguageFromName(nameAttr);
+                        }
+
+                        langCode = normalizeLanguageCode(langCode || 'de') || 'de';
 
                         if (!groupedInputs[langCode]) {
                             groupedInputs[langCode] = [];
@@ -315,6 +376,20 @@
                     if (languageCodes.length === 0) {
                         return;
                     }
+
+                    // Bei mehrsprachigen Feldern alle Zeilen zusammen anzeigen.
+                    var $collapse = $container.find('.collapse').first();
+                    if ($collapse.length > 0) {
+                        if (typeof $collapse.collapse === 'function') {
+                            $collapse.collapse('show');
+                        } else {
+                            $collapse.addClass('in');
+                        }
+                    }
+
+                    var skippedCodes = languageCodes.filter(function(code) {
+                        return blockedLanguages.indexOf(code) !== -1;
+                    });
 
                     var batchData = null;
                     try {
@@ -349,6 +424,14 @@
                                 $targetInput.val(suggestion);
                                 $targetInput.trigger('input').trigger('change');
                             });
+                        }
+                    }
+
+                    if ($statusNode.length > 0) {
+                        if (skippedCodes.length > 0) {
+                            $statusNode.text('Direkte Generierung ausgelassen für: ' + skippedCodes.join(', ') + ' (Fallback: ' + fallbackLanguage + ')');
+                        } else {
+                            $statusNode.text('');
                         }
                     }
                 } finally {

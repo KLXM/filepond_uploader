@@ -76,6 +76,59 @@ foreach (rex_clang::getAll() as $clang) {
 }
 $currentLangId = rex_clang::getCurrentId();
 
+$fallbackLangRaw = rex_config::get('filepond_uploader', 'ai_fallback_language', 'en');
+$fallbackLangCode = is_string($fallbackLangRaw) ? strtolower(substr(trim($fallbackLangRaw), 0, 2)) : 'en';
+if (1 !== preg_match('/^[a-z]{2}$/', $fallbackLangCode)) {
+    $fallbackLangCode = 'en';
+}
+
+$blockedRaw = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
+$blockedCodes = [];
+if (is_array($blockedRaw)) {
+    $parts = $blockedRaw;
+} elseif (is_string($blockedRaw)) {
+    if (str_contains($blockedRaw, '|')) {
+        $parts = array_values(array_filter(explode('|', $blockedRaw), static fn (string $v): bool => '' !== $v));
+    } else {
+        $parts = preg_split('/[\s,;]+/', strtolower($blockedRaw));
+    }
+} else {
+    $parts = [];
+}
+
+if (is_array($parts)) {
+    foreach ($parts as $part) {
+        if (!is_string($part)) {
+            continue;
+        }
+
+        $short = strtolower(substr(trim($part), 0, 2));
+        if (1 !== preg_match('/^[a-z]{2}$/', $short)) {
+            continue;
+        }
+
+        if (!in_array($short, $blockedCodes, true) && $short !== $fallbackLangCode) {
+            $blockedCodes[] = $short;
+        }
+    }
+}
+
+$languageCodeToName = [];
+foreach ($languages as $lang) {
+    $langCode = strtolower(substr((string) ($lang['code'] ?? ''), 0, 2));
+    $langName = (string) ($lang['name'] ?? strtoupper($langCode));
+    if ('' !== $langCode && !isset($languageCodeToName[$langCode])) {
+        $languageCodeToName[$langCode] = $langName;
+    }
+}
+
+$blockedLabelParts = [];
+foreach ($blockedCodes as $blockedCode) {
+    $blockedName = $languageCodeToName[$blockedCode] ?? strtoupper($blockedCode);
+    $blockedLabelParts[] = $blockedName . ' (' . strtoupper($blockedCode) . ')';
+}
+$fallbackName = $languageCodeToName[$fallbackLangCode] ?? strtoupper($fallbackLangCode);
+
 // Filter und Pagination (bereits oben definiert)
 $filters = [];
 if (!empty($filterFilename)) {
@@ -221,15 +274,21 @@ $currentPage = rex_be_controller::getCurrentPage();
         </div>
         
         <?php if (count($images) > 0): ?>
+        <?php if ($aiEnabled && [] !== $blockedLabelParts): ?>
+        <div class="alert alert-info" style="margin: 12px 12px 0 12px;">
+            <i class="fa fa-info-circle"></i>
+            Direkte AI-Generierung ist für folgende Sprachen deaktiviert: <strong><?= rex_escape(implode(', ', $blockedLabelParts)) ?></strong>.
+            Diese Felder nutzen den Fallback-Text aus <strong><?= rex_escape($fallbackName) ?> (<?= strtoupper($fallbackLangCode) ?>)</strong>.
+        </div>
+        <?php endif; ?>
         <div class="panel-body" id="images-container" style="padding: 0;">
             <table class="table table-hover" id="images-table" style="margin-bottom: 0;">
                 <thead>
                     <tr>
-                        <th width="50"></th>
-                        <th width="200"><?= $addon->i18n('alt_checker_filename') ?></th>
+                        <th width="72"></th>
                         <th><?= $addon->i18n('alt_checker_alt_text') ?></th>
-                        <th width="100"><?= $addon->i18n('alt_checker_category') ?></th>
-                        <th width="120"><?= $addon->i18n('alt_checker_actions') ?></th>
+                        <th width="92"><?= $addon->i18n('alt_checker_category') ?></th>
+                        <th width="132"><?= $addon->i18n('alt_checker_actions') ?></th>
                     </tr>
                 </thead>
                 <tbody id="images-tbody">
@@ -269,14 +328,16 @@ $currentPage = rex_be_controller::getCurrentPage();
                                 <img src="<?= $thumbSrc ?>" alt="" class="thumb-mini" loading="lazy">
                             </span>
                         </td>
-                        <td>
-                            <strong><?= rex_escape($imgFilename) ?></strong>
-                            <?php if ('' !== $imgTitle): ?>
-                                <br><small class="text-muted"><?= rex_escape($imgTitle) ?></small>
-                            <?php endif; ?>
-                            <br><small class="text-muted"><?= $imgWidth ?> × <?= $imgHeight ?> px</small>
-                        </td>
-                        <td>
+                        <td class="alt-main-cell">
+                            <div class="alt-entry-meta">
+                                <strong class="filename-main" title="<?= rex_escape($imgFilename) ?>"><?= rex_escape($imgFilename) ?></strong>
+                                <small class="filename-meta" title="<?= rex_escape($imgTitle) ?>">
+                                    <?php if ('' !== $imgTitle): ?>
+                                        <?= rex_escape($imgTitle) ?> ·
+                                    <?php endif; ?>
+                                    <?= $imgWidth ?> × <?= $imgHeight ?> px
+                                </small>
+                            </div>
                             <?php if ($isMultiLang && $hasMoreLangs): ?>
                                 <div class="alt-input-group">
                                     <span class="lang-badge"><?= strtoupper((string) $firstLang['code']) ?></span>
@@ -323,7 +384,7 @@ $currentPage = rex_be_controller::getCurrentPage();
                     <?php if ($hasMoreLangs): ?>
                     <tr class="lang-row" data-filename="<?= rex_escape($imgFilename) ?>">
                         <td></td>
-                        <td colspan="2">
+                        <td>
                             <div class="other-langs-container">
                                 <?php foreach ($otherLangs as $lang): ?>
                                 <div class="input-group input-group-sm" style="margin-bottom: 5px;">
@@ -342,7 +403,7 @@ $currentPage = rex_be_controller::getCurrentPage();
                     <?php endif; ?>
                     
                     <tr class="preview-row" data-filename="<?= rex_escape($imgFilename) ?>">
-                        <td colspan="5">
+                        <td colspan="4">
                             <div class="preview-container">
                                 <img src="<?= $previewSrc ?>" 
                                      alt="" loading="lazy"<?= $isSvg ? ' style="max-width: 300px; background: #f5f5f5; padding: 10px;"' : '' ?>>
@@ -408,16 +469,27 @@ $currentPage = rex_be_controller::getCurrentPage();
     opacity: 0.7;
     margin-top: 5px;
 }
+#images-table {
+    width: 100%;
+    table-layout: fixed;
+}
+#images-table td {
+    vertical-align: top;
+}
+#images-table th:nth-child(2),
+#images-table td:nth-child(2) {
+    width: 62%;
+}
 #images-table .thumb-mini {
-    max-width: 40px;
-    max-height: 30px;
+    max-width: 52px;
+    max-height: 38px;
     border-radius: 3px;
 }
 .preview-toggle {
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 .preview-toggle i {
     transition: transform 0.2s;
@@ -492,14 +564,40 @@ tr:hover .btn-save-row,
     color: #999;
     font-style: italic;
 }
+.alt-main-cell {
+    overflow: hidden;
+}
+.alt-entry-meta {
+    margin-bottom: 6px;
+}
+.filename-main {
+    display: block;
+    font-weight: 400;
+    font-size: 12px;
+    color: #6f7780;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    margin-bottom: 2px;
+}
+.filename-meta {
+    display: block;
+    color: #6f7780;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 /* Mehrsprachige Alt-Text Felder */
 .alt-input-group {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: 6px;
+    width: 100%;
 }
 .alt-input-group .alt-input {
     flex: 1;
+    min-width: 320px;
 }
 .alt-input-group .lang-badge {
     font-size: 10px;
@@ -510,12 +608,16 @@ tr:hover .btn-save-row,
     color: inherit;
     min-width: 28px;
     text-align: center;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
 }
 .alt-input-group .lang-toggle {
     padding: 6px 8px;
     border-radius: 4px;
     opacity: 0.6;
     transition: opacity 0.2s, background 0.2s;
+    flex: 0 0 auto;
 }
 .alt-input-group .lang-toggle:hover {
     opacity: 1;
@@ -837,6 +939,129 @@ $(document).on('rex:ready', function() {
                 $row.removeClass('saving');
             });
         },
+
+        normalizeLanguageCode(code) {
+            if (typeof code !== 'string') {
+                return '';
+            }
+
+            const normalized = code.trim().toLowerCase().slice(0, 2);
+            return /^[a-z]{2}$/.test(normalized) ? normalized : '';
+        },
+
+        getRequestedLanguagesForInputs($inputs) {
+            const languageCodes = [];
+
+            $inputs.each((_, input) => {
+                const $input = $(input);
+                const clangId = parseInt($input.data('clangId'), 10);
+                const languageConfig = this.languages[clangId] || null;
+                const languageCode = this.normalizeLanguageCode(languageConfig && languageConfig.code ? languageConfig.code : '');
+
+                if (languageCode && !languageCodes.includes(languageCode)) {
+                    languageCodes.push(languageCode);
+                }
+            });
+
+            if (languageCodes.length === 0) {
+                const currentLanguage = this.languages[this.currentLangId] || null;
+                const fallbackLang = this.normalizeLanguageCode(currentLanguage && currentLanguage.code ? currentLanguage.code : 'de');
+                if (fallbackLang) {
+                    languageCodes.push(fallbackLang);
+                }
+            }
+
+            return languageCodes;
+        },
+
+        async requestAiBatch(filename, languageCodes) {
+            return $.getJSON(this.apiEndpoint, {
+                action: 'ai_generate',
+                filename: filename,
+                languages: languageCodes
+            });
+        },
+
+        applyAiTextsToInputs($inputs, altTexts) {
+            let updated = false;
+
+            $inputs.each((_, input) => {
+                const $input = $(input);
+                const clangId = parseInt($input.data('clangId'), 10);
+                const languageConfig = this.languages[clangId] || null;
+                const languageCode = this.normalizeLanguageCode(languageConfig && languageConfig.code ? languageConfig.code : '');
+
+                if (!languageCode) {
+                    return;
+                }
+
+                const generatedText = (altTexts && typeof altTexts === 'object') ? (altTexts[languageCode] || '') : '';
+                if (typeof generatedText === 'string' && generatedText.trim() !== '') {
+                    $input.val(generatedText.trim()).addClass('modified');
+                    updated = true;
+                }
+            });
+
+            return updated;
+        },
+
+        showSkippedLanguageInfo(skippedLanguages, fallbackLanguage) {
+            if (!Array.isArray(skippedLanguages) || skippedLanguages.length === 0 || !fallbackLanguage) {
+                return;
+            }
+
+            const fallbackCode = this.normalizeLanguageCode(String(fallbackLanguage));
+            if (!fallbackCode) {
+                return;
+            }
+
+            const languageNamesByCode = {};
+            Object.values(this.languages || {}).forEach((lang) => {
+                if (!lang || typeof lang !== 'object') {
+                    return;
+                }
+
+                const code = this.normalizeLanguageCode(String(lang.code || ''));
+                if (!code || languageNamesByCode[code]) {
+                    return;
+                }
+
+                languageNamesByCode[code] = String(lang.name || code.toUpperCase());
+            });
+
+            const skippedUnique = [];
+            skippedLanguages.forEach((entry) => {
+                const code = this.normalizeLanguageCode(String(entry));
+                if (code && !skippedUnique.includes(code)) {
+                    skippedUnique.push(code);
+                }
+            });
+
+            if (skippedUnique.length === 0) {
+                return;
+            }
+
+            const skippedLabel = skippedUnique
+                .map((code) => `${languageNamesByCode[code] || code.toUpperCase()} (${code.toUpperCase()})`)
+                .join(', ');
+            const fallbackLabel = `${languageNamesByCode[fallbackCode] || fallbackCode.toUpperCase()} (${fallbackCode.toUpperCase()})`;
+
+            const $container = $('#images-container');
+            if ($container.length === 0) {
+                return;
+            }
+
+            const infoHtml = `
+                <div id="alt-checker-ai-skip-info" class="alert alert-info" style="margin: 12px; margin-bottom: 0;">
+                    <i class="fa fa-info-circle"></i>
+                    Direkte AI-Generierung ausgelassen für <strong>${this.escapeHtml(skippedLabel)}</strong>.
+                    Verwendeter Fallback: <strong>${this.escapeHtml(fallbackLabel)}</strong>.
+                </div>
+            `;
+
+            $('#alt-checker-ai-skip-info').remove();
+            $container.before(infoHtml);
+        },
         
         // AI: Alt-Text für einzelnes Bild generieren (alle Sprachen bei multilang)
         async aiGenerateSingle(filename) {
@@ -844,86 +1069,57 @@ $(document).on('rex:ready', function() {
             const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
             const $btn = $row.find('.btn-ai-generate');
             const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
+            const languageCodes = this.getRequestedLanguagesForInputs($allInputs);
+
+            if (languageCodes.length === 0) {
+                return;
+            }
             
             // Button-Status ändern
             const originalHtml = $btn.html();
             $btn.prop('disabled', true).html(this.spinnerMarkup);
             $row.addClass('saving');
-            
-            // Bei Mehrsprachigkeit: Alle Sprachen generieren (nur wenn leer)
-            if (this.isMultiLang && $allInputs.length > 1) {
-                let success = false;
-                for (const input of $allInputs) {
-                    const $input = $(input);
-                    
-                    // Überspringe wenn bereits ausgefüllt
-                    if ($input.val() && $input.val().trim() !== '') {
-                        continue;
-                    }
-                    
-                    const clangId = $input.data('clangId');
-                    const langCode = this.languages[clangId]?.code || 'de';
-                    
-                    try {
-                        const response = await $.getJSON(this.apiEndpoint, {
-                            action: 'ai_generate',
-                            filename: filename,
-                            language: langCode
-                        });
-                        
-                        if (response.success && response.alt_text) {
-                            $input.val(response.alt_text).addClass('modified');
-                            success = true;
-                        }
-                    } catch (e) {
-                        console.error('AI error for ' + filename + ' (' + langCode + ')', e);
-                    }
-                    
-                    // Kleine Pause zwischen Sprachen
-                    await new Promise(r => setTimeout(r, 150));
+
+            try {
+                const response = await this.requestAiBatch(filename, languageCodes);
+
+                if (!response.success) {
+                    alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
+                    return;
                 }
-                
-                if (success) {
+
+                let updated = false;
+                if (response.alt_texts && typeof response.alt_texts === 'object') {
+                    updated = this.applyAiTextsToInputs($allInputs, response.alt_texts);
+                } else if (typeof response.alt_text === 'string' && response.alt_text.trim() !== '') {
+                    $allInputs.first().val(response.alt_text.trim()).addClass('modified').focus();
+                    updated = true;
+                }
+
+                if (updated) {
                     this.modifiedImages.add(filename);
                     $row.find('.btn-save-row').addClass('visible');
                     this.updateSaveAllButton();
-                    // Lang-Row öffnen um alle Übersetzungen zu zeigen
-                    $row.find('.lang-toggle').addClass('active');
-                    $langRow.addClass('open');
-                }
-            } else {
-                // Einsprachig: Nur erste Sprache
-                const $input = $allInputs.first();
-                const clangId = $input.data('clangId') || this.currentLangId;
-                const langCode = this.languages[clangId]?.code || 'de';
-                
-                try {
-                    const response = await $.getJSON(this.apiEndpoint, {
-                        action: 'ai_generate',
-                        filename: filename,
-                        language: langCode
-                    });
-                    
-                    if (response.success && response.alt_text) {
-                        $input.val(response.alt_text).addClass('modified').focus();
-                        this.modifiedImages.add(filename);
-                        $row.find('.btn-save-row').addClass('visible');
-                        this.updateSaveAllButton();
-                        
-                        // Token-Anzeige
-                        if (response.tokens) {
-                            this.showTokenInfo(response.tokens);
-                        }
-                    } else {
-                        alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + (response.error || 'Unbekannt'));
+
+                    if (this.isMultiLang && $allInputs.length > 1) {
+                        $row.find('.lang-toggle').addClass('active');
+                        $langRow.addClass('open');
                     }
-                } catch (e) {
-                    alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + e.message);
                 }
+
+                if (response.blocked_languages_used && response.fallback_language) {
+                    this.showSkippedLanguageInfo(response.blocked_languages_used, response.fallback_language);
+                }
+
+                if (response.tokens) {
+                    this.showTokenInfo(response.tokens);
+                }
+            } catch (e) {
+                alert('<?= $addon->i18n('alt_checker_ai_error') ?>: ' + e.message);
+            } finally {
+                $btn.prop('disabled', false).html(originalHtml);
+                $row.removeClass('saving');
             }
-            
-            $btn.prop('disabled', false).html(originalHtml);
-            $row.removeClass('saving');
         },
         
         // AI: Alt-Texte für alle Bilder generieren
@@ -951,37 +1147,37 @@ $(document).on('rex:ready', function() {
                 const $langRow = $(`.lang-row[data-filename="${this.escapeHtml(filename)}"]`);
                 // Alle Inputs: aus der Hauptzeile UND der Sprachzeile
                 const $allInputs = $row.find('.alt-input').add($langRow.find('.alt-input'));
-                
-                // Für jede Sprache prüfen ob leer und dann generieren
-                for (let i = 0; i < $allInputs.length; i++) {
-                    const $input = $($allInputs[i]);
-                    
-                    // Überspringe wenn bereits ausgefüllt
-                    if ($input.val() && $input.val().trim() !== '') {
+
+                const languageCodes = this.getRequestedLanguagesForInputs($allInputs);
+                if (languageCodes.length === 0) {
+                    continue;
+                }
+
+                try {
+                    const response = await this.requestAiBatch(filename, languageCodes);
+
+                    if (!response.success) {
                         continue;
                     }
-                    
-                    const clangId = $input.data('clangId') || this.currentLangId;
-                    const langCode = this.languages[clangId]?.code || 'de';
-                    
-                    try {
-                        const response = await $.getJSON(this.apiEndpoint, {
-                            action: 'ai_generate',
-                            filename: filename,
-                            language: langCode
-                        });
-                        
-                        if (response.success && response.alt_text) {
-                            $input.val(response.alt_text).addClass('modified');
-                            this.modifiedImages.add(filename);
-                            $row.find('.btn-save-row').addClass('visible');
-                        }
-                    } catch (e) {
-                        console.error('AI error for ' + filename + ' lang ' + langCode, e);
+
+                    let updated = false;
+                    if (response.alt_texts && typeof response.alt_texts === 'object') {
+                        updated = this.applyAiTextsToInputs($allInputs, response.alt_texts);
+                    } else if (typeof response.alt_text === 'string' && response.alt_text.trim() !== '') {
+                        $allInputs.first().val(response.alt_text.trim()).addClass('modified');
+                        updated = true;
                     }
-                    
-                    // Kleine Pause zwischen Requests
-                    await new Promise(r => setTimeout(r, 200));
+
+                    if (updated) {
+                        this.modifiedImages.add(filename);
+                        $row.find('.btn-save-row').addClass('visible');
+                    }
+
+                    if (response.blocked_languages_used && response.fallback_language) {
+                        this.showSkippedLanguageInfo(response.blocked_languages_used, response.fallback_language);
+                    }
+                } catch (e) {
+                    console.error('AI error for ' + filename, e);
                 }
             }
             

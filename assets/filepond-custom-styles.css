@@ -35,6 +35,22 @@
     white-space: nowrap;
 }
 
+/* Mehrsprachige Metainfo-Felder: Hauptsprachenfeld darf nicht kollabieren. */
+.filepond-ai-multilang-container .meta_lang_field_row_primary .input-group {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.filepond-ai-multilang-container .meta_lang_field_row_primary .meta_lang_field_input {
+    width: 100% !important;
+    min-width: 260px;
+}
+
+.filepond-ai-multilang-container .meta_lang_field_row_primary .input-group-btn {
+    white-space: nowrap;
+    width: 1%;
+}
+
 .btn-ai-generate-mp,
 .btn-ai-generate-mp-lang {
     min-width: 78px;

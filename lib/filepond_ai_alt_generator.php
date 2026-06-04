@@ -130,8 +130,8 @@ class filepond_ai_alt_generator
             ];
         }
 
-        // Nur Bilder verarbeiten
-        if (!$media->isImage()) {
+        // Nur Bilder verarbeiten (HEIC/HEIF/AVIF/WEBP ggf. ueber Dateiendung zulassen)
+        if (!$media->isImage() && !$this->isSupportedImageExtension($filename)) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -139,13 +139,12 @@ class filepond_ai_alt_generator
             ];
         }
 
-        // SVG nicht unterstützt (noch nicht)
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         if ('svg' === $extension) {
             return [
                 'success' => false,
                 'alt_text' => '',
-                'error' => 'SVG-Dateien werden nicht unterstützt',
+                'error' => 'SVG wird für AI-Analyse nicht unterstützt (Vektorformat ohne verlässliches Pixel-Rendering)',
             ];
         }
 
@@ -162,7 +161,7 @@ class filepond_ai_alt_generator
     }
 
     /**
-     * Generiert einen Alt-Text für eine Datei anhand des Pfades.
+     * Generiert einen Alt-Text fuer eine Datei anhand des Pfades.
      *
      * @param string $filePath Absoluter Pfad zur Datei
      * @param string $language Zielsprache
@@ -186,11 +185,11 @@ class filepond_ai_alt_generator
             ];
         }
 
-        // Mime-Type prüfen
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filePath);
+        $extension = strtolower((string) pathinfo($filePath, PATHINFO_EXTENSION));
 
-        if (!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) {
+        if ((!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) && !$this->isSupportedImageExtension($filePath)) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -198,7 +197,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        if ('image/svg+xml' === $mimeType) {
+        if ('image/svg+xml' === $mimeType || 'svg' === $extension) {
             return [
                 'success' => false,
                 'alt_text' => '',
@@ -234,7 +233,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        if (!$media->isImage()) {
+        if (!$media->isImage() && !$this->isSupportedImageExtension($filename)) {
             return [
                 'success' => false,
                 'alt_texts' => [],
@@ -289,8 +288,9 @@ class filepond_ai_alt_generator
 
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($filePath);
+        $extension = strtolower((string) pathinfo($filePath, PATHINFO_EXTENSION));
 
-        if (!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) {
+        if ((!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) && !$this->isSupportedImageExtension($filePath)) {
             return [
                 'success' => false,
                 'alt_texts' => [],
@@ -298,7 +298,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        if ('image/svg+xml' === $mimeType) {
+        if ('image/svg+xml' === $mimeType || 'svg' === $extension) {
             return [
                 'success' => false,
                 'alt_texts' => [],
@@ -360,7 +360,7 @@ class filepond_ai_alt_generator
 
     /**
      * @param list<string> $languages
-     * @return array{success: bool, alt_texts: array<string, string>, tokens?: array{prompt: int, response: int, total: int}|null, error: string|null}
+     * @return array{success: bool, alt_texts: array<string, string>, fallback_language?: string, blocked_languages_used?: list<string>, tokens?: array{prompt: int, response: int, total: int}|null, error: string|null}
      */
     private function executeGenerationMultiple(string $filePath, array $languages): array
     {
@@ -372,6 +372,7 @@ class filepond_ai_alt_generator
         $fallbackLanguage = $this->getFallbackLanguageCode();
         $blockedLanguages = $this->getBlockedLanguageCodes();
         $blockedLanguages = array_values(array_diff($blockedLanguages, [$fallbackLanguage]));
+        $blockedLanguagesUsed = array_values(array_intersect($requestedLanguages, $blockedLanguages));
 
         $directLanguages = array_values(array_diff($requestedLanguages, $blockedLanguages));
 
@@ -434,6 +435,8 @@ class filepond_ai_alt_generator
             return [
                 'success' => true,
                 'alt_texts' => $resolvedAltTexts,
+                'fallback_language' => $fallbackLanguage,
+                'blocked_languages_used' => $blockedLanguagesUsed,
                 'tokens' => $result['tokens'] ?? null,
                 'error' => null,
             ];
@@ -469,7 +472,12 @@ class filepond_ai_alt_generator
     }
 
     /**
-     * Bereitet das Bild für die AI vor (Resize auf max. 1024px & Formatierung).
+     * Bereitet das Bild für die AI vor.
+     *
+     * Strategie:
+     * - HEIC/HEIF/AVIF/WEBP bevorzugt über Imagick oder CLI nach JPEG normalisieren
+     * - GD nur für gängige Formate (JPEG/PNG/GIF) einsetzen
+     * - SVG explizit ablehnen (kein verlässliches Pixel-Rendering ohne Rasterizer)
      *
      * @param string $path Pfad zum Bild oder Bild-Daten
      * @param bool $isPath True wenn $path ein Dateipfad ist
@@ -488,60 +496,257 @@ class filepond_ai_alt_generator
         $maxDimension = $configuredMaxDimension;
 
         // Original laden
-        $imageData = $isPath ? @file_get_contents($path) : $path;
-        if (false === $imageData) {
-            throw new Exception('Konnte Bilddatei nicht lesen');
+        if ($isPath) {
+            $imageData = rex_file::get($path);
+            if (!is_string($imageData) || '' === $imageData) {
+                throw new Exception('Konnte Bilddatei nicht lesen');
+            }
+        } else {
+            $imageData = $path;
         }
 
-        // Mime Type ermitteln
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->buffer($imageData);
-
-        // Wenn kein Bild, direkt Abbruch
         if (!is_string($mimeType) || !str_starts_with($mimeType, 'image/')) {
-            throw new Exception('Ungültiges Bildformat: ' . $mimeType);
+            throw new Exception('Ungültiges Bildformat: ' . (is_string($mimeType) ? $mimeType : 'unbekannt'));
         }
 
-        // Versuchen zu resizen mit GD
-        if (extension_loaded('gd') && 'image/gif' !== $mimeType) {
-            $image = @imagecreatefromstring($imageData);
-            if (false !== $image) {
-                $width = imagesx($image);
-                $height = imagesy($image);
+        if ('image/svg+xml' === $mimeType) {
+            throw new Exception('SVG wird für AI-Analyse nicht unterstützt (Vektorformat ohne verlässliches Pixel-Rendering)');
+        }
 
-                // Nur resizen wenn größer als Max
-                if ($width > $maxDimension || $height > $maxDimension) {
-                    $ratio = $width / $height;
-                    if ($width > $height) {
-                        $newWidth = $maxDimension;
-                        $newHeight = (int) ($maxDimension / $ratio);
-                    } else {
-                        $newHeight = $maxDimension;
-                        $newWidth = (int) ($maxDimension * $ratio);
-                    }
-
-                    $newImage = imagescale($image, $newWidth, $newHeight);
-                    if (false !== $newImage) {
-                        $image = $newImage;
-                    }
+        $specialMimes = ['image/heic', 'image/heif', 'image/avif', 'image/webp'];
+        if (in_array($mimeType, $specialMimes, true)) {
+            if ($isPath) {
+                $imagickPrepared = $this->prepareImageWithImagick($path, $maxDimension);
+                if (null !== $imagickPrepared) {
+                    return $imagickPrepared;
                 }
 
-                // Als JPEG exportieren (kompatibel & kleiner)
-                ob_start();
-                // 85% Qualität ist ein guter Kompromiss für AI-Analyse
-                imagejpeg($image, null, 85);
-                $obResult = ob_get_clean();
-                if (is_string($obResult)) {
-                    $imageData = $obResult;
+                $cliPrepared = $this->prepareImageWithCli($path, $maxDimension);
+                if (null !== $cliPrepared) {
+                    return $cliPrepared;
                 }
-                $mimeType = 'image/jpeg';
+            }
+
+            throw new Exception('Spezialformat ' . $mimeType . ' benötigt Imagick oder CLI-Konvertierung (magick/convert/sips)');
+        }
+
+        $gdPrepared = $this->prepareImageWithGd($imageData, $mimeType, $maxDimension);
+        if (null !== $gdPrepared) {
+            return $gdPrepared;
+        }
+
+        if ($isPath) {
+            $imagickPrepared = $this->prepareImageWithImagick($path, $maxDimension);
+            if (null !== $imagickPrepared) {
+                return $imagickPrepared;
+            }
+
+            $cliPrepared = $this->prepareImageWithCli($path, $maxDimension);
+            if (null !== $cliPrepared) {
+                return $cliPrepared;
             }
         }
 
+        throw new Exception('Bildverarbeitung nicht möglich: Für dieses Format ist weder GD noch Imagick/CLI geeignet');
+    }
+
+    /**
+     * @return array{data: string, mime: string}|null
+     */
+    private function prepareImageWithGd(string $imageData, string $mimeType, int $maxDimension): ?array
+    {
+        if (!extension_loaded('gd')) {
+            return null;
+        }
+
+        $allowedByGd = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!in_array($mimeType, $allowedByGd, true)) {
+            return null;
+        }
+
+        $image = @imagecreatefromstring($imageData);
+        if (false === $image) {
+            return null;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        if ($width <= 0 || $height <= 0) {
+            return null;
+        }
+
+        $targetWidth = $width;
+        $targetHeight = $height;
+
+        if ($width > $maxDimension || $height > $maxDimension) {
+            $ratio = $width / $height;
+            if ($width > $height) {
+                $targetWidth = $maxDimension;
+                $targetHeight = max(1, (int) round($maxDimension / $ratio));
+            } else {
+                $targetHeight = $maxDimension;
+                $targetWidth = max(1, (int) round($maxDimension * $ratio));
+            }
+
+            $resized = imagescale($image, $targetWidth, $targetHeight);
+            if (false !== $resized) {
+                $image = $resized;
+            }
+        }
+
+        ob_start();
+        $outputMime = 'image/jpeg';
+        if ('image/png' === $mimeType || 'image/gif' === $mimeType) {
+            imagepng($image, null, 7);
+            $outputMime = 'image/png';
+        } else {
+            imagejpeg($image, null, 85);
+            $outputMime = 'image/jpeg';
+        }
+        $encoded = ob_get_clean();
+
+        if (!is_string($encoded) || '' === $encoded) {
+            return null;
+        }
+
         return [
-            'data' => base64_encode($imageData),
-            'mime' => $mimeType,
+            'data' => base64_encode($encoded),
+            'mime' => $outputMime,
         ];
+    }
+
+    /**
+     * @return array{data: string, mime: string}|null
+     */
+    private function prepareImageWithImagick(string $filePath, int $maxDimension): ?array
+    {
+        if (!class_exists('Imagick')) {
+            return null;
+        }
+
+        try {
+            $image = new Imagick();
+            $image->readImage($filePath);
+
+            // Bei Mehrseitenformaten (z.B. GIF/HEIC-Sequenzen) nur erstes Bild nutzen.
+            if ($image->getNumberImages() > 1) {
+                $image->setIteratorIndex(0);
+                $image = $image->getImage();
+            }
+
+            if (method_exists($image, 'autoOrient')) {
+                $image->autoOrient();
+            }
+
+            $image->thumbnailImage($maxDimension, $maxDimension, true, true);
+            $image->stripImage();
+            $image->setImageFormat('jpeg');
+            $image->setImageCompressionQuality(85);
+
+            $blob = $image->getImageBlob();
+            if (!is_string($blob) || '' === $blob) {
+                return null;
+            }
+
+            return [
+                'data' => base64_encode($blob),
+                'mime' => 'image/jpeg',
+            ];
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{data: string, mime: string}|null
+     */
+    private function prepareImageWithCli(string $filePath, int $maxDimension): ?array
+    {
+        if (!function_exists('exec')) {
+            return null;
+        }
+
+        $tempOutput = tempnam(sys_get_temp_dir(), 'fp_ai_');
+        if (false === $tempOutput) {
+            return null;
+        }
+
+        $tempJpeg = $tempOutput . '.jpg';
+
+        $commands = [];
+        if ($this->commandExists('magick')) {
+            $commands[] = sprintf(
+                'magick %s -auto-orient -thumbnail %s -strip -quality 85 %s 2>/dev/null',
+                escapeshellarg($filePath),
+                escapeshellarg($maxDimension . 'x' . $maxDimension . '>'),
+                escapeshellarg($tempJpeg),
+            );
+        }
+
+        if ($this->commandExists('convert')) {
+            $commands[] = sprintf(
+                'convert %s -auto-orient -thumbnail %s -strip -quality 85 %s 2>/dev/null',
+                escapeshellarg($filePath),
+                escapeshellarg($maxDimension . 'x' . $maxDimension . '>'),
+                escapeshellarg($tempJpeg),
+            );
+        }
+
+        if ($this->commandExists('sips')) {
+            $commands[] = sprintf(
+                'sips -s format jpeg -Z %d %s --out %s >/dev/null 2>&1',
+                $maxDimension,
+                escapeshellarg($filePath),
+                escapeshellarg($tempJpeg),
+            );
+        }
+
+        foreach ($commands as $command) {
+            $exitCode = 1;
+            exec($command, $unusedOutput, $exitCode);
+
+            if (0 !== $exitCode || !is_file($tempJpeg)) {
+                continue;
+            }
+
+            $jpegData = rex_file::get($tempJpeg);
+            if (!is_string($jpegData) || '' === $jpegData) {
+                continue;
+            }
+
+            @unlink($tempJpeg);
+            @unlink($tempOutput);
+
+            return [
+                'data' => base64_encode($jpegData),
+                'mime' => 'image/jpeg',
+            ];
+        }
+
+        @unlink($tempJpeg);
+        @unlink($tempOutput);
+
+        return null;
+    }
+
+    private function commandExists(string $command): bool
+    {
+        if (!function_exists('exec')) {
+            return false;
+        }
+
+        $exitCode = 1;
+        exec('command -v ' . escapeshellarg($command) . ' >/dev/null 2>&1', $unusedOutput, $exitCode);
+        return 0 === $exitCode;
+    }
+
+    private function isSupportedImageExtension(string $pathOrFilename): bool
+    {
+        $extension = strtolower((string) pathinfo($pathOrFilename, PATHINFO_EXTENSION));
+
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'heic', 'heif'], true);
     }
 
     /**
@@ -671,11 +876,23 @@ class filepond_ai_alt_generator
     private function getBlockedLanguageCodes(): array
     {
         $configured = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
-        if (!is_string($configured) || '' === trim($configured)) {
+        if (is_array($configured)) {
+            $parts = $configured;
+        } elseif (is_string($configured)) {
+            $trimmed = trim($configured);
+            if ('' === $trimmed) {
+                return [];
+            }
+
+            if (str_contains($trimmed, '|')) {
+                $parts = array_values(array_filter(explode('|', $trimmed), static fn (string $v): bool => '' !== $v));
+            } else {
+                $parts = preg_split('/[\s,;]+/', strtolower($trimmed));
+            }
+        } else {
             return [];
         }
 
-        $parts = preg_split('/[\s,;]+/', strtolower($configured));
         if (!is_array($parts)) {
             return [];
         }

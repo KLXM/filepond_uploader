@@ -616,12 +616,62 @@ $field->setLabel($addon->i18n('filepond_settings_ai_fallback_language'));
 $field->setNotice($addon->i18n('filepond_settings_ai_fallback_language_notice'));
 
 // Negativliste: Sprachen, die das aktuelle Modell nicht direkt erzeugen soll
-$field = $form->addInputField('text', 'ai_blocked_languages', null, [
-    'class' => 'form-control',
-    'placeholder' => 'sl, cs, hr'
+$field = $form->addSelectField('ai_blocked_languages', null, [
+    'class' => 'form-control selectpicker',
 ]);
+$field->setAttribute('multiple', 'multiple');
 $field->setLabel($addon->i18n('filepond_settings_ai_blocked_languages'));
 $field->setNotice($addon->i18n('filepond_settings_ai_blocked_languages_notice'));
+
+$selectedBlockedLanguages = [];
+$blockedConfigRaw = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
+if (is_array($blockedConfigRaw)) {
+    $selectedBlockedLanguages = $blockedConfigRaw;
+} elseif (is_string($blockedConfigRaw)) {
+    if (str_contains($blockedConfigRaw, '|')) {
+        $selectedBlockedLanguages = array_values(array_filter(explode('|', $blockedConfigRaw), static fn (string $v): bool => '' !== $v));
+    } elseif ('' !== trim($blockedConfigRaw)) {
+        $parts = preg_split('/[\s,;]+/', $blockedConfigRaw);
+        if (is_array($parts)) {
+            $selectedBlockedLanguages = $parts;
+        }
+    }
+}
+
+$selectedBlockedLanguages = array_values(array_unique(array_filter(array_map(static function ($value): string {
+    if (!is_string($value)) {
+        return '';
+    }
+
+    $trimmed = trim($value);
+    if ('' === $trimmed) {
+        return '';
+    }
+
+    return strtolower(substr($trimmed, 0, 2));
+}, $selectedBlockedLanguages), static fn (string $v): bool => preg_match('/^[a-z]{2}$/', $v) === 1)));
+
+$select = $field->getSelect();
+$seenLanguageCodes = [];
+foreach (rex_clang::getAll() as $clang) {
+    $clangCode = strtolower((string) $clang->getCode());
+    $shortCode = substr($clangCode, 0, 2);
+    if (!preg_match('/^[a-z]{2}$/', $shortCode)) {
+        continue;
+    }
+
+    if (in_array($shortCode, $seenLanguageCodes, true)) {
+        continue;
+    }
+
+    $seenLanguageCodes[] = $shortCode;
+    $label = $clang->getName() . ' (' . $shortCode . ')';
+    $select->addOption($label, $shortCode);
+}
+
+if ([] !== $selectedBlockedLanguages) {
+    $field->setValue($selectedBlockedLanguages);
+}
 
 $form->addRawField('</div>');
 
