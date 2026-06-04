@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 2.6.1 (2026-06-04)
+
+### 🐛 Bugfixes
+- **Blocklist-Sprachen robuster normalisiert**: `ai_blocked_languages` verarbeitet jetzt auch Legacy-/manuelle Werte wie `EN` oder `de_DE` zuverlässig.
+- **Cache-Key-Generierung gegen UTF-8-Probleme gehärtet**: Die AI-Cache-Hashbildung nutzt jetzt UTF-8-Substitution und einen sicheren Fallback, damit keine kollidierenden Keys durch fehlerhafte Encoding-Werte entstehen.
+- **Einheitliche i18n-Fehlermeldung im Upload-Dialog**: Die JSON-Parse-Fehlermeldung der AI-Vorschläge nutzt konsistente Übersetzungsstrings (DE/EN) statt gemischter Hardcoded-Texte.
+
 ## 2.6.0 (2026-06-04)
 
 ### 🎉 Neue Features

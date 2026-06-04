@@ -83,6 +83,9 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   Mark decorative images (negative list for images without mandatory alt text)
     *   **AI alt text generation** for automatic descriptions at the click of a button
     *   Supports **Google Gemini** and **Cloudflare Workers AI** providers
+    *   Configurable prompt profiles: **Accessibility (default)**, **Short/neutral**, **SEO-focused**
+    *   Optional AI result cache with configurable TTL to reduce repeated requests
+    *   Multilingual generation in one request with fallback language and optional blocked-language list
     *   Fast keyboard navigation with the Tab key
     *   Bulk save of all changes
     *   Filter by filename and category

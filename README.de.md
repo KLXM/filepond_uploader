@@ -83,6 +83,9 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   Dekorative Bilder markieren (Negativ-Liste für Bilder ohne Alt-Text-Pflicht)
     *   **AI Alt-Text-Generierung** - automatische Beschreibungen per Knopfdruck
     *   Unterstützt **Google Gemini** und **Cloudflare Workers AI** als Provider
+    *   Konfigurierbare Prompt-Profile: **Barrierefrei (Standard)**, **Kurz/neutral**, **SEO-fokussiert**
+    *   Optionaler AI-Result-Cache mit konfigurierbarer Gültigkeit zur Reduktion wiederholter Requests
+    *   Mehrsprachige Generierung in einem Request inklusive Fallbacksprache und optionaler Negativliste
     *   Schnelle Navigation mit Tab-Taste
     *   Bulk-Speichern aller Änderungen
     *   Filter nach Dateiname und Kategorie
