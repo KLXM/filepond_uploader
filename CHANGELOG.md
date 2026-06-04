@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+### 🐛 Bugfixes
+- **AI-Textgenerierung füllt MetaInfo-Lang-Felder (z. B. `lang_textarea_all`) im Upload-Metadialog und auf der Medienpool-Detailseite**: Auf der Detailseite wird der Zauberbutton jetzt am Sprachen-Container des Felds platziert und schreibt die generierten Texte direkt in die einzelnen Sprach-Inputs (statt nur ins versteckte JSON-Feld). Im Upload-Metadialog werden bei mehrsprachigen Zielfeldern jetzt alle (leeren) Sprach-Tabs nacheinander befüllt – analog zum Verhalten im Alt-Text-Checker.
+
 ## 2.5.1 (2026-06-01)
 
 ### ✨ Verbesserungen

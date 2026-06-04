@@ -79,10 +79,17 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             $targetField = 'med_alt';
         }
 
+        // Sprach-Mapping (clang_id => code) für mehrsprachige Felder
+        $languages = [];
+        foreach (rex_clang::getAll() as $clang) {
+            $languages[(string) $clang->getId()] = $clang->getCode();
+        }
+
         $this->sendResponse([
             'success' => true,
             'enabled' => $enabled,
             'target_field' => $targetField,
+            'languages' => $languages,
         ]);
     }
 

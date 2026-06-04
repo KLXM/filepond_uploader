@@ -997,30 +997,17 @@
                             return;
                         }
 
-                        let targetInput = null;
-                        targetInputs.forEach((candidate) => {
-                            if (targetInput) {
-                                return;
-                            }
-                            const pane = candidate.closest('.fp-tab-pane');
-                            if (!pane || window.getComputedStyle(pane).display !== 'none') {
-                                targetInput = candidate;
-                            }
-                        });
-
-                        if (!targetInput) {
-                            targetInput = targetInputs[0];
-                        }
-
-                        if (targetInput.disabled) {
+                        const writableInputs = Array.from(targetInputs).filter((inputEl) => !inputEl.disabled);
+                        if (writableInputs.length === 0) {
                             if (statusNode) {
                                 statusNode.textContent = t.aiSuggestDecorative;
                             }
                             return;
                         }
 
-                        const languageValue = targetInput.getAttribute('data-lang') || lang;
-                        const languageCode = languageValue.split('_')[0] || 'de';
+                        // Mehrsprachiges Feld? Dann pro Sprache generieren (nur leere Felder).
+                        const isMultilingual = writableInputs.some((inputEl) => !!inputEl.getAttribute('data-lang'))
+                            && writableInputs.length > 1;
 
                         const originalButtonHtml = this.innerHTML;
                         this.disabled = true;
@@ -1029,11 +1016,10 @@
                             statusNode.textContent = '';
                         }
 
-                        try {
+                        const requestAiSuggestion = async (languageCode) => {
                             const requestData = new FormData();
                             requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
                             requestData.append('language', languageCode);
-
                             requestData.append('rex-api-call', 'filepond_ai_generate');
 
                             const response = await fetch(basePath, {
@@ -1059,30 +1045,87 @@
                             if ('' === suggestion) {
                                 throw new Error(t.aiSuggestError);
                             }
+                            return suggestion;
+                        };
 
-                            const writableInputs = Array.from(targetInputs).filter((inputEl) => !inputEl.disabled);
-                            if (writableInputs.length === 0) {
-                                throw new Error(t.aiSuggestDecorative);
-                            }
+                        try {
+                            if (isMultilingual) {
+                                // Pro Sprache generieren, nur leere Felder befüllen
+                                let successCount = 0;
+                                let lastError = null;
 
-                            const preferredInputs = writableInputs.filter((inputEl) => {
-                                const langAttr = inputEl.getAttribute('data-lang');
-                                return !langAttr || langAttr === languageValue;
-                            });
+                                for (const inputEl of writableInputs) {
+                                    const currentVal = (inputEl.value || '').toString().trim();
+                                    if (currentVal !== '') {
+                                        continue;
+                                    }
 
-                            const destinationInputs = preferredInputs.length > 0 ? preferredInputs : writableInputs;
+                                    const langAttr = inputEl.getAttribute('data-lang') || 'de';
+                                    const languageCode = langAttr.split('_')[0] || 'de';
 
-                            destinationInputs.forEach((inputEl) => {
-                                inputEl.value = suggestion;
-                                inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                                inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            });
+                                    try {
+                                        const suggestion = await requestAiSuggestion(languageCode);
+                                        inputEl.value = suggestion;
+                                        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                        successCount++;
+                                    } catch (err) {
+                                        lastError = err;
+                                    }
 
-                            if (statusNode) {
-                                statusNode.textContent = 'OK';
-                                setTimeout(() => {
-                                    statusNode.textContent = '';
-                                }, 1800);
+                                    // kleine Pause zwischen Anfragen
+                                    await new Promise((r) => setTimeout(r, 150));
+                                }
+
+                                if (successCount === 0 && lastError) {
+                                    throw lastError;
+                                }
+
+                                if (statusNode) {
+                                    statusNode.textContent = 'OK';
+                                    setTimeout(() => {
+                                        statusNode.textContent = '';
+                                    }, 1800);
+                                }
+                            } else {
+                                // Einsprachig: aktuelles sichtbares Feld bevorzugen
+                                let targetInput = null;
+                                writableInputs.forEach((candidate) => {
+                                    if (targetInput) {
+                                        return;
+                                    }
+                                    const pane = candidate.closest('.fp-tab-pane');
+                                    if (!pane || window.getComputedStyle(pane).display !== 'none') {
+                                        targetInput = candidate;
+                                    }
+                                });
+                                if (!targetInput) {
+                                    targetInput = writableInputs[0];
+                                }
+
+                                const languageValue = targetInput.getAttribute('data-lang') || 'de';
+                                const languageCode = languageValue.split('_')[0] || 'de';
+
+                                const suggestion = await requestAiSuggestion(languageCode);
+
+                                const destinationInputs = writableInputs.filter((inputEl) => {
+                                    const langAttr = inputEl.getAttribute('data-lang');
+                                    return !langAttr || langAttr === languageValue;
+                                });
+                                const finalInputs = destinationInputs.length > 0 ? destinationInputs : writableInputs;
+
+                                finalInputs.forEach((inputEl) => {
+                                    inputEl.value = suggestion;
+                                    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                                    inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                });
+
+                                if (statusNode) {
+                                    statusNode.textContent = 'OK';
+                                    setTimeout(() => {
+                                        statusNode.textContent = '';
+                                    }, 1800);
+                                }
                             }
                         } catch (error) {
                             if (statusNode) {
