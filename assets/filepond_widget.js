@@ -214,7 +214,43 @@
 
             return `${window.location.origin}${path.replace(/\/$/, '')}/index.php`;
         };
-        const magicIconUrl = `${window.location.origin}/assets/addons/filepond_uploader/icons/magic.svg`;
+
+        const getMagicIconUrl = (basePath) => {
+            const parsedUrl = new URL(basePath, window.location.href);
+            const pathname = parsedUrl.pathname;
+            const redaxoIndex = pathname.indexOf('/redaxo/');
+
+            let appRootPath = '';
+            if (redaxoIndex !== -1) {
+                appRootPath = pathname.slice(0, redaxoIndex);
+            } else if (pathname.endsWith('/index.php')) {
+                appRootPath = pathname.slice(0, -'/index.php'.length);
+            } else {
+                appRootPath = pathname.replace(/\/$/, '');
+            }
+
+            return `${parsedUrl.origin}${appRootPath}/assets/addons/filepond_uploader/icons/magic.svg`;
+        };
+
+        const formatServerErrorMessage = (rawMessage, fallbackMessage) => {
+            if (typeof rawMessage !== 'string') {
+                return fallbackMessage;
+            }
+
+            // Keep upload errors readable: remove HTML and cap the length.
+            const stripped = rawMessage
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const normalized = stripped !== '' ? stripped : fallbackMessage;
+            const maxLength = 220;
+            if (normalized.length > maxLength) {
+                return `${normalized.slice(0, maxLength - 1)}...`;
+            }
+
+            return normalized;
+        };
         // console.log('Basepath ermittelt:', basePath);
 
         // Hilfsfunktion: hängt – sofern auf der Seite vorhanden – die YCom-Media-Auth-Defaults
@@ -261,6 +297,7 @@
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
             const basePath = getBasePath(input);
+            const magicIconUrl = getMagicIconUrl(basePath);
 
             input.style.display = 'none';
 
@@ -1733,7 +1770,11 @@
                                     } catch (parseError) {
                                         result = null;
                                     }
-                                    error((result && result.error) || responseText || 'Upload preparation failed');
+                                    const message = formatServerErrorMessage(
+                                        result && typeof result.error === 'string' ? result.error : responseText,
+                                        'Upload preparation failed'
+                                    );
+                                    error(message);
                                     return;
                                 }
 
@@ -1767,7 +1808,11 @@
                                     } catch (parseError) {
                                         result = null;
                                     }
-                                    error((result && result.error) || responseText || 'Upload failed');
+                                    const message = formatServerErrorMessage(
+                                        result && typeof result.error === 'string' ? result.error : responseText,
+                                        'Upload failed'
+                                    );
+                                    error(message);
                                     return;
                                 }
 
