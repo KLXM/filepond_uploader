@@ -190,15 +190,30 @@
         };
 
         // Funktion zum Ermitteln des Basepaths
-        const getBasePath = () => {
+        const getBasePath = (input) => {
+            const configuredEndpoint = input.dataset.filepondEndpoint;
+            if (configuredEndpoint) {
+                return configuredEndpoint;
+            }
+
             const baseElement = document.querySelector('base');
             if (baseElement && baseElement.href) {
-                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
+                const baseHref = baseElement.href.replace(/\/$/, '');
+                return baseHref.endsWith('/index.php') ? baseHref : `${baseHref}/index.php`;
             }
-            // Fallback, wenn kein <base>-Tag vorhanden ist
-            return window.location.origin;
+
+            const path = window.location.pathname;
+            const redaxoIndex = path.indexOf('/redaxo/');
+            if (redaxoIndex !== -1) {
+                return `${window.location.origin}${path.slice(0, redaxoIndex)}/redaxo/index.php`;
+            }
+
+            if (path.endsWith('/index.php')) {
+                return `${window.location.origin}${path}`;
+            }
+
+            return `${window.location.origin}${path.replace(/\/$/, '')}/index.php`;
         };
-        const basePath = getBasePath();
         const magicIconUrl = `${window.location.origin}/assets/addons/filepond_uploader/icons/magic.svg`;
         // console.log('Basepath ermittelt:', basePath);
 
@@ -245,6 +260,7 @@
 
             const initialValue = input.value.trim();
             const skipMeta = input.dataset.filepondSkipMeta === 'true';
+            const basePath = getBasePath(input);
 
             input.style.display = 'none';
 
@@ -1710,8 +1726,14 @@
                                 });
 
                                 if (!prepareResponse.ok) {
-                                    const result = await prepareResponse.json();
-                                    error(result.error || 'Upload preparation failed');
+                                    const responseText = await prepareResponse.text();
+                                    let result = null;
+                                    try {
+                                        result = JSON.parse(responseText);
+                                    } catch (parseError) {
+                                        result = null;
+                                    }
+                                    error((result && result.error) || responseText || 'Upload preparation failed');
                                     return;
                                 }
 
@@ -1738,8 +1760,14 @@
                                 });
 
                                 if (!response.ok) {
-                                    const result = await response.json();
-                                    error(result.error || 'Upload failed');
+                                    const responseText = await response.text();
+                                    let result = null;
+                                    try {
+                                        result = JSON.parse(responseText);
+                                    } catch (parseError) {
+                                        result = null;
+                                    }
+                                    error((result && result.error) || responseText || 'Upload failed');
                                     return;
                                 }
 

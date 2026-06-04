@@ -2,7 +2,16 @@
 
 /** @var rex_addon $this */
 
-use FriendsOfRedaxo\FilePond\FilePondMediaCleanup;
+use KLXM\FilePond\Api\rex_api_filepond_ai_generate;
+use KLXM\FilePond\Api\rex_api_filepond_ai_test;
+use KLXM\FilePond\Api\rex_api_filepond_alt_checker;
+use KLXM\FilePond\Api\rex_api_filepond_auto_metainfo;
+use KLXM\FilePond\Api\rex_api_filepond_uploader;
+use KLXM\FilePond\Api\rex_api_filepond_ycom_auth;
+use KLXM\FilePond\AltTextChecker;
+use KLXM\FilePond\FilePondMediaCleanup;
+use KLXM\FilePond\Utility\FilePondHelper;
+use KLXM\FilePond\YcomAuthSettings;
 
 rex_yform::addTemplatePath($this->getPath('ytemplates'));
 
@@ -141,8 +150,8 @@ if (rex::isBackend() && rex::getUser()) {
     static $filepondScriptsLoaded = false;
     
     if (!$filepondScriptsLoaded) {
-        filepond_helper::getStyles();
-        filepond_helper::getScripts();
+        FilePondHelper::getStyles();
+        FilePondHelper::getScripts();
         $filepondScriptsLoaded = true;
     }
 
@@ -159,8 +168,8 @@ if (rex::isBackend() && rex::getUser()) {
         'mediapool/filepond_multiupload',
     ], true);
     if ($isFilePondUploadPage
-        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
-        && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())
+        && YcomAuthSettings::isEnabled()
+        && YcomAuthSettings::userMayManage(rex::getUser())
     ) {
         rex_view::addJsFile($this->getAssetsUrl('filepond_ycom_auth.js'));
     }
@@ -168,13 +177,16 @@ if (rex::isBackend() && rex::getUser()) {
 
 // Backend-Permission für YCom-Media-Auth-Defaults registrieren
 rex_perm::register(
-    \FriendsOfRedaxo\FilePond\YcomAuthSettings::PERM,
+    YcomAuthSettings::PERM,
     rex_i18n::msg('filepond_perm_ycom_media_auth')
 );
 
-// API-Endpoint zum Speichern der Session-Defaults explizit registrieren
-// (defensiv – sicherstellt, dass `?rex-api-call=filepond_ycom_auth` immer auflöst,
-// auch wenn der Autoload-Cache nach Neuinstallation noch nicht aktualisiert wurde).
+// API-Endpunkte explizit registrieren, damit Addon-Klassen namespaced bleiben koennen.
+rex_api_function::register('filepond_uploader', rex_api_filepond_uploader::class);
+rex_api_function::register('filepond_auto_metainfo', rex_api_filepond_auto_metainfo::class);
+rex_api_function::register('filepond_ai_generate', rex_api_filepond_ai_generate::class);
+rex_api_function::register('filepond_ai_test', rex_api_filepond_ai_test::class);
+rex_api_function::register('filepond_alt_checker', rex_api_filepond_alt_checker::class);
 rex_api_function::register('filepond_ycom_auth', rex_api_filepond_ycom_auth::class);
 
 
@@ -249,7 +261,7 @@ if ($enableAltChecker === '|1|' || $enableAltChecker === '1') {
         }
         
         // Nur einbinden wenn med_alt Feld überhaupt vorhanden ist
-        if (!filepond_alt_text_checker::checkAltFieldExists()) {
+        if (!AltTextChecker::checkAltFieldExists()) {
             return;
         }
         

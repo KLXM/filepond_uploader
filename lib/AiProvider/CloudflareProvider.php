@@ -1,6 +1,10 @@
 <?php
 
-class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
+namespace KLXM\FilePond\AiProvider;
+
+use Exception;
+
+class CloudflareProvider extends AbstractAiProvider
 {
     private string $apiKey;
     private string $accountId;

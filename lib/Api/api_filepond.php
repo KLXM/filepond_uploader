@@ -1,6 +1,35 @@
 <?php
 
-use FriendsOfRedaxo\FilePond\YcomAuthSettings;
+namespace KLXM\FilePond\Api;
+
+use Exception;
+use finfo;
+use KLXM\FilePond\YcomAuthSettings;
+use rex;
+use rex_api_exception;
+use rex_api_function;
+use rex_api_result;
+use rex_backend_login;
+use rex_clang;
+use rex_config;
+use rex_dir;
+use rex_file;
+use rex_logger;
+use rex_mediapool;
+use rex_media;
+use rex_media_cache;
+use rex_media_service;
+use rex_path;
+use rex_plugin;
+use rex_post;
+use rex_request;
+use rex_response;
+use rex_session;
+use rex_sql;
+use rex_sql_exception;
+use rex_string;
+use rex_ycom_auth;
+use rex_yform_manager_table;
 
 class rex_api_filepond_uploader extends rex_api_function
 {

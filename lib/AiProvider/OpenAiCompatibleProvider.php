@@ -1,6 +1,10 @@
 <?php
 
-class filepond_ai_provider_openai_compatible extends filepond_ai_provider_abstract
+namespace KLXM\FilePond\AiProvider;
+
+use Exception;
+
+class OpenAiCompatibleProvider extends AbstractAiProvider
 {
     private string $apiKey;
     private string $baseUrl;

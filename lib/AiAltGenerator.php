@@ -1,5 +1,21 @@
 <?php
 
+namespace KLXM\FilePond;
+
+use Exception;
+use finfo;
+use Imagick;
+use KLXM\FilePond\AiProvider\AiProviderInterface;
+use KLXM\FilePond\AiProvider\CloudflareProvider;
+use KLXM\FilePond\AiProvider\GeminiProvider;
+use KLXM\FilePond\AiProvider\OpenAiCompatibleProvider;
+use rex_config;
+use rex_dir;
+use rex_file;
+use rex_media;
+use rex_path;
+use Throwable;
+
 /**
  * AI Alt-Text Generator für REDAXO.
  *
@@ -8,7 +24,7 @@
  * @package filepond_uploader
  */
 
-class filepond_ai_alt_generator
+class AiAltGenerator
 {
     // Verfügbare Provider
     public const PROVIDERS = [
@@ -44,7 +60,7 @@ class filepond_ai_alt_generator
         'seo' => 'SEO-fokussiert',
     ];
 
-    private filepond_ai_provider_interface $provider;
+    private AiProviderInterface $provider;
 
     /**
      * Constructor.
@@ -56,7 +72,7 @@ class filepond_ai_alt_generator
         // Provider Factory Logic
         switch ($providerKey) {
             case 'cloudflare':
-                $this->provider = new filepond_ai_provider_cloudflare(
+                $this->provider = new CloudflareProvider(
                     rex_config::get('filepond_uploader', 'cloudflare_api_token', ''),
                     rex_config::get('filepond_uploader', 'cloudflare_account_id', ''),
                     rex_config::get('filepond_uploader', 'cloudflare_model', '@cf/llava-hf/llava-1.5-7b-hf'),
@@ -64,7 +80,7 @@ class filepond_ai_alt_generator
                 break;
 
             case 'openwebui':
-                $this->provider = new filepond_ai_provider_openai_compatible(
+                $this->provider = new OpenAiCompatibleProvider(
                     rex_config::get('filepond_uploader', 'openwebui_api_key', ''),
                     rex_config::get('filepond_uploader', 'openwebui_base_url', ''),
                     rex_config::get('filepond_uploader', 'openwebui_model', 'llava'),
@@ -73,7 +89,7 @@ class filepond_ai_alt_generator
 
             case 'gemini':
             default:
-                $this->provider = new filepond_ai_provider_gemini(
+                $this->provider = new GeminiProvider(
                     rex_config::get('filepond_uploader', 'gemini_api_key', ''),
                     rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash'),
                 );

@@ -1,6 +1,11 @@
 <?php
 
-abstract class filepond_ai_provider_abstract implements filepond_ai_provider_interface
+namespace KLXM\FilePond\AiProvider;
+
+use CurlHandle;
+use Exception;
+
+abstract class AbstractAiProvider implements AiProviderInterface
 {
     /**
      * Helper für cURL-Error-Handling.

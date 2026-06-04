@@ -1,6 +1,12 @@
 <?php
 
-class filepond_helper
+namespace KLXM\FilePond\Utility;
+
+use rex;
+use rex_addon;
+use rex_view;
+
+class FilePondHelper
 {
     // Tracking variables for scripts and styles
     private static bool $scriptsIncluded = false;

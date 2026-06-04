@@ -1,4 +1,8 @@
 <?php
+
+use KLXM\FilePond\AiAltGenerator;
+use KLXM\FilePond\Api\rex_api_filepond_uploader;
+
 $addon = rex_addon::get('filepond_uploader');
 
 // allowed_types manuell speichern (wird per addRawField/Accordion statt addTextAreaField gerendert)
@@ -572,7 +576,7 @@ $field = $form->addSelectField('ai_provider', null, [
 ]);
 $field->setLabel($addon->i18n('filepond_settings_ai_provider'));
 $select = $field->getSelect();
-foreach (filepond_ai_alt_generator::PROVIDERS as $providerId => $providerName) {
+foreach (AiAltGenerator::PROVIDERS as $providerId => $providerName) {
     $select->addOption($providerName, $providerId);
 }
 $field->setNotice($addon->i18n('filepond_settings_ai_provider_notice'));
@@ -741,7 +745,7 @@ $field = $form->addSelectField('gemini_model', null, [
 $field->setAttribute('data-ai-provider-field', 'gemini');
 $field->setLabel($addon->i18n('filepond_settings_gemini_model'));
 $select = $field->getSelect();
-foreach (filepond_ai_alt_generator::GEMINI_MODELS as $modelId => $modelName) {
+foreach (AiAltGenerator::GEMINI_MODELS as $modelId => $modelName) {
     $select->addOption($modelName, $modelId);
 }
 $field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));

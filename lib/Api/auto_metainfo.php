@@ -1,6 +1,19 @@
 <?php
 
+namespace KLXM\FilePond\Api;
+
 use FriendsOfRedaxo\MetaInfoLangFields\MetainfoLangHelper;
+use Exception;
+use rex_api_function;
+use rex_api_result;
+use rex_addon;
+use rex_clang;
+use rex_config;
+use rex_i18n;
+use rex_logger;
+use rex_response;
+use rex_sql;
+use rex;
 
 /**
  * Automatische MetaInfo-Feld-Erkennung für FilePond

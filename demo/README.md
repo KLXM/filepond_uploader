@@ -4,7 +4,7 @@ Datei: `frontend_demo.php`
 
 Ziel:
 - Voll funktionsfähige Referenz für den Frontend-Einsatz von `filepond_uploader`
-- Korrekte Asset-Einbindung über `filepond_helper::getStyles()` und `filepond_helper::getScripts()`
+- Korrekte Asset-Einbindung über `FilePondHelper::getStyles()` und `FilePondHelper::getScripts()`
 - Kompatible `data-filepond-*` Attribute wie im YForm-Template
 
 Verwendung:

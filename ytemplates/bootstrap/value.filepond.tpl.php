@@ -104,9 +104,9 @@ $dataAiTargetField = '' !== $ai_target_field
     ? $ai_target_field
     : (is_string($cfgAiTargetFieldVal) && '' !== trim($cfgAiTargetFieldVal) ? trim($cfgAiTargetFieldVal) : 'med_alt');
 
-if (class_exists('filepond_helper')) {
-    echo filepond_helper::getStyles();
-    echo filepond_helper::getScripts();
+if (class_exists('\KLXM\FilePond\Utility\FilePondHelper')) {
+    echo \KLXM\FilePond\Utility\FilePondHelper::getStyles();
+    echo \KLXM\FilePond\Utility\FilePondHelper::getScripts();
 }
 ?>
 <div class="<?= $class_group ?>" id="<?= $this->getHTMLId() ?>">
@@ -131,6 +131,7 @@ if (class_exists('filepond_helper')) {
        data-filepond-max-pixel="<?= $dataMaxPixel ?>" 
        data-filepond-image-quality="<?= $dataQuality ?>" 
        data-filepond-client-resize="<?= $dataClientResize ?>"
+             data-filepond-endpoint="<?= rex_escape(rex_url::frontend('index.php')) ?>"
          data-filepond-ai-enabled="<?= $dataAiEnabled ?>"
          data-filepond-ai-target-field="<?= rex_escape($dataAiTargetField) ?>"
     />

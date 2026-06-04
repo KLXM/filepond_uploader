@@ -1,6 +1,6 @@
 <?php
 
-namespace FriendsOfRedaxo\FilePond;
+namespace KLXM\FilePond;
 
 use rex;
 use rex_config;

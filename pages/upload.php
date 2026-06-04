@@ -1,4 +1,7 @@
 <?php
+
+use KLXM\FilePond\YcomAuthSettings;
+
 // Ausgewählte Kategorie hat Vorrang vor der Einstellung aus der Config
 $selectedCategory = rex_request('category_id', 'int', 0);
 
@@ -82,11 +85,11 @@ if ($skipMeta) {
 
 // YCom Media Auth Defaults Panel (optional, gegated)
 $ycomAuthHtml = '';
-if (\FriendsOfRedaxo\FilePond\YcomAuthSettings::isEnabled()
-    && \FriendsOfRedaxo\FilePond\YcomAuthSettings::userMayManage(rex::getUser())) {
+if (YcomAuthSettings::isEnabled()
+    && YcomAuthSettings::userMayManage(rex::getUser())) {
     $fpAddon = rex_addon::get('filepond_uploader');
-    $ycomDefaults = \FriendsOfRedaxo\FilePond\YcomAuthSettings::getSessionDefaults();
-    $hasGroupSupport = \FriendsOfRedaxo\FilePond\YcomAuthSettings::isGroupSupportAvailable();
+    $ycomDefaults = YcomAuthSettings::getSessionDefaults();
+    $hasGroupSupport = YcomAuthSettings::isGroupSupportAvailable();
 
     // Auth-Typ Select
     $authSel = new rex_select();
@@ -221,6 +224,7 @@ $content = '
                             data-filepond-max-pixel="'.$dataMaxPixel.'" 
                             data-filepond-image-quality="'.$dataQuality.'" 
                             data-filepond-client-resize="'.$dataClientResize.'"
+                            data-filepond-endpoint="'.rex_escape(rex_url::backendController()).'"
                             data-filepond-ai-enabled="'.$dataAiEnabled.'"
                             data-filepond-ai-target-field="'.rex_escape($dataAiTargetField).'"
                             value=""

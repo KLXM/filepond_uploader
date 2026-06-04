@@ -2,7 +2,14 @@
 
 declare(strict_types=1);
 
-use FriendsOfRedaxo\FilePond\YcomAuthSettings;
+namespace KLXM\FilePond\Api;
+
+use KLXM\FilePond\YcomAuthSettings;
+use rex;
+use rex_api_function;
+use rex_backend_login;
+use rex_response;
+use rex_server;
 
 /**
  * API-Endpoint zum Speichern der YCom-Media-Auth-Defaults pro Backend-Session.

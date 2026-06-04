@@ -6,6 +6,30 @@
 
 Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
 
+## PHP Namespaces
+
+The addon's own PHP classes are organized under `KLXM\FilePond\...`.
+
+- Core addon services and helpers use the `KLXM\FilePond` namespace.
+- API endpoints are explicitly registered via `rex_api_function::register(...)`, so they can remain namespaced.
+- The Info Center widget intentionally keeps its separate namespace `KLXM\InfoCenter\Widgets`.
+
+Common imports in custom code:
+
+```php
+use KLXM\FilePond\AiAltGenerator;
+use KLXM\FilePond\AltTextChecker;
+use KLXM\FilePond\Utility\FilePondHelper;
+```
+
+Important exception:
+
+```php
+class rex_yform_value_filepond extends rex_yform_value_abstract
+```
+
+YForm values and actions keep the REDAXO/YForm convention classes like `rex_yform_value_*` and `rex_yform_action_*`. Only addon-owned helper and service classes use the `KLXM\FilePond\...` namespace.
+
 ## Key Features
 
 *   **Chunk upload as a core feature:**
@@ -290,6 +314,8 @@ Complete frontend form example that also works for guests (without login).
 
 ```php
 <?php
+use KLXM\FilePond\Utility\FilePondHelper;
+
 // 1. Start session
 rex_login::startSession();
 
@@ -301,8 +327,8 @@ if ('' !== trim($apiToken)) {
 
 // 3. Include FilePond assets
 if (rex::isFrontend()) {
-    echo filepond_helper::getStyles();
-    echo filepond_helper::getScripts();
+    echo FilePondHelper::getStyles();
+    echo FilePondHelper::getScripts();
 }
 
 // 4. Configure YForm instance
@@ -441,8 +467,10 @@ The addon includes a helper class for easy inclusion of CSS and JavaScript files
 
 ```php
 <?php
-echo filepond_helper::getScripts();
-echo filepond_helper::getStyles();
+use KLXM\FilePond\Utility\FilePondHelper;
+
+echo FilePondHelper::getScripts();
+echo FilePondHelper::getStyles();
 ?>
 ```
 
@@ -617,8 +645,8 @@ rex_set_session('filepond_no_meta', true);
 rex_set_session('filepond_title_required', true);
 
 if (rex::isFrontend()) {
-    echo filepond_helper::getStyles();
-    echo filepond_helper::getScripts();
+    echo FilePondHelper::getStyles();
+    echo FilePondHelper::getScripts();
 }
 ?>
 
@@ -757,7 +785,7 @@ Disable glow animation:
 
 ```php
 <?php
-echo filepond_helper::getStyles();
+echo FilePondHelper::getStyles();
 rex_view::addCssFile($this->getAssetsUrl('css/my-filepond-overrides.css'));
 ?>
 ```

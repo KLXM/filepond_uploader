@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use KLXM\FilePond\Utility\FilePondHelper;
+
 $addon = rex_addon::get('filepond_uploader');
 
 if (!$addon->isAvailable()) {
@@ -46,8 +48,8 @@ if (rex_plugin::get('ycom', 'auth')->isAvailable()) {
 
 $demoHasUploadAuth = $isBackendUser || $isYComUser || '' !== $apiToken;
 
-$styles = filepond_helper::getStyles();
-$scripts = filepond_helper::getScripts();
+$styles = FilePondHelper::getStyles();
+$scripts = FilePondHelper::getScripts();
 
 
 ?>
@@ -134,6 +136,7 @@ $scripts = filepond_helper::getScripts();
             data-filepond-max-pixel="2100"
             data-filepond-image-quality="90"
             data-filepond-client-resize="false"
+            data-filepond-endpoint="<?= rex_escape(rex_url::frontend('index.php')) ?>"
             data-filepond-ai-enabled="<?= $aiEnabled ? 'true' : 'false' ?>"
             data-filepond-ai-target-field="<?= rex_escape($aiTargetField) ?>"
         >
@@ -144,7 +147,7 @@ $scripts = filepond_helper::getScripts();
     <h3>Einbau in dein Projekt</h3>
     <ol>
         <li>Datei in dein Projekt kopieren, z. B. als Template- oder Modul-Output.</li>
-        <li>Wichtig: <code>echo filepond_helper::getStyles();</code> und <code>echo filepond_helper::getScripts();</code> müssen vorhanden sein.</li>
+        <li>Wichtig: <code>echo FilePondHelper::getStyles();</code> und <code>echo FilePondHelper::getScripts();</code> müssen vorhanden sein.</li>
         <li>Hidden-Input mit <code>data-widget="filepond"</code> verwenden.</li>
         <li>API-Aufrufe laufen über <code>/redaxo/index.php?rex-api-call=...</code> und benötigen ein laufendes REDAXO.</li>
     </ol>

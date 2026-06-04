@@ -1,5 +1,20 @@
 <?php
 
+namespace KLXM\FilePond\Api;
+
+use Exception;
+use KLXM\FilePond\AiAltGenerator;
+use rex_api_function;
+use rex_api_result;
+use rex_backend_login;
+use rex_config;
+use rex_path;
+use rex_plugin;
+use rex_request;
+use rex_request_interface;
+use rex_response;
+use rex_ycom_auth;
+
 /**
  * API Endpoint für AI Alt-Text Generierung.
  *
@@ -131,7 +146,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
         }
 
         // Prüfen ob AI aktiviert ist
-        if (!filepond_ai_alt_generator::isEnabled()) {
+        if (!AiAltGenerator::isEnabled()) {
             $this->sendJson(['success' => false, 'error' => 'AI generation is disabled'], rex_response::HTTP_FORBIDDEN);
         }
 
@@ -158,7 +173,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
             }
         }
 
-        $generator = new filepond_ai_alt_generator();
+        $generator = new AiAltGenerator();
         $result = ['success' => false, 'error' => 'Unknown error'];
 
         try {

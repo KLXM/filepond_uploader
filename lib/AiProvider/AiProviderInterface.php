@@ -1,6 +1,10 @@
 <?php
 
-interface filepond_ai_provider_interface
+namespace KLXM\FilePond\AiProvider;
+
+use Exception;
+
+interface AiProviderInterface
 {
     /**
      * Gibt den Key des Providers zurück (z.B. 'gemini').

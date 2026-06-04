@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.0.0 (2026-06-04)
+
+### ⚠️ Breaking Changes
+- **Addon-Klassen konsistent auf Namespaces und PascalCase umgestellt**: Eigene PHP-Klassen liegen jetzt unter `KLXM\\FilePond\\...` und verwenden durchgängig gleichartige Klassen- und Dateinamen.
+- **Dokumentierte Usage an Namespaces angepasst**: README und README.de zeigen die Verwendung der Helper- und Service-Klassen jetzt mit expliziten `use`-Imports.
+
+### ✨ Verbesserungen
+- **Addon-Namespaces konsolidiert**: Die eigentlichen Addon-Klassen und API-Endpunkte sind jetzt sauber unter `KLXM\\FilePond\\...` organisiert; die API-Aufrufe werden dafür explizit registriert.
+- **Code-Redundanz reduziert**: Der AI-Verbindungstest verlässt sich jetzt auf den normalen Klassen-Load statt auf manuelle Datei-/Klassenprüfungen.
+- **Build- und Paketmetadaten synchronisiert**: `package.yml`, `package.json` und `package-lock.json` laufen jetzt wieder auf derselben Release-Version.
+
+### 🐛 Bugfixes
+- **Upload-API nach Namespace-Umbau stabilisiert**: Fehlende REDAXO-Imports im namespaced Upload-Endpoint wurden ergänzt, sodass Uploads nicht mehr mit einem 500er abbrechen.
+- **Explizite Upload-Endpunkte im Widget**: Backend-, Frontend- und Demo-Markup übergeben jetzt einen festen Endpoint an FilePond statt sich auf heuristische URL-Ableitung zu verlassen.
+- **Robustere Fehlerbehandlung im Widget**: Serverfehler mit HTML- oder Nicht-JSON-Antworten führen nicht mehr zu irreführenden JSON-Parse-Fehlern im Upload-Dialog.
+
 ## 2.6.1 (2026-06-04)
 
 ### 🐛 Bugfixes
