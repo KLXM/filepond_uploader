@@ -33,6 +33,7 @@
                 aiSuggestBtn: 'AI-Vorschlag',
                 aiSuggestBusy: 'Erzeuge Vorschlag...',
                 aiSuggestError: 'AI-Vorschlag fehlgeschlagen',
+                aiSuggestInvalidResponse: 'ungültige Server-Antwort',
                 aiSuggestNoImage: 'AI-Vorschlag ist nur für Bilder verfügbar.',
                 aiSuggestDecorative: 'Feld ist als dekorativ deaktiviert.',
                 aiSuggestSkippedDirect: 'Direkte Generierung ausgelassen für: {langs} (Fallback: {fallback})'
@@ -58,6 +59,7 @@
                 aiSuggestBtn: 'AI Suggest',
                 aiSuggestBusy: 'Generating suggestion...',
                 aiSuggestError: 'AI suggestion failed',
+                aiSuggestInvalidResponse: 'invalid server response',
                 aiSuggestNoImage: 'AI suggestion is only available for images.',
                 aiSuggestDecorative: 'Field is disabled as decorative.',
                 aiSuggestSkippedDirect: 'Direct generation skipped for: {langs} (fallback: {fallback})'
@@ -1036,7 +1038,7 @@
                             try {
                                 data = await response.json();
                             } catch (jsonError) {
-                                throw new Error(`${t.aiSuggestError} (ungültige Server-Antwort)`);
+                                throw new Error(`${t.aiSuggestError} (${t.aiSuggestInvalidResponse})`);
                             }
 
                             if (!response.ok || !data.success || !data.alt_text) {
@@ -1070,7 +1072,7 @@
                             try {
                                 data = await response.json();
                             } catch (jsonError) {
-                                throw new Error(`${t.aiSuggestError} (ungueltige Server-Antwort)`);
+                                throw new Error(`${t.aiSuggestError} (${t.aiSuggestInvalidResponse})`);
                             }
 
                             if (!response.ok || !data.success || !data.alt_texts || typeof data.alt_texts !== 'object') {

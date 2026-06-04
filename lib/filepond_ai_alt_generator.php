@@ -1038,7 +1038,13 @@ class filepond_ai_alt_generator
             'context' => $context,
         ];
 
-        return sha1((string) json_encode($payload, JSON_UNESCAPED_UNICODE));
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+        if (false === $encoded) {
+            // Fallback verhindert kollidierende Keys bei unerwarteten Encoding-Problemen.
+            $encoded = serialize($payload);
+        }
+
+        return sha1($encoded);
     }
 
     private function getCacheFilePath(string $cacheKey): string
@@ -1160,7 +1166,12 @@ class filepond_ai_alt_generator
                 continue;
             }
 
-            $short = substr($part, 0, 2);
+            $normalizedPart = strtolower(trim($part));
+            if ('' === $normalizedPart) {
+                continue;
+            }
+
+            $short = substr($normalizedPart, 0, 2);
             if (!preg_match('/^[a-z]{2}$/', $short)) {
                 continue;
             }
