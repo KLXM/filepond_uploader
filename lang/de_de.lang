@@ -189,6 +189,16 @@ filepond_settings_cloudflare_token = Cloudflare API Token
 filepond_settings_cloudflare_token_notice = API-Token von %s erstellen. Berechtigung: Workers AI Read.
 filepond_settings_cloudflare_account_id = Cloudflare Account ID
 filepond_settings_cloudflare_account_id_notice = Account ID findest du unter %s in der rechten Sidebar.
+filepond_settings_ai_prompt_profile = Prompt-Profil
+filepond_settings_ai_prompt_profile_notice = Vordefinierter Stil für Alt-Texte. Standard ist barrierefrei.
+filepond_settings_ai_prompt_profile_accessibility = Barrierefrei (Standard)
+filepond_settings_ai_prompt_profile_neutral = Kurz / neutral
+filepond_settings_ai_prompt_profile_seo = SEO-fokussiert
+filepond_settings_ai_result_cache_enabled = AI-Result-Cache
+filepond_settings_ai_result_cache_enabled_label = Ergebnis-Cache aktivieren
+filepond_settings_ai_result_cache_enabled_notice = Speichert generierte Alt-Texte für identische Bilder und Einstellungen, um wiederholte AI-Requests zu vermeiden.
+filepond_settings_ai_result_cache_ttl_hours = Cache-Gültigkeit (Stunden)
+filepond_settings_ai_result_cache_ttl_hours_notice = Wie lange ein AI-Ergebnis im Cache bleibt (Standard: 168 Stunden = 7 Tage).
 filepond_settings_ai_prompt = Custom Prompt (optional)
 filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
 filepond_settings_test_ai_connection = Verbindung testen

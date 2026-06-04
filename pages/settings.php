@@ -678,6 +678,33 @@ $form->addRawField('</div>');
 // Rechte Spalte - Custom Prompt
 $form->addRawField('<div class="col-sm-6">');
 
+// Prompt-Profil Auswahl
+$field = $form->addSelectField('ai_prompt_profile', null, [
+    'class' => 'form-control selectpicker',
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_prompt_profile'));
+$select = $field->getSelect();
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_accessibility'), 'accessibility');
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_neutral'), 'neutral');
+$select->addOption($addon->i18n('filepond_settings_ai_prompt_profile_seo'), 'seo');
+$field->setNotice($addon->i18n('filepond_settings_ai_prompt_profile_notice'));
+
+// AI Result-Cache aktivieren
+$field = $form->addCheckboxField('ai_result_cache_enabled');
+$field->setLabel($addon->i18n('filepond_settings_ai_result_cache_enabled'));
+$field->addOption($addon->i18n('filepond_settings_ai_result_cache_enabled_label'), 1);
+$field->setNotice($addon->i18n('filepond_settings_ai_result_cache_enabled_notice'));
+
+// AI Result-Cache TTL (Stunden)
+$field = $form->addInputField('number', 'ai_result_cache_ttl_hours', null, [
+    'class' => 'form-control',
+    'min' => '1',
+    'max' => '8760',
+    'placeholder' => '168',
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_result_cache_ttl_hours'));
+$field->setNotice($addon->i18n('filepond_settings_ai_result_cache_ttl_hours_notice'));
+
 // Custom AI Prompt
 $field = $form->addTextAreaField('ai_alt_prompt', null, [
     'class' => 'form-control',

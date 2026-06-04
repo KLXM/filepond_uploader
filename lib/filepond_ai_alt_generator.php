@@ -37,6 +37,13 @@ class filepond_ai_alt_generator
 
     // Legacy: für Abwärtskompatibilität
     public const MODELS = self::GEMINI_MODELS;
+
+    public const PROMPT_PROFILES = [
+        'accessibility' => 'Barrierefrei (Standard)',
+        'neutral' => 'Kurz / neutral',
+        'seo' => 'SEO-fokussiert',
+    ];
+
     private filepond_ai_provider_interface $provider;
 
     /**
@@ -316,6 +323,29 @@ class filepond_ai_alt_generator
      */
     private function executeGeneration(string $filePath, string $language): array
     {
+        // Prompt zusammenstellen (wird auch für den Cache-Key benötigt)
+        $prompt = $this->buildPrompt($language);
+
+        $cacheKey = $this->buildCacheKey(
+            'single',
+            $filePath,
+            [
+                'language' => strtolower(substr($language, 0, 2)),
+                'prompt' => $prompt,
+                'max_dimension' => (int) rex_config::get('filepond_uploader', 'ai_max_image_dimension', 1024),
+            ],
+        );
+
+        $cachedPayload = $this->readCache($cacheKey);
+        if (null !== $cachedPayload) {
+            return [
+                'success' => true,
+                'alt_text' => (string) ($cachedPayload['alt_text'] ?? ''),
+                'tokens' => null,
+                'error' => null,
+            ];
+        }
+
         // Bild vorbereiten (Resize & Encoding)
         try {
             $prepared = $this->prepareImage($filePath, true);
@@ -329,9 +359,6 @@ class filepond_ai_alt_generator
             ];
         }
 
-        // Prompt zusammenstellen
-        $prompt = $this->buildPrompt($language);
-
         // Max Tokens holen
         $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
         if ($maxTokens <= 0) {
@@ -342,9 +369,14 @@ class filepond_ai_alt_generator
         try {
             $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
 
+            $resolvedText = (string) ($result['text'] ?? '');
+            if ('' !== trim($resolvedText)) {
+                $this->writeCache($cacheKey, ['alt_text' => $resolvedText]);
+            }
+
             return [
                 'success' => true,
-                'alt_text' => $result['text'],
+                'alt_text' => $resolvedText,
                 'tokens' => $result['tokens'] ?? null,
                 'error' => null,
             ];
@@ -381,6 +413,37 @@ class filepond_ai_alt_generator
             $promptLanguages[] = $fallbackLanguage;
         }
 
+        $prompt = $this->buildMultiLanguagePrompt($promptLanguages);
+
+        $cacheKey = $this->buildCacheKey(
+            'multi',
+            $filePath,
+            [
+                'requested_languages' => $requestedLanguages,
+                'prompt_languages' => $promptLanguages,
+                'blocked_languages' => $blockedLanguages,
+                'fallback_language' => $fallbackLanguage,
+                'prompt' => $prompt,
+                'max_dimension' => (int) rex_config::get('filepond_uploader', 'ai_max_image_dimension', 1024),
+            ],
+        );
+
+        $cachedPayload = $this->readCache($cacheKey);
+        if (null !== $cachedPayload) {
+            $cachedAltTexts = $cachedPayload['alt_texts'] ?? [];
+            if (is_array($cachedAltTexts) && [] !== $cachedAltTexts) {
+                /** @var array<string, string> $cachedAltTexts */
+                return [
+                    'success' => true,
+                    'alt_texts' => $cachedAltTexts,
+                    'fallback_language' => $fallbackLanguage,
+                    'blocked_languages_used' => $blockedLanguagesUsed,
+                    'tokens' => null,
+                    'error' => null,
+                ];
+            }
+        }
+
         try {
             $prepared = $this->prepareImage($filePath, true);
             $base64Image = $prepared['data'];
@@ -392,8 +455,6 @@ class filepond_ai_alt_generator
                 'error' => $e->getMessage(),
             ];
         }
-
-        $prompt = $this->buildMultiLanguagePrompt($promptLanguages);
 
         $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
         if ($maxTokens <= 0) {
@@ -431,6 +492,8 @@ class filepond_ai_alt_generator
             if ([] === $resolvedAltTexts) {
                 throw new Exception('Mehrsprachen-Antwort enthält keine verwertbaren Alt-Texte');
             }
+
+            $this->writeCache($cacheKey, ['alt_texts' => $resolvedAltTexts]);
 
             return [
                 'success' => true,
@@ -766,8 +829,39 @@ class filepond_ai_alt_generator
             );
         }
 
-        // Standard-Prompt
+        // Profilbasierter Standard-Prompt
         $langName = $this->getLanguageName($language);
+        $profile = $this->getPromptProfile();
+
+        if ('seo' === $profile) {
+            return <<<PROMPT
+                Analysiere dieses Bild und erstelle einen SEO-tauglichen Alt-Text auf $langName.
+
+                Regeln:
+                - Ein vollständiger Satz mit klarer Kernaussage
+                - Kurz und präzise (ca. 12-18 Wörter)
+                - Natürlich formulieren, ohne Keyword-Stopfen
+                - Relevante sichtbare Details nennen (Objekte, Handlung, Kontext)
+                - Keine Einleitung wie "Bild von", "Foto zeigt" oder "Abbildung"
+                - Keine nicht sichtbaren Annahmen
+
+                Antworte NUR mit dem Alt-Text, ohne Anführungszeichen oder Erklärungen.
+                PROMPT;
+        }
+
+        if ('neutral' === $profile) {
+            return <<<PROMPT
+                Analysiere dieses Bild und erstelle einen neutralen Alt-Text auf $langName.
+
+                Regeln:
+                - Ein vollständiger, klarer Satz
+                - Kurz und sachlich (ca. 8-14 Wörter)
+                - Keine Einleitung wie "Bild von", "Foto zeigt" oder "Abbildung"
+                - Nur sichtbare Fakten, keine Vermutungen
+
+                Antworte NUR mit dem Alt-Text, ohne Anführungszeichen oder Erklärungen.
+                PROMPT;
+        }
 
         return <<<PROMPT
             Analysiere dieses Bild und erstelle einen beschreibenden Alt-Text auf $langName.
@@ -802,6 +896,39 @@ class filepond_ai_alt_generator
         }
 
         $jsonTemplate = "{\n" . implode(",\n", $jsonTemplateParts) . "\n}";
+        $profile = $this->getPromptProfile();
+
+        if ('seo' === $profile) {
+            return <<<PROMPT
+            Analysiere dieses Bild einmal und erstelle SEO-taugliche Alt-Texte für diese Sprachen: $languageList.
+
+            Regeln:
+            - Pro Sprache genau ein vollständiger Satz
+            - Kurz und präzise (ca. 12-18 Wörter)
+            - Natürliche Sprache, keine Keyword-Listen
+            - Sichtbare Inhalte präzise benennen
+            - Keine Einleitungen wie "Bild von", "Foto zeigt" oder "Abbildung"
+            - Keine Halluzinationen über nicht sichtbare Details
+
+            Antworte NUR mit gültigem JSON in exakt diesem Format und ohne weiteren Text:
+            $jsonTemplate
+            PROMPT;
+        }
+
+        if ('neutral' === $profile) {
+            return <<<PROMPT
+            Analysiere dieses Bild einmal und erstelle neutrale Alt-Texte für diese Sprachen: $languageList.
+
+            Regeln:
+            - Pro Sprache genau ein vollständiger Satz
+            - Kurz und sachlich (ca. 8-14 Wörter)
+            - Keine Einleitungen wie "Bild von", "Foto zeigt" oder "Abbildung"
+            - Nur sichtbare Fakten, keine Spekulation
+
+            Antworte NUR mit gültigem JSON in exakt diesem Format und ohne weiteren Text:
+            $jsonTemplate
+            PROMPT;
+        }
 
         return <<<PROMPT
             Analysiere dieses Bild einmal und erstelle Alt-Texte für diese Sprachen: $languageList.
@@ -848,6 +975,136 @@ class filepond_ai_alt_generator
         }
 
         return $normalized;
+    }
+
+    private function getPromptProfile(): string
+    {
+        $configured = rex_config::get('filepond_uploader', 'ai_prompt_profile', 'accessibility');
+        if (!is_string($configured)) {
+            return 'accessibility';
+        }
+
+        $normalized = strtolower(trim($configured));
+        if (!in_array($normalized, ['accessibility', 'neutral', 'seo'], true)) {
+            return 'accessibility';
+        }
+
+        return $normalized;
+    }
+
+    private function isCacheEnabled(): bool
+    {
+        $enabledRaw = rex_config::get('filepond_uploader', 'ai_result_cache_enabled', true);
+        return in_array($enabledRaw, [1, '1', true, 'true', '|1|'], true);
+    }
+
+    private function getCacheTtlSeconds(): int
+    {
+        $ttlHours = (int) rex_config::get('filepond_uploader', 'ai_result_cache_ttl_hours', 168);
+        if ($ttlHours < 1) {
+            $ttlHours = 1;
+        }
+        if ($ttlHours > 24 * 365) {
+            $ttlHours = 24 * 365;
+        }
+
+        return $ttlHours * 3600;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function buildCacheKey(string $mode, string $filePath, array $context): string
+    {
+        $fileMtime = is_file($filePath) ? (int) filemtime($filePath) : 0;
+        $fileSize = is_file($filePath) ? (int) filesize($filePath) : 0;
+
+        $providerIdentity = [
+            'provider' => self::getProvider(),
+            'gemini_model' => (string) rex_config::get('filepond_uploader', 'gemini_model', ''),
+            'cloudflare_model' => (string) rex_config::get('filepond_uploader', 'cloudflare_model', ''),
+            'openwebui_model' => (string) rex_config::get('filepond_uploader', 'openwebui_model', ''),
+            'openwebui_base_url' => (string) rex_config::get('filepond_uploader', 'openwebui_base_url', ''),
+            'prompt_profile' => $this->getPromptProfile(),
+            'custom_prompt' => (string) rex_config::get('filepond_uploader', 'ai_alt_prompt', ''),
+        ];
+
+        $payload = [
+            'mode' => $mode,
+            'file_path' => $filePath,
+            'file_mtime' => $fileMtime,
+            'file_size' => $fileSize,
+            'provider' => $providerIdentity,
+            'context' => $context,
+        ];
+
+        return sha1((string) json_encode($payload, JSON_UNESCAPED_UNICODE));
+    }
+
+    private function getCacheFilePath(string $cacheKey): string
+    {
+        return rex_path::addonData('filepond_uploader', 'ai_cache/' . $cacheKey . '.json');
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function readCache(string $cacheKey): ?array
+    {
+        if (!$this->isCacheEnabled()) {
+            return null;
+        }
+
+        $cachePath = $this->getCacheFilePath($cacheKey);
+        if (!is_file($cachePath)) {
+            return null;
+        }
+
+        $raw = rex_file::get($cachePath);
+        if (!is_string($raw) || '' === $raw) {
+            return null;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $createdAt = $decoded['created_at'] ?? null;
+        if (!is_int($createdAt)) {
+            return null;
+        }
+
+        if ((time() - $createdAt) > $this->getCacheTtlSeconds()) {
+            @unlink($cachePath);
+            return null;
+        }
+
+        $payload = $decoded['payload'] ?? null;
+        return is_array($payload) ? $payload : null;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function writeCache(string $cacheKey, array $payload): void
+    {
+        if (!$this->isCacheEnabled()) {
+            return;
+        }
+
+        $cachePath = $this->getCacheFilePath($cacheKey);
+        $cacheDir = dirname($cachePath);
+        if (!is_dir($cacheDir)) {
+            rex_dir::create($cacheDir);
+        }
+
+        $data = [
+            'created_at' => time(),
+            'payload' => $payload,
+        ];
+
+        rex_file::put($cachePath, (string) json_encode($data, JSON_UNESCAPED_UNICODE));
     }
 
     private function getFallbackLanguageCode(): string
