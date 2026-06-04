@@ -606,6 +606,23 @@ $field = $form->addInputField('number', 'ai_max_image_dimension', null, [
 $field->setLabel($addon->i18n('filepond_settings_ai_max_image_dimension'));
 $field->setNotice($addon->i18n('filepond_settings_ai_max_image_dimension_notice'));
 
+// Fallback-Sprache, wenn Modell eine Zielsprache nicht direkt liefern kann
+$field = $form->addInputField('text', 'ai_fallback_language', null, [
+    'class' => 'form-control',
+    'maxlength' => '5',
+    'placeholder' => 'en'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_fallback_language'));
+$field->setNotice($addon->i18n('filepond_settings_ai_fallback_language_notice'));
+
+// Negativliste: Sprachen, die das aktuelle Modell nicht direkt erzeugen soll
+$field = $form->addInputField('text', 'ai_blocked_languages', null, [
+    'class' => 'form-control',
+    'placeholder' => 'sl, cs, hr'
+]);
+$field->setLabel($addon->i18n('filepond_settings_ai_blocked_languages'));
+$field->setNotice($addon->i18n('filepond_settings_ai_blocked_languages_notice'));
+
 $form->addRawField('</div>');
 
 // Rechte Spalte - Custom Prompt

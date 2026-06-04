@@ -7,6 +7,7 @@
 ### 🐛 Bugfixes
 - **AI-Textgenerierung füllt MetaInfo-Lang-Felder (z. B. `lang_textarea_all`) im Upload-Metadialog und auf der Medienpool-Detailseite**: Auf der Detailseite wird der Zauberbutton jetzt am Sprachen-Container des Felds platziert und schreibt die generierten Texte direkt in die einzelnen Sprach-Inputs (statt nur ins versteckte JSON-Feld). Im Upload-Metadialog werden bei mehrsprachigen Zielfeldern jetzt alle (leeren) Sprach-Tabs nacheinander befüllt – analog zum Verhalten im Alt-Text-Checker.
 - **Medienpool-Detail: Mehrsprachen-Request-Parameter korrigiert**: Die Sprachliste wird jetzt korrekt als `languages[]` per POST übergeben, damit der Sammel-Request greift und nicht unnötig in Einzelsprachen-Fallbacks läuft.
+- **Sprachmapping erweitert (u.a. Slowenisch `sl`)**: Unbekannte Sprachcodes fallen im Prompt nicht mehr automatisch auf Deutsch zurück.
 - **OpenWebUI-Konfigurationsprüfung korrigiert**: Die Verbindungstest-Logik erkennt OpenWebUI jetzt auch ohne API-Key als konfiguriert, wenn Base-URL und Modell gesetzt sind (analog zu lokalen OpenWebUI/Ollama-Setups).
 - **Leerer Authorization-Header vermieden**: Beim OpenAI-kompatiblen Provider wird der `Authorization: Bearer ...` Header nur noch gesendet, wenn tatsächlich ein API-Key hinterlegt ist.
 - **AI-Icon in Medien-Details besser sichtbar**: Der Zauberbutton für die Medienpool-Detailseite wurde kontrastreicher gestaltet (inkl. Light/Dark/Auto-Theme-Unterstützung).
@@ -14,6 +15,8 @@
 ### ✨ Verbesserungen
 - **Empfehlung für mehrsprachige ALT-Felder dokumentiert**: Für ALT-Zielfelder mit mehreren Sprachen wird der MetaInfo-Typ `lang_text_all` empfohlen.
 - **Mehrsprachige AI-Generierung beschleunigt**: Bei mehrsprachigen Zielfeldern wird die Bilderkennung jetzt bevorzugt in einem einzigen Request für alle benötigten Sprachen ausgeführt. Fehlende Einzelsprachen werden bei Bedarf per Fallback nachgezogen.
+- **Fallbacksprache konfigurierbar**: Neue Einstellung `ai_fallback_language` (Default `en`) für den Fall, dass ein Modell einzelne Zielsprachen nicht liefert.
+- **Negativliste für Modellsprachen**: Neue Einstellung `ai_blocked_languages` (z.B. `sl, cs, hr`), damit ausgewählte Sprachen nicht direkt vom Modell angefragt werden. Diese Sprachen werden stattdessen mit dem Text der Fallbacksprache befüllt.
 - **Neue AI-Einstellung für Bildgröße**: Die maximale Bildkante vor dem AI-Request ist jetzt konfigurierbar (`ai_max_image_dimension`, 256-2048 px). Standard bleibt 1024 px; kleinere Werte (z.B. 768) beschleunigen die Verarbeitung.
 
 ## 2.5.1 (2026-06-01)

@@ -364,9 +364,20 @@ class filepond_ai_alt_generator
      */
     private function executeGenerationMultiple(string $filePath, array $languages): array
     {
-        $normalizedLanguages = $this->normalizeLanguageCodes($languages);
-        if ([] === $normalizedLanguages) {
-            $normalizedLanguages = ['de'];
+        $requestedLanguages = $this->normalizeLanguageCodes($languages);
+        if ([] === $requestedLanguages) {
+            $requestedLanguages = ['de'];
+        }
+
+        $fallbackLanguage = $this->getFallbackLanguageCode();
+        $blockedLanguages = $this->getBlockedLanguageCodes();
+        $blockedLanguages = array_values(array_diff($blockedLanguages, [$fallbackLanguage]));
+
+        $directLanguages = array_values(array_diff($requestedLanguages, $blockedLanguages));
+
+        $promptLanguages = $directLanguages;
+        if (!in_array($fallbackLanguage, $promptLanguages, true)) {
+            $promptLanguages[] = $fallbackLanguage;
         }
 
         try {
@@ -381,7 +392,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        $prompt = $this->buildMultiLanguagePrompt($normalizedLanguages);
+        $prompt = $this->buildMultiLanguagePrompt($promptLanguages);
 
         $maxTokens = (int) rex_config::get('filepond_uploader', 'ai_max_tokens', 2048);
         if ($maxTokens <= 0) {
@@ -390,11 +401,39 @@ class filepond_ai_alt_generator
 
         try {
             $result = $this->provider->generate($base64Image, $mimeType, $prompt, $maxTokens);
-            $altTexts = $this->parseMultiLanguageResponse((string) ($result['text'] ?? ''), $normalizedLanguages);
+            $allAltTexts = $this->parseMultiLanguageResponse((string) ($result['text'] ?? ''), $promptLanguages);
+
+            $resolvedAltTexts = [];
+            $fallbackText = $allAltTexts[$fallbackLanguage] ?? '';
+
+            foreach ($requestedLanguages as $language) {
+                $isBlocked = in_array($language, $blockedLanguages, true);
+
+                if ($isBlocked) {
+                    if ('' !== trim($fallbackText)) {
+                        $resolvedAltTexts[$language] = trim($fallbackText);
+                    }
+                    continue;
+                }
+
+                $directText = $allAltTexts[$language] ?? '';
+                if ('' !== trim($directText)) {
+                    $resolvedAltTexts[$language] = trim($directText);
+                    continue;
+                }
+
+                if ('' !== trim($fallbackText)) {
+                    $resolvedAltTexts[$language] = trim($fallbackText);
+                }
+            }
+
+            if ([] === $resolvedAltTexts) {
+                throw new Exception('Mehrsprachen-Antwort enthält keine verwertbaren Alt-Texte');
+            }
 
             return [
                 'success' => true,
-                'alt_texts' => $altTexts,
+                'alt_texts' => $resolvedAltTexts,
                 'tokens' => $result['tokens'] ?? null,
                 'error' => null,
             ];
@@ -606,6 +645,60 @@ class filepond_ai_alt_generator
         return $normalized;
     }
 
+    private function getFallbackLanguageCode(): string
+    {
+        $configured = rex_config::get('filepond_uploader', 'ai_fallback_language', 'en');
+        if (!is_string($configured)) {
+            return 'en';
+        }
+
+        $trimmed = trim($configured);
+        if ('' === $trimmed) {
+            return 'en';
+        }
+
+        $short = strtolower(substr($trimmed, 0, 2));
+        if (!preg_match('/^[a-z]{2}$/', $short)) {
+            return 'en';
+        }
+
+        return $short;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getBlockedLanguageCodes(): array
+    {
+        $configured = rex_config::get('filepond_uploader', 'ai_blocked_languages', '');
+        if (!is_string($configured) || '' === trim($configured)) {
+            return [];
+        }
+
+        $parts = preg_split('/[\s,;]+/', strtolower($configured));
+        if (!is_array($parts)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($parts as $part) {
+            if (!is_string($part) || '' === $part) {
+                continue;
+            }
+
+            $short = substr($part, 0, 2);
+            if (!preg_match('/^[a-z]{2}$/', $short)) {
+                continue;
+            }
+
+            if (!in_array($short, $normalized, true)) {
+                $normalized[] = $short;
+            }
+        }
+
+        return $normalized;
+    }
+
     /**
      * @param list<string> $languages
      * @return array<string, string>
@@ -663,6 +756,7 @@ class filepond_ai_alt_generator
             'es' => 'Spanisch',
             'it' => 'Italienisch',
             'nl' => 'Niederländisch',
+            'sl' => 'Slowenisch',
             'pl' => 'Polnisch',
             'pt' => 'Portugiesisch',
             'ru' => 'Russisch',
@@ -673,7 +767,7 @@ class filepond_ai_alt_generator
         // Sprache aus Code extrahieren (z.B. "de_de" -> "de")
         $shortCode = substr($code, 0, 2);
 
-        return $languages[$shortCode] ?? 'Deutsch';
+        return $languages[$shortCode] ?? strtoupper($shortCode);
     }
 
     /**
