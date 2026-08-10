@@ -488,6 +488,11 @@ $field->setLabel($addon->i18n('filepond_settings_replace_mediapool'));
 $field->addOption($addon->i18n('filepond_settings_replace_mediapool'), 1);
 $field->setNotice($addon->i18n('filepond_settings_replace_mediapool_notice'));
 
+$field = $form->addCheckboxField('enable_mediapool_replace');
+$field->setLabel($addon->i18n('filepond_settings_enable_mediapool_replace'));
+$field->addOption($addon->i18n('filepond_settings_enable_mediapool_replace'), 1);
+$field->setNotice($addon->i18n('filepond_settings_enable_mediapool_replace_notice'));
+
 // Multiupload als Medienpool-Unterseite
 $field = $form->addCheckboxField('mediapool_subpage');
 $field->setLabel($addon->i18n('filepond_settings_mediapool_subpage'));

@@ -7,6 +7,8 @@ filepond_metadata_settings = Metadaten und Dialog
 filepond_mediapool_settings = Medienpool-Integration
 filepond_settings_replace_mediapool = Medienpool Upload-Seite ersetzen
 filepond_settings_replace_mediapool_notice = Wenn aktiviert, wird die Standard-Upload-Seite des Medienpools durch FilePond ersetzt
+filepond_settings_enable_mediapool_replace = Datei-Ersetzen im Medienpool mit FilePond
+filepond_settings_enable_mediapool_replace_notice = Fügt auf der Medien-Detailseite ein FilePond-Panel hinzu, um bestehende Dateien chunk-basiert zu ersetzen.
 filepond_settings_mediapool_subpage = Multiupload als Medienpool-Unterseite anzeigen
 filepond_settings_mediapool_subpage_label = Multiupload-Seite im Medienpool einbinden
 filepond_settings_mediapool_subpage_notice = Zeigt eine zusätzliche Unterseite «Multiupload» im Medienpool an (erfordert Berechtigung filepond_uploader[upload])
@@ -66,6 +68,9 @@ filepond_upload_title = Datei-Upload
 filepond_upload_category = Medien-Kategorie
 filepond_upload_no_category = Keine Kategorie
 filepond_upload_files = Dateien
+filepond_mediapool_replace_title = Datei im Mediapool ersetzen
+filepond_mediapool_replace_notice = Wähle genau eine Datei mit passender Dateiendung. Der Dateiname im Mediapool bleibt erhalten.
+filepond_mediapool_replace_current_file = Aktuelle Datei
 
 # Settings page
 filepond_settings_title = Einstellungen

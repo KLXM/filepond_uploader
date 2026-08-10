@@ -1,6 +1,6 @@
 {
     "name": "redaxo-filepond",
-    "version": "2.4.1",
+    "version": "2.7.0",
     "description": "FilePond integration for REDAXO",
     "private": true,
     "scripts": {

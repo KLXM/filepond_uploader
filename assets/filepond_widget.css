@@ -159,6 +159,51 @@ body.rex-theme-dark {
     transition: width 0.3s ease;
 }
 
+#filepond-mediapool-replace {
+    --fp-replace-bg: #f9fbfd;
+    --fp-replace-border: #d6dce5;
+    --fp-replace-text: #25323f;
+    --fp-replace-muted: #607182;
+    --fp-replace-accent: #3a7a67;
+    border: 1px solid var(--fp-replace-border);
+    background: var(--fp-replace-bg);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+#filepond-mediapool-replace .filepond-mediapool-replace-note {
+    color: var(--fp-replace-muted);
+    margin: 0 0 10px;
+}
+
+#filepond-mediapool-replace .filepond-mediapool-replace-current {
+    margin: 0 0 12px;
+    color: var(--fp-replace-text);
+    font-size: 12px;
+}
+
+#filepond-mediapool-replace .filepond-mediapool-replace-current strong {
+    color: var(--fp-replace-accent);
+}
+
+body.rex-theme-dark #filepond-mediapool-replace {
+    --fp-replace-bg: #27323d;
+    --fp-replace-border: #3d4a57;
+    --fp-replace-text: #dbe7f2;
+    --fp-replace-muted: #a7b6c5;
+    --fp-replace-accent: #7ad0b5;
+}
+
+@media (prefers-color-scheme: dark) {
+    body.rex-has-theme:not(.rex-theme-light) #filepond-mediapool-replace {
+        --fp-replace-bg: #27323d;
+        --fp-replace-border: #3d4a57;
+        --fp-replace-text: #dbe7f2;
+        --fp-replace-muted: #a7b6c5;
+        --fp-replace-accent: #7ad0b5;
+    }
+}
+
 /* Modal Styles */
 .modal.fade .modal-dialog {
     transform: none;

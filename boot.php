@@ -197,6 +197,105 @@ if(rex_config::get('filepond_uploader', 'replace_mediapool', false))
     });
 }
 
+if (rex::isBackend() && rex::getUser() && rex_config::get('filepond_uploader', 'enable_mediapool_replace', true)) {
+    $addon = $this;
+
+    rex_extension::register('MEDIA_DETAIL_SIDEBAR', static function (rex_extension_point $ep) use ($addon) {
+        $mediaRow = $ep->getParam('media');
+        if (!$mediaRow instanceof rex_sql) {
+            return $ep->getSubject();
+        }
+
+        $fileId = (int) $ep->getParam('id', 0);
+        if ($fileId <= 0) {
+            return $ep->getSubject();
+        }
+
+        $filename = (string) $mediaRow->getValue('filename');
+        if ('' === $filename) {
+            return $ep->getSubject();
+        }
+
+        $media = rex_media::get($filename);
+        if (null === $media) {
+            return $ep->getSubject();
+        }
+
+        $user = rex::getUser();
+        if (!$user || !$user->getComplexPerm('media')->hasCategoryPerm($media->getCategoryId())) {
+            return $ep->getSubject();
+        }
+
+        $ext = '.' . strtolower((string) rex_file::extension($filename));
+        $allowedTypes = $ext;
+        if ('.jpg' === $ext || '.jpeg' === $ext) {
+            $allowedTypes = '.jpg,.jpeg';
+        }
+
+        $inputId = 'filepond-mediapool-replace-' . $fileId;
+        $redirectUrl = rex_url::backendPage('mediapool/media', [
+            'file_id' => $fileId,
+            'info' => rex_i18n::msg('pool_file_infos_updated'),
+        ], false);
+
+        $body = '<div id="filepond-mediapool-replace">'
+            . '<p class="text-muted filepond-mediapool-replace-note">'
+            . rex_escape($addon->i18n('filepond_mediapool_replace_notice'))
+            . '</p>'
+            . '<p class="filepond-mediapool-replace-current">'
+            . '<strong>' . rex_escape($addon->i18n('filepond_mediapool_replace_current_file')) . ':</strong> '
+            . '<span class="rex-word-break">' . rex_escape($filename) . '</span>'
+            . '</p>'
+            . '<input type="hidden"'
+            . ' id="' . rex_escape($inputId) . '"'
+            . ' data-widget="filepond"'
+            . ' data-filepond-cat="' . (int) $media->getCategoryId() . '"'
+            . ' data-filepond-maxfiles="1"'
+            . ' data-filepond-types="' . rex_escape($allowedTypes) . '"'
+            . ' data-filepond-maxsize="' . (int) rex_config::get('filepond_uploader', 'max_filesize', 200) . '"'
+            . ' data-filepond-lang="' . rex_escape((string) rex::getUser()?->getLanguage()) . '"'
+            . ' data-filepond-skip-meta="true"'
+            . ' data-filepond-delayed-upload="false"'
+            . ' data-filepond-title-required="false"'
+            . ' data-filepond-alt-required="false"'
+            . ' data-filepond-chunk-enabled="' . (rex_config::get('filepond_uploader', 'enable_chunks', true) ? 'true' : 'false') . '"'
+            . ' data-filepond-chunk-size="' . ((int) rex_config::get('filepond_uploader', 'chunk_size', 5) * 1024 * 1024) . '"'
+            . ' data-filepond-replace-file-id="' . $fileId . '"'
+            . ' data-filepond-reload-on-success="true"'
+            . ' data-filepond-redirect-url="' . rex_escape($redirectUrl) . '"'
+            . ' />'
+            . '</div>';
+
+        $fragment = new rex_fragment();
+        $fragment->setVar('title', $addon->i18n('filepond_mediapool_replace_title'));
+        $fragment->setVar('body', $body, false);
+        $section = $fragment->parse('core/page/section.php');
+
+        return (string) $ep->getSubject() . $section;
+    });
+
+    rex_extension::register('OUTPUT_FILTER', static function (rex_extension_point $ep): void {
+        if ('mediapool/media' !== rex_be_controller::getCurrentPage()) {
+            return;
+        }
+
+        $subject = $ep->getSubject();
+        if (!is_string($subject) || false === strpos($subject, 'name="file_new"')) {
+            return;
+        }
+
+        $exchangeLabel = preg_quote(rex_i18n::msg('pool_file_exchange'), '#');
+        $subject = (string) preg_replace(
+            '#<dt>\s*<label[^>]*>\s*' . $exchangeLabel . '\s*</label>\s*</dt>\s*<dd>\s*<input[^>]*name="file_new"[^>]*>\s*</dd>#is',
+            '',
+            $subject,
+            1
+        );
+
+        $ep->setSubject($subject);
+    });
+}
+
 // Multiupload als Medienpool-Unterseite registrieren
 $mediapoolSubpage = rex_config::get('filepond_uploader', 'mediapool_subpage', '');
 if ($mediapoolSubpage === '|1|' || $mediapoolSubpage === '1') {

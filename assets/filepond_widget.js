@@ -238,6 +238,10 @@
            // console.log('FilePond input element found:', input);
             const lang = input.dataset.filepondLang || document.documentElement.lang || 'de_de';
             const t = translations[lang] || translations['de_de'];
+            const replaceFileId = input.dataset.filepondReplaceFileId || '';
+            const isReplaceMode = /^\d+$/.test(replaceFileId) && parseInt(replaceFileId, 10) > 0;
+            const reloadOnSuccess = input.dataset.filepondReloadOnSuccess === 'true';
+            const redirectUrl = input.dataset.filepondRedirectUrl || window.location.href;
             const aiEnabled = input.dataset.filepondAiEnabled === 'true';
             const aiTargetFieldRaw = (input.dataset.filepondAiTargetField || 'med_alt').trim();
             const aiTargetField = aiTargetFieldRaw !== '' ? aiTargetFieldRaw : 'med_alt';
@@ -376,6 +380,12 @@
                     }
                 } else {
                     createFileIcon(container, 'fa-file');
+                }
+            };
+
+            const appendReplaceParams = (formData) => {
+                if (isReplaceMode) {
+                    formData.append('replace_file_id', replaceFileId);
                 }
             };
 
@@ -1472,6 +1482,7 @@
                     prepareFormData.append('fileName', safeFileName);
                     prepareFormData.append('fieldName', fieldName);
                     prepareFormData.append('metadata', JSON.stringify(metadata));
+                    appendReplaceParams(prepareFormData);
 
                     // Warten auf erfolgreiche Vorbereitung - mit Wiederholungsversuchen
                     let prepareSuccess = false;
@@ -1538,6 +1549,7 @@
                             formData.append('fileName', safeFileName);
                             formData.append('category_id', input.dataset.filepondCat || '0');
                             formData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
+                            appendReplaceParams(formData);
 
                             try {
                                // console.log(`Uploading chunk ${chunkIndex} of ${totalChunks}`);  // Chunk Index Logging
@@ -1595,6 +1607,7 @@
                     finalFormData.append('category_id', input.dataset.filepondCat || '0');
                     finalFormData.append('totalChunks', totalChunks);
                     finalFormData.append('skipMeta', skipMeta ? '1' : '0'); // skipMeta-Parameter für Chunks
+                    appendReplaceParams(finalFormData);
                     appendYcomAuthDefaults(finalFormData);
                     
                     // Letzter Chunk gibt in result.filename den tatsächlichen Dateinamen zurück
@@ -1615,6 +1628,11 @@
                     // Den tatsächlichen Dateinamen aus dem Medienpool verwenden
                     if (finalResult.filename) {
                         load(finalResult.filename);
+                        if (isReplaceMode && reloadOnSuccess) {
+                            window.setTimeout(() => {
+                                window.location.href = redirectUrl;
+                            }, 250);
+                        }
                     } else {
                         // Fallback auf den Originalnamen
                         load(safeFileName);
@@ -1699,6 +1717,7 @@
                                 formData.append('fileName', originalFileName);
                                 formData.append('fieldName', fieldName);
                                 formData.append('metadata', JSON.stringify(fileMetadata));
+                                appendReplaceParams(formData);
 
                                 // Vorbereitung für den Upload
                                 const prepareResponse = await fetch(basePath, {
@@ -1726,6 +1745,7 @@
                                 uploadFormData.append('fileId', fileId);
                                 uploadFormData.append('fieldName', fieldName);
                                 uploadFormData.append('category_id', input.dataset.filepondCat || '0');
+                                appendReplaceParams(uploadFormData);
                                 appendYcomAuthDefaults(uploadFormData);
                                 uploadFormData.append('skipMeta', skipMeta ? '1' : '0'); // Direkt skipMeta-Parameter übergeben
 
@@ -1747,6 +1767,11 @@
                                 // Wir verwenden den tatsächlichen Dateinamen aus dem Medienpool statt des Originalnamens
                                 if (typeof result === 'object' && result.filename) {
                                     load(result.filename);
+                                    if (isReplaceMode && reloadOnSuccess) {
+                                        window.setTimeout(() => {
+                                            window.location.href = redirectUrl;
+                                        }, 250);
+                                    }
                                 } else if (typeof result === 'string') {
                                     load(result);
                                 } else {

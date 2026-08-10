@@ -14,6 +14,11 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   Fortschrittsanzeige für einzelne Chunks und die Gesamtdatei
     *   Automatisches Zusammenführen der Chunks nach dem Upload
 
+*   **Bestehende Medien im Medienpool ersetzen:**
+    *   Eigenes FilePond-Panel auf der Medien-Detailseite
+    *   Nutzt denselben Chunk-Upload-Flow auch für große Ersatzdateien
+    *   Behält den vorhandenen REDAXO-Dateinamen im Medienpool bei
+
 *   **Verzögerter Upload-Modus:**
     *   Auswahl und Anordnung von Dateien vor dem Upload
     *   Trennung von Dateiauswahl und Upload-Prozess
@@ -100,6 +105,17 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
 4.  **Fertig:** Der Uploader ist nun einsatzbereit!
 
 ## Schnellstart
+
+### Bestehende Mediendateien ersetzen
+
+Auf der Medien-Detailseite im REDAXO-Medienpool kann FilePond ein zusätzliches Panel `Datei im Mediapool ersetzen` einblenden.
+
+- Es darf genau eine Datei mit passender Endung gewählt werden.
+- Auch große Dateien funktionieren hier, weil derselbe Chunk-Upload-Flow wiederverwendet wird.
+- Der vorhandene Dateiname im Medienpool bleibt erhalten; nur der Dateiinhalt wird ersetzt.
+- Nach erfolgreichem Austausch lädt die Detailseite automatisch neu.
+
+Die Funktion lässt sich in den Addon-Einstellungen separat über `Datei-Ersetzen im Medienpool mit FilePond` ein- oder ausschalten.
 
 ### Info Center Upload Widget
 

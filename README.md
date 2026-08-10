@@ -14,6 +14,11 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
     *   Progress display for individual chunks and the full file
     *   Automatic merging of chunks after upload
 
+*   **Replace existing media pool files:**
+    *   Dedicated FilePond panel on the media detail page
+    *   Uses the same chunk upload flow for large replacement files
+    *   Keeps the existing REDAXO media filename unchanged
+
 *   **Delayed upload mode:**
     *   Select and arrange files before uploading
     *   Separates file selection from the upload process
@@ -100,6 +105,17 @@ Alternative: [uppy](https://github.com/FriendsOfREDAXO/uppy)
 4.  **Done:** The uploader is now ready to use.
 
 ## Quick Start
+
+### Replace existing media files
+
+On the media detail page in the REDAXO media pool, FilePond can add an additional panel named `Replace file in media pool`.
+
+- Select exactly one file with a matching extension.
+- Large files also work here because the existing chunk upload flow is reused.
+- The existing media pool filename stays unchanged; only the file content is replaced.
+- After a successful replacement, the detail page reloads automatically.
+
+The feature can be toggled separately in the addon settings via `Replace existing media pool files with FilePond`.
 
 ### Info Center Upload Widget
 

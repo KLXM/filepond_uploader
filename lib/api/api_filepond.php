@@ -513,6 +513,8 @@ class rex_api_filepond_uploader extends rex_api_function
     {
         $this->log('info', 'Processing file: ' . $file['name']);
 
+        $replaceFileId = rex_request('replace_file_id', 'int', 0);
+
         // Validierung der Dateigröße
         $maxSize = (int) rex_config::get('filepond_uploader', 'max_filesize', 10) * 1024 * 1024;
         if ($file['size'] > $maxSize) {
@@ -616,6 +618,10 @@ class rex_api_filepond_uploader extends rex_api_function
             throw new rex_api_exception('File type not allowed');
         }
 
+        if ($replaceFileId > 0) {
+            return $this->replaceExistingMediaFile($replaceFileId, $file);
+        }
+
         // Bildoptimierung für unterstützte Formate (keine GIFs)
         // Nur wenn serverseitige Bildverarbeitung aktiviert ist
         $serverImageProcessing = ('|1|' === (string) rex_config::get('filepond_uploader', 'server_image_processing', ''));
@@ -716,6 +722,41 @@ class rex_api_filepond_uploader extends rex_api_function
                 rex_file::delete($file['tmp_name']);
             }
         }
+    }
+
+    /**
+     * Ersetzt eine bestehende Mediapool-Datei über rex_media_service::updateMedia.
+     *
+     * @param array{name: string, tmp_name: string, type: string, size: int, metadata?: array<string, mixed>} $file
+     */
+    protected function replaceExistingMediaFile(int $fileId, array $file): string
+    {
+        $media = rex_media::forId($fileId);
+        if (null === $media) {
+            throw new rex_api_exception(rex_i18n::msg('pool_file_not_found'));
+        }
+
+        $user = rex::getUser();
+        if (!$user || !$user->getComplexPerm('media')->hasCategoryPerm($media->getCategoryId())) {
+            throw new rex_api_exception(rex_i18n::msg('no_permission'));
+        }
+
+        $data = [
+            'category_id' => $media->getCategoryId(),
+            'title' => $media->getTitle(),
+            'file' => [
+                'name' => $file['name'],
+                'tmp_name' => $file['tmp_name'],
+                'error' => 0,
+            ],
+        ];
+
+        $result = rex_media_service::updateMedia($media->getFileName(), $data);
+        if (!isset($result['filename'])) {
+            throw new rex_api_exception('Replace media failed');
+        }
+
+        return (string) $result['filename'];
     }
 
     /**

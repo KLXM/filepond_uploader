@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 2.7.0 (2026-08-10)
+
+### 🎉 Neue Features
+- **Datei-Ersetzen im Medienpool mit FilePond**: Auf der Medien-Detailseite steht jetzt ein eigenes FilePond-Panel bereit, um bestehende Dateien direkt zu ersetzen.
+- **Chunk-Replace für große Dateien**: Auch beim Ersetzen nutzt FilePond den vorhandenen Chunk-Workflow und kann dadurch große Dateien zuverlässig austauschen.
+
+### ✨ Verbesserungen
+- **Automatischer Reload nach erfolgreichem Replace**: Nach dem Austausch springt die Detailseite sauber mit REDAXO-Erfolgsmeldung zurück.
+- **Legacy-Dateidialog entfernt**: Der alte Core-Block „Datei austauschen“ wird auf der Detailseite ausgeblendet, sobald das FilePond-Replace-Panel aktiv ist.
+- **Eigenes Setting für Detailseiten-Replace**: Die neue Funktion kann separat in den Medienpool-Einstellungen aktiviert oder deaktiviert werden.
 
 ## 2.6.1 (2026-06-04)
 
