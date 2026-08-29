@@ -1543,6 +1543,10 @@ Nach der Einrichtung erscheint im Alt-Text-Checker:
 - Das Zielfeld wird über **„Zielfeld für AI-Vorschlag“** gesteuert (Standard: `med_alt`).
 - Mehrsprachige Zielfelder (z. B. `med_alt_en`) werden automatisch berücksichtigt.
 
+### MediaPlace-Integration
+
+Ist das Addon [MediaPlace](https://github.com/FriendsOfREDAXO/mediaplace) installiert und dort ein eigenes, JSON-basiertes Alt-Text-Feld aktiv konfiguriert, hängt sich der Zauberbutton an dieses eigene Feld statt an das klassische `med_alt` — das eigene MediaPlace-Feld hat Vorrang. Der Button reagiert dabei live auf MediaPlace's Overlay und die native Metadaten-Maske, sobald diese nachgeladen werden, ganz ohne Seiten-Reload. Ohne installiertes MediaPlace bzw. ohne aktives eigenes Alt-Feld funktioniert alles unverändert wie bisher am klassischen Feld.
+
 ## Hinweise
 
 *   Die maximale Dateigröße wird serverseitig überprüft.

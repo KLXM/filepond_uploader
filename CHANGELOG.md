@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.8.0 (2026-08-30)
+
+### 🎉 Neue Features
+- **MediaPlace-Integration für AI-Alt-Text**: Ist das Addon [MediaPlace](https://github.com/FriendsOfREDAXO/mediaplace) installiert und dort ein eigenes JSON-basiertes Alt-Text-Feld aktiv, hängt sich der Zauberbutton automatisch an dieses eigene Feld statt an das klassische `med_alt` — das eigene MediaPlace-Feld hat Vorrang. Rein optional: ohne installiertes/aktives MediaPlace bleibt das klassische Verhalten unverändert.
+
+### ✨ Verbesserungen
+- **Reaktive Button-Erkennung statt einmaligem Seiten-Scan**: Die Zauberbutton-Platzierung läuft jetzt über einen `MutationObserver` statt eines einmaligen Scans beim Seitenladen. Das behebt zugleich, dass der Button am klassischen `med_alt`-Feld bisher nicht erschien, wenn dieses Feld erst nachträglich per AJAX geladen wurde (z. B. in MediaPlace's nativer Metadaten-Maske).
+- **Dateiname-Erkennung erweitert**: Neue Erkennung des aktuell geöffneten Mediums über MediaPlace's Detail-Panel bzw. dessen Metadaten-Masken-Trigger, zusätzlich zu den bisherigen klassischen Erkennungswegen.
+
 ## 2.7.0 (2026-08-10)
 
 ### 🎉 Neue Features

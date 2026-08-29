@@ -5,16 +5,6 @@
 
     var $ = window.jQuery;
 
-    $(document).on('rex:ready', function() {
-        initAiButtons();
-    });
-
-    // Auch beim initialen Laden ausführen
-    $(function() {
-        initAiButtons();
-    });
-
-    function initAiButtons() {
     var magicIconUrl = window.location.origin + '/assets/addons/filepond_uploader/icons/magic.svg';
     var getMagicIcon = function(isSpinning) {
         var spinClass = isSpinning ? ' filepond-magic-icon--spin' : '';
@@ -34,14 +24,55 @@
         return /^[a-z]{2}$/.test(normalized) ? normalized : '';
     }
 
-    // Nur auf der echten Medienpool-Detailseite ausführen, nicht auf Unterseiten wie mediapool/cropper
-    var urlParams = new URLSearchParams(window.location.search);
-    var currentPage = urlParams.get('page') || '';
-    var hasFileId = $('form input[name="file_id"]').length > 0;
-
-    if (currentPage !== 'mediapool/media' || !hasFileId) {
-        return;
+    function resolveLanguageFromName(fieldName) {
+        var match = fieldName.match(/_([a-z]{2})(?:_[a-z]{2})?\]$/i);
+        if (match && match[1]) {
+            return match[1].toLowerCase();
+        }
+        return 'de';
     }
+
+    function generateForLanguage(fileName, langCode) {
+        return $.ajax({
+            url: '/redaxo/index.php',
+            data: {
+                'rex-api-call': 'filepond_ai_generate',
+                'media_name': fileName,
+                'language': langCode
+            },
+            dataType: 'json'
+        });
+    }
+
+    function generateForLanguages(fileName, langCodes) {
+        return $.ajax({
+            url: '/redaxo/index.php',
+            method: 'POST',
+            traditional: true,
+            data: {
+                'rex-api-call': 'filepond_ai_generate',
+                'media_name': fileName,
+                'languages[]': langCodes
+            },
+            dataType: 'json'
+        });
+    }
+
+    // Konfiguration (gleiche API wie Upload-Modal). mediaplaceOwnAltActive/Key
+    // kommen zusaetzlich aus get_ai_target_field() (siehe auto_metainfo.php) --
+    // ist MediaPlace's eigenes Alt-Feld aktiv, hat es Vorrang: der Button haengt
+    // dann NUR dort, nicht zusaetzlich am klassischen med_alt/ai_target_field
+    // (dieselbe Prioritaet wie AltTextStatus::isMissing() in MediaPlace selbst).
+    var aiEnabled = false;
+    var classicTargetField = 'med_alt';
+    var mediaplaceOwnAltActive = false;
+    var mediaplaceOwnAltKey = 'alt';
+    var languagesMap = window.filepondAiLanguagesMap || {};
+    var blockedLanguages = [];
+    var fallbackLanguage = 'en';
+
+    // ---- Klassisches med_alt/ai_target_field-Feld (mediapool/media-Formular,
+    // auch innerhalb von MediaPlace's nativem Metainfo-Canvas, siehe unten) ----
 
     function addAiButton(inputField, langCode) {
         var $input = $(inputField);
@@ -83,14 +114,6 @@
         return $('input[type="text"], textarea').filter(function() {
             return ($(this).attr('name') || '') === name;
         });
-    }
-
-    function resolveLanguageFromName(fieldName) {
-        var match = fieldName.match(/_([a-z]{2})(?:_[a-z]{2})?\]$/i);
-        if (match && match[1]) {
-            return match[1].toLowerCase();
-        }
-        return 'de';
     }
 
     // Liefert die Sprachinputs eines metainfo_lang_fields Containers
@@ -179,15 +202,21 @@
         });
     }
 
-    // Sprachen-Mapping (clang_id => code) für mehrsprachige Felder
-    var languagesMap = window.filepondAiLanguagesMap || {};
-    var blockedLanguages = [];
-    var fallbackLanguage = 'en';
-
-    function resolveFileName() {
+    // Dateiname fuer den klassischen Formular-Kontext -- funktioniert sowohl
+    // auf der eigenstaendigen mediapool/media-Seite als auch innerhalb von
+    // MediaPlace's nativem Metainfo-Canvas (dort per data-canvas-file am
+    // "Metadaten bearbeiten"-Button, siehe detail_panel.php).
+    function resolveClassicFileName() {
+        var urlParams = new URLSearchParams(window.location.search);
         var fileName = urlParams.get('file_name');
         if (!fileName) {
             fileName = $('input[name="file_name"]').val();
+        }
+        if (!fileName) {
+            var $canvasOpenBtn = $('.mp3-metainfo-canvas-open[data-canvas-file]').first();
+            if ($canvasOpenBtn.length > 0) {
+                fileName = $canvasOpenBtn.attr('data-canvas-file');
+            }
         }
         if (!fileName) {
             var action = $('form').first().attr('action');
@@ -207,33 +236,97 @@
         return fileName || '';
     }
 
-    function generateForLanguage(fileName, langCode) {
-        return $.ajax({
-            url: '/redaxo/index.php',
-            data: {
-                'rex-api-call': 'filepond_ai_generate',
-                'media_name': fileName,
-                'language': langCode
-            },
-            dataType: 'json'
+    function scanClassicField() {
+        if (!aiEnabled || mediaplaceOwnAltActive) {
+            return;
+        }
+        attachButtonsForTarget(classicTargetField);
+        attachButtonsForLangContainers(classicTargetField);
+    }
+
+    // ---- MediaPlace's eigenes Alt-Feld (JSON-Metadaten, .mp3-alt-wrap im
+    // Detail-Panel, siehe fragments/mediaplace/detail_field_body_alt.php) ----
+    // Nur relevant, wenn mediaplace_own_alt_active (siehe getAiTargetField()
+    // serverseitig) -- das Detail-Panel wird von MediaPlace komplett per AJAX
+    // nachgeladen (renderDetail()), ein einmaliger Seiten-Scan wuerde dieses
+    // Feld also nie finden. Deshalb ueber denselben MutationObserver wie das
+    // klassische Feld erkannt (siehe scheduleScan() unten).
+
+    // MediaPlace's Dirty-State-/ALT-Hinweis-Logik haengt per PLAIN
+    // addEventListener('input', ...) am Overlay-Root (core.js), nicht per
+    // jQuery .on(). jQuery(...).trigger('input') simuliert Bubbling nur fuer
+    // jQuery-gebundene Handler bzw. ruft ein natives elem.input()-Methode auf
+    // (die es nicht gibt) -- ein reines addEventListener-Listener wie das von
+    // MediaPlace wuerde davon NIE erreicht. Deshalb hier ein echtes,
+    // bubbelndes DOM-Event auf dem rohen Element ausloesen.
+    function dispatchNativeInput(inputEl) {
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function resolveOwnAltFileName($wrap) {
+        var $panel = $wrap.closest('#mp3-detail');
+        var $withFilename = $panel.find('[data-filename]').first();
+        return $withFilename.length > 0 ? ($withFilename.attr('data-filename') || '') : '';
+    }
+
+    function addOwnAltButton($wrap) {
+        if ($wrap.data('filepondAiAttached')) {
+            return;
+        }
+        $wrap.data('filepondAiAttached', true);
+
+        var $langInputs = $wrap.find('.mp3-lang-inputs');
+        if ($langInputs.length === 0) {
+            return;
+        }
+
+        var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-own" type="button" title="AI Alt-Text generieren" aria-label="AI Alt-Text generieren">' + getButtonContent('AI ALT', false) + '</button>';
+        var statusHtml = '<span class="filepond-ai-status" style="margin-left:8px; color:#6c757d; font-size:12px;"></span>';
+        var $wrapEl = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml).append(statusHtml);
+        $langInputs.before($wrapEl);
+    }
+
+    function scanOwnAltField() {
+        if (!aiEnabled || !mediaplaceOwnAltActive) {
+            return;
+        }
+        $('.mp3-alt-wrap[data-alt-key="' + mediaplaceOwnAltKey + '"]').each(function() {
+            addOwnAltButton($(this));
         });
     }
 
-    function generateForLanguages(fileName, langCodes) {
-        return $.ajax({
-            url: '/redaxo/index.php',
-            method: 'POST',
-            traditional: true,
-            data: {
-                'rex-api-call': 'filepond_ai_generate',
-                'media_name': fileName,
-                'languages[]': langCodes
-            },
-            dataType: 'json'
-        });
+    // ---- Reaktives Nachladen: MediaPlace's Overlay/Detail-Panel/Metainfo-
+    // Canvas werden per innerHTML-Zuweisung nachgeladen (kein rex:ready, kein
+    // erneuter Seiten-Load) -- ein einmaliger Scan beim Seitenladen wuerde
+    // beide Ziel-Felder in diesen Faellen nie finden. Ein einzelner, gedrosselter
+    // MutationObserver auf document.body deckt alle Faelle ab (klassische Seite,
+    // MediaPlace-Metainfo-Canvas, MediaPlace-eigenes Feld), ohne dass dieses
+    // Skript wissen muss, WELCHER der drei Kontexte gerade aktiv ist. ----
+    var scanScheduled = false;
+    function scheduleScan() {
+        if (scanScheduled) {
+            return;
+        }
+        scanScheduled = true;
+        window.setTimeout(function() {
+            scanScheduled = false;
+            scanClassicField();
+            scanOwnAltField();
+        }, 120);
     }
 
-    // Konfiguration aus API laden (gleiches Addon/API wie Upload-Modal)
+    function initObserver() {
+        if (!window.MutationObserver) {
+            return;
+        }
+        var observer = new MutationObserver(function() {
+            scheduleScan();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+
+    // Konfiguration laden, danach ersten Scan ausloesen + Observer starten.
     $.ajax({
         url: '/redaxo/index.php',
         dataType: 'json',
@@ -246,9 +339,14 @@
                 return;
             }
 
-            var targetField = typeof data.target_field === 'string' && data.target_field.trim() !== ''
+            aiEnabled = true;
+            classicTargetField = typeof data.target_field === 'string' && data.target_field.trim() !== ''
                 ? data.target_field.trim()
                 : 'med_alt';
+            mediaplaceOwnAltActive = !!data.mediaplace_own_alt_active;
+            mediaplaceOwnAltKey = typeof data.mediaplace_own_alt_key === 'string' && data.mediaplace_own_alt_key.trim() !== ''
+                ? data.mediaplace_own_alt_key.trim()
+                : 'alt';
 
             if (data.languages && typeof data.languages === 'object') {
                 languagesMap = data.languages;
@@ -266,12 +364,13 @@
                 fallbackLanguage = normalizeLanguageCode(data.fallback_language) || 'en';
             }
 
-            attachButtonsForTarget(targetField);
-            attachButtonsForLangContainers(targetField);
+            scanClassicField();
+            scanOwnAltField();
+            initObserver();
         }
     });
 
-    // Click Handler (nur einmal binden)
+    // ---- Click-Handler (nur einmal binden) ----
     if (!window.aiBtnHandlerBound) {
         $(document).on('click', '.btn-ai-generate-mp', function(e) {
             e.preventDefault();
@@ -282,7 +381,7 @@
                 : btn.closest('.form-group').find('input[type="text"], textarea').first();
             var lang = btn.data('lang');
 
-            var fileName = resolveFileName();
+            var fileName = resolveClassicFileName();
             if (!fileName) {
                 alert('Dateiname konnte nicht ermittelt werden.');
                 return;
@@ -326,7 +425,7 @@
                 return;
             }
 
-            var fileName = resolveFileName();
+            var fileName = resolveClassicFileName();
             if (!fileName) {
                 alert('Dateiname konnte nicht ermittelt werden.');
                 return;
@@ -440,7 +539,118 @@
             })();
         });
 
+        // Handler für MediaPlace's eigenes Alt-Feld (alle konfigurierten Sprachen
+        // auf einmal, gleiches "nur leere Felder befuellen"-Verhalten wie beim
+        // klassischen Mehrsprachen-Button oben). WICHTIG: 'input' statt/zusaetzlich
+        // zu 'change' triggern -- MediaPlace's eigene Event-Delegation
+        // (updateAltHint()/updateDetailSaveState() in modules/detail.js) haengt
+        // auf 'input', nicht auf REDAXOs klassisches 'change'.
+        $(document).on('click', '.btn-ai-generate-mp-own', function(e) {
+            e.preventDefault();
+            var btn = $(this);
+            var $wrap = btn.closest('.mp3-alt-wrap');
+            if ($wrap.length === 0) {
+                return;
+            }
+
+            var $inputs = $wrap.find('.mp3-lang-inputs [data-json-field="' + mediaplaceOwnAltKey + '"][data-clang]');
+            if ($inputs.length === 0) {
+                alert('Keine Sprachfelder gefunden.');
+                return;
+            }
+
+            var fileName = resolveOwnAltFileName($wrap);
+            if (!fileName) {
+                alert('Dateiname konnte nicht ermittelt werden.');
+                return;
+            }
+
+            var originalIcon = btn.html();
+            var $statusNode = btn.closest('.filepond-ai-btn-wrap').find('.filepond-ai-status').first();
+            if ($statusNode.length > 0) {
+                $statusNode.text('');
+            }
+            btn.prop('disabled', true).html(getButtonContent('AI ALT', true));
+
+            (async function() {
+                try {
+                    var groupedInputs = {};
+
+                    $inputs.each(function() {
+                        var $input = $(this);
+                        var currentVal = ($input.val() || '').toString().trim();
+                        if (currentVal !== '') {
+                            return;
+                        }
+
+                        var clangId = $input.attr('data-clang');
+                        var langCode = clangId && languagesMap[String(clangId)] ? languagesMap[String(clangId)] : 'de';
+                        langCode = normalizeLanguageCode(langCode) || 'de';
+
+                        if (!groupedInputs[langCode]) {
+                            groupedInputs[langCode] = [];
+                        }
+                        groupedInputs[langCode].push($input);
+                    });
+
+                    var languageCodes = Object.keys(groupedInputs);
+                    if (languageCodes.length === 0) {
+                        return;
+                    }
+
+                    var skippedCodes = languageCodes.filter(function(code) {
+                        return blockedLanguages.indexOf(code) !== -1;
+                    });
+
+                    var batchData = null;
+                    try {
+                        batchData = await generateForLanguages(fileName, languageCodes);
+                    } catch (batchError) {
+                        console.error('AI-Mehrsprachen-Fehler', batchError);
+                    }
+
+                    for (var j = 0; j < languageCodes.length; j++) {
+                        var code = languageCodes[j];
+                        var suggestion = '';
+
+                        if (batchData && batchData.success && batchData.alt_texts && typeof batchData.alt_texts[code] === 'string') {
+                            suggestion = batchData.alt_texts[code].trim();
+                        }
+
+                        if (suggestion === '') {
+                            try {
+                                var fallbackData = await generateForLanguage(fileName, code);
+                                if (fallbackData && fallbackData.success && fallbackData.alt_text) {
+                                    suggestion = String(fallbackData.alt_text).trim();
+                                } else if (fallbackData && fallbackData.error) {
+                                    console.error('AI-Fehler (' + code + '): ' + fallbackData.error);
+                                }
+                            } catch (fallbackError) {
+                                console.error('AI-Fehler (' + code + ')', fallbackError);
+                            }
+                        }
+
+                        if (suggestion !== '') {
+                            groupedInputs[code].forEach(function($targetInput) {
+                                $targetInput.val(suggestion);
+                                dispatchNativeInput($targetInput.get(0));
+                            });
+                        }
+                    }
+
+                    if ($statusNode.length > 0) {
+                        if (skippedCodes.length > 0) {
+                            $statusNode.text('Direkte Generierung ausgelassen für: ' + skippedCodes.join(', ') + ' (Fallback: ' + fallbackLanguage + ')');
+                        } else {
+                            $statusNode.text('');
+                        }
+                    }
+                } finally {
+                    btn.prop('disabled', false).html(originalIcon);
+                }
+            })();
+        });
+
         window.aiBtnHandlerBound = true;
-    }
     }
 })();

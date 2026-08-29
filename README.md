@@ -908,6 +908,10 @@ Not supported: SVG files
 - Configure target via Target field for AI suggestion (default: med_alt).
 - Multilingual target fields such as med_alt_en are detected automatically.
 
+### MediaPlace Integration
+
+If the [MediaPlace](https://github.com/FriendsOfREDAXO/mediaplace) addon is installed and its own JSON-based metadata system has an `alt`-type field configured, the magic button attaches to that field instead of the classic `med_alt` field — MediaPlace's own field takes priority. The button reacts to MediaPlace's overlay and native metadata canvas as they load, no page reload needed. Without MediaPlace installed, or without an active own alt field, everything works exactly as before against the classic field.
+
 ## Delayed Upload Mode
 
 Delayed upload separates file selection from upload execution. Upload starts only after clicking the upload button.

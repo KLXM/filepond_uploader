@@ -63,6 +63,39 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
         return new rex_api_result(true);
     }
 
+    /**
+     * Prueft, ob das MediaPlace-Addon (falls installiert) ein EIGENES,
+     * JSON-basiertes Alt-Text-Feld aktiv hat (Einstellungen -> "Eigene
+     * Metadaten" + ein Feld vom Typ "alt" existiert, siehe
+     * MediaPlace\AltTextStatus::findOwnAltField() fuer dieselbe Pruefung
+     * dort). Rein soft-optional: filepond_uploader listet mediaplace nicht
+     * als requires-Paket, ohne installiertes/aktives MediaPlace bleibt
+     * dieses Feld einfach inaktiv und die Klassik-med_alt-Logik greift wie
+     * bisher unveraendert.
+     *
+     * @return array{active: bool, key: string}
+     */
+    private function getMediaplaceOwnAltField(): array
+    {
+        if (!rex_addon::exists('mediaplace') || !rex_addon::get('mediaplace')->isAvailable()) {
+            return ['active' => false, 'key' => 'alt'];
+        }
+
+        $ownMetaEnabledRaw = rex_config::get('mediaplace', 'enable_own_metadata', false);
+        $ownMetaEnabled = in_array($ownMetaEnabledRaw, [1, '1', true, 'true', '|1|'], true);
+        if (!$ownMetaEnabled || !class_exists('\FriendsOfRedaxo\Mediaplace\MetainfoFieldGroup')) {
+            return ['active' => false, 'key' => 'alt'];
+        }
+
+        foreach (\FriendsOfRedaxo\Mediaplace\MetainfoFieldGroup::getFields() as $mpField) {
+            if ('alt' === $mpField->getWidgetType()) {
+                return ['active' => true, 'key' => $mpField->getKey()];
+            }
+        }
+
+        return ['active' => false, 'key' => 'alt'];
+    }
+
     private function getAiTargetField(): void
     {
         $globalEnabled = $this->isEnabledConfig('enable_ai_alt', false);
@@ -122,6 +155,8 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             }
         }
 
+        $mediaplaceOwnAlt = $this->getMediaplaceOwnAltField();
+
         $this->sendResponse([
             'success' => true,
             'enabled' => $enabled,
@@ -129,6 +164,13 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             'languages' => $languages,
             'fallback_language' => $fallbackLanguage,
             'blocked_languages' => $blockedLanguages,
+            // Eigenes MediaPlace-Alt-Feld hat Vorrang vor dem klassischen
+            // med_alt/ai_target_field (siehe AltTextStatus::isMissing() dort:
+            // dieselbe Prioritaet gilt fuer die Anzeige des Fehlt-Hinweises).
+            // Ist es aktiv, haengt mediapool_ai.js den AI-Button NUR an das
+            // eigene Feld, nicht zusaetzlich an med_alt.
+            'mediaplace_own_alt_active' => $mediaplaceOwnAlt['active'],
+            'mediaplace_own_alt_key' => $mediaplaceOwnAlt['key'],
         ]);
     }
 
