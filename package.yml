@@ -1,5 +1,5 @@
 package: filepond_uploader
-version: '2.8.0'
+version: '2.8.1'
 author: 'KLXM Crossmedia GmbH'
 supportpage: https://github.com/KLXM/filepond_uploader
 requires:

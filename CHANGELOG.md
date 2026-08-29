@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.1 (2026-08-30)
+
+### 🐛 Bugfixes
+- **Icon der Medienpool-Unterseiten "Mehrfach-Upload" und "Alt-Text-Checker" korrigiert**: Das Icon wurde als rohes `<i class="fa-solid ...">`-Tag in den Seitentitel eingebettet, statt über `rex_be_page::setIcon()` gesetzt zu werden – dadurch fehlte es dort, wo REDAXO den Titel als reinen Text behandelt (z. B. Browser-Tab-Titel, Breadcrumb).
+
 ## 2.8.0 (2026-08-30)
 
 ### 🎉 Neue Features

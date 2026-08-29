@@ -311,8 +311,8 @@ if ($mediapoolSubpage === '|1|' || $mediapoolSubpage === '1') {
         if (isset($pages['mediapool'])) {
             $mediapoolPage = $pages['mediapool'];
 
-            $title = '<i class="fa-solid fa-cloud-arrow-up"></i> ' . rex_i18n::msg('filepond_multiupload_title');
-            $multiuploadPage = new rex_be_page('filepond_multiupload', $title);
+            $multiuploadPage = new rex_be_page('filepond_multiupload', rex_i18n::msg('filepond_multiupload_title'));
+            $multiuploadPage->setIcon('rex-icon fa-solid fa-cloud-arrow-up');
             $multiuploadPage->setSubPath(rex_path::addon('filepond_uploader', 'pages/upload.php'));
             $multiuploadPage->setRequiredPermissions('filepond_uploader[upload]');
 
@@ -359,8 +359,8 @@ if ($enableAltChecker === '|1|' || $enableAltChecker === '1') {
             $mediapoolPage = $pages['mediapool'];
             
             // Neue Unterseite erstellen
-            $title = '<i class="fa-solid fa-universal-access"></i> ' . rex_i18n::msg('filepond_alt_checker_title');
-            $altCheckerPage = new rex_be_page('alt_checker', $title);
+            $altCheckerPage = new rex_be_page('alt_checker', rex_i18n::msg('filepond_alt_checker_title'));
+            $altCheckerPage->setIcon('rex-icon fa-solid fa-universal-access');
             $altCheckerPage->setSubPath(rex_path::addon('filepond_uploader', 'pages/alt_checker.php'));
             $altCheckerPage->setRequiredPermissions('filepond_uploader[alt_checker]');
             
