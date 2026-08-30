@@ -52,7 +52,8 @@
 }
 
 .btn-ai-generate-mp,
-.btn-ai-generate-mp-lang {
+.btn-ai-generate-mp-lang,
+.btn-ai-generate-mp-own {
     min-width: 78px;
     min-height: 30px;
     padding: 4px 10px;
@@ -67,14 +68,27 @@
 .btn-ai-generate-mp:hover,
 .btn-ai-generate-mp:focus,
 .btn-ai-generate-mp-lang:hover,
-.btn-ai-generate-mp-lang:focus {
+.btn-ai-generate-mp-lang:focus,
+.btn-ai-generate-mp-own:hover,
+.btn-ai-generate-mp-own:focus {
     border-color: #5f92c2;
     background-color: #dfeeff;
     color: #1f4569;
 }
 
+/* Status-Text neben den AI-Buttons (Mehrsprachig-/Own-Feld-Varianten) --
+   Farbe liegt bewusst hier statt als Inline-Style, sonst waere sie ohne
+   !important nicht per body.rex-theme-dark/#mp3-overlay.mp3-dark-mode
+   ueberschreibbar (Inline-Styles gewinnen sonst gegen externe Regeln). */
+.filepond-ai-status {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
 body.rex-theme-dark .btn-ai-generate-mp,
-body.rex-theme-dark .btn-ai-generate-mp-lang {
+body.rex-theme-dark .btn-ai-generate-mp-lang,
+body.rex-theme-dark .btn-ai-generate-mp-own {
     border-color: #4d6175;
     background-color: #263342;
     color: #d5e6f7;
@@ -83,15 +97,22 @@ body.rex-theme-dark .btn-ai-generate-mp-lang {
 body.rex-theme-dark .btn-ai-generate-mp:hover,
 body.rex-theme-dark .btn-ai-generate-mp:focus,
 body.rex-theme-dark .btn-ai-generate-mp-lang:hover,
-body.rex-theme-dark .btn-ai-generate-mp-lang:focus {
+body.rex-theme-dark .btn-ai-generate-mp-lang:focus,
+body.rex-theme-dark .btn-ai-generate-mp-own:hover,
+body.rex-theme-dark .btn-ai-generate-mp-own:focus {
     border-color: #6f86a0;
     background-color: #2f3f51;
     color: #f0f7ff;
 }
 
+body.rex-theme-dark .filepond-ai-status {
+    color: #9aa9ba;
+}
+
 @media (prefers-color-scheme: dark) {
     body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp,
-    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang {
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-own {
         border-color: #4d6175;
         background-color: #263342;
         color: #d5e6f7;
@@ -100,11 +121,47 @@ body.rex-theme-dark .btn-ai-generate-mp-lang:focus {
     body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp:hover,
     body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp:focus,
     body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang:hover,
-    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang:focus {
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-lang:focus,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-own:hover,
+    body.rex-has-theme:not(.rex-theme-light) .btn-ai-generate-mp-own:focus {
         border-color: #6f86a0;
         background-color: #2f3f51;
         color: #f0f7ff;
     }
+
+    body.rex-has-theme:not(.rex-theme-light) .filepond-ai-status {
+        color: #9aa9ba;
+    }
+}
+
+/* MediaPlace's eigener Dark-Mode-Umschalter (#mp3-overlay.mp3-dark-mode)
+   ist UNABHAENGIG von REDAXOs body.rex-theme-dark -- ein User kann das
+   Overlay dunkel geschaltet haben, waehrend das Backend-Theme selbst hell
+   ist (und umgekehrt). Die obigen body.rex-theme-dark-Regeln greifen in
+   diesem Fall nicht, da .btn-ai-generate-mp-own/.filepond-ai-status hier
+   innerhalb von #mp3-metainfo-canvas injiziert werden (siehe
+   mediapool_ai.js) -- gleiche Farben, eigener Selektor-Scope. */
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own {
+    border-color: #4d6175;
+    background-color: #263342;
+    color: #d5e6f7;
+}
+
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp:hover,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp:focus,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang:hover,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang:focus,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own:hover,
+#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own:focus {
+    border-color: #6f86a0;
+    background-color: #2f3f51;
+    color: #f0f7ff;
+}
+
+#mp3-overlay.mp3-dark-mode .filepond-ai-status {
+    color: #9aa9ba;
 }
 
 /* Auf farbigen Buttons braucht das SVG einen hellen Kontrast. */

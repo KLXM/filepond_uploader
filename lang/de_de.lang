@@ -165,19 +165,22 @@ filepond_metadata_cancel = Abbrechen
 
 # AI Alt-Text Settings
 filepond_ai_settings = AI Alt-Text Generierung
+filepond_settings_mediaplace_status_not_installed = MediaPlace ist nicht installiert – die Einstellungen unten gelten ausschließlich für den klassischen Medienpool.
+filepond_settings_mediaplace_status_active = MediaPlace ist installiert und hat ein eigenes ALT-Text-Feld konfiguriert: „{0}“. Der AI-Button schreibt automatisch in dieses Feld, das „Zielfeld für AI-Vorschlag“ unten wird dafür ignoriert (gilt nur für den klassischen Medienpool ohne eigenes MediaPlace-Feld).
+filepond_settings_mediaplace_status_fallback = MediaPlace ist installiert, hat aber kein eigenes ALT-Text-Feld konfiguriert (Einstellungen → „Eigene Metadaten“ + ein Feld vom Typ „ALT-Text“). Die Einstellungen unten gelten daher gleichermaßen für den klassischen Medienpool und für MediaPlace.
 filepond_settings_enable_ai_alt = AI-Generierung aktivieren
 filepond_settings_enable_ai_alt_label = AI Alt-Text-Generierung aktivieren
 filepond_settings_enable_ai_alt_notice = Nutzt KI zur automatischen Generierung von Alt-Texten für Bilder.
 filepond_settings_enable_ai_upload_modal = AI-Button im Upload-Metadialog
 filepond_settings_enable_ai_upload_modal_notice = Steuert den Zauberbutton im FilePond Metadialog beim Upload.
 filepond_settings_enable_ai_mediapool_detail = AI-Button auf Medienpool-Detailseite
-filepond_settings_enable_ai_mediapool_detail_notice = Steuert den Zauberbutton direkt beim Bearbeiten einer Datei im Medienpool.
+filepond_settings_enable_ai_mediapool_detail_notice = Steuert den Zauberbutton direkt beim Bearbeiten einer Datei – gilt für den klassischen Medienpool UND für MediaPlace (falls installiert), es gibt keinen separaten Schalter dafür.
 filepond_settings_status_disabled = Deaktiviert
 filepond_settings_status_enabled = Aktiviert
 filepond_settings_ai_provider = AI Provider
 filepond_settings_ai_provider_notice = Wähle den AI-Dienst für die Alt-Text-Generierung.
 filepond_settings_ai_target_field = Zielfeld für AI-Vorschlag
-filepond_settings_ai_target_field_notice = Feldname im Upload-Metadialog, in den der Zauberbutton den Vorschlag schreibt (Standard: med_alt). Für mehrsprachige ALT-Felder wird der MetaInfo-Typ lang_text_all empfohlen.
+filepond_settings_ai_target_field_notice = Feldname im Upload-Metadialog, in den der Zauberbutton den Vorschlag schreibt (Standard: med_alt). Für mehrsprachige ALT-Felder wird der MetaInfo-Typ lang_text_all empfohlen. Gilt nur für dieses klassische Feld – hat MediaPlace ein eigenes ALT-Text-Feld konfiguriert (siehe Status-Hinweis oben), wird automatisch dieses statt des hier eingetragenen Feldnamens verwendet.
 filepond_settings_gemini_api_key = Gemini API-Key
 filepond_settings_gemini_api_key_notice = API-Key von %s erstellen (kostenlos)
 filepond_settings_gemini_model = Gemini Modell

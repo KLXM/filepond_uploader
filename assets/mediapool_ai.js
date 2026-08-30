@@ -156,7 +156,7 @@
         });
 
         var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-lang" type="button" title="AI Alt-Text generieren (alle Sprachen)" aria-label="AI Alt-Text generieren (alle Sprachen)">' + getButtonContent('AI ALT alle', false) + '</button>';
-        var statusHtml = '<span class="filepond-ai-status" style="margin-left:8px; color:#6c757d; font-size:12px;"></span>';
+        var statusHtml = '<span class="filepond-ai-status"></span>';
         var $wrap = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml).append(statusHtml);
 
         var $label = $container.find('> label.meta_lang_main_label').first();
@@ -282,7 +282,7 @@
         }
 
         var btnHtml = '<button class="btn btn-default btn-ai-generate-mp-own" type="button" title="AI Alt-Text generieren" aria-label="AI Alt-Text generieren">' + getButtonContent('AI ALT', false) + '</button>';
-        var statusHtml = '<span class="filepond-ai-status" style="margin-left:8px; color:#6c757d; font-size:12px;"></span>';
+        var statusHtml = '<span class="filepond-ai-status"></span>';
         var $wrapEl = $('<div class="filepond-ai-btn-wrap" style="margin: 4px 0 8px 0;"></div>').append(btnHtml).append(statusHtml);
         $langInputs.before($wrapEl);
     }

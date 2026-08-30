@@ -9,6 +9,28 @@ rex_yform::addTemplatePath($this->getPath('ytemplates'));
 // MEDIA_IS_IN_USE Extension Point registrieren für bessere Kontrolle
 rex_extension::register('MEDIA_IS_IN_USE', [FilePondMediaCleanup::class, 'isMediaInUse']);
 
+// MediaPlace-Upload-Anbieter (siehe UploadProviderRegistry/MP3.registerUploadProvider()
+// im mediaplace-Addon): rein soft-optional, komplett wirkungslos ohne installiertes
+// MediaPlace, da MEDIAPLACE_UPLOAD_PROVIDERS ausschliesslich von dessen eigenem Code
+// abgefragt wird. Label/Recht hier, die eigentliche Uebernahme passiert clientseitig
+// in assets/mediaplace_upload_provider.js. Registrierung bewusst erst in
+// PACKAGES_INCLUDED (nicht direkt hier auf oberster Ebene) -- gleiches Muster wie die
+// bestehende info_center-Integration weiter unten: stellt sicher, dass ALLE Addons
+// (auch mediaplace selbst, falls dessen boot.php spaeter als dieses hier laeuft)
+// bereits vollstaendig gebootet sind, bevor die Registrierung greift.
+rex_perm::register('filepond_uploader[mediaplace_upload]', 'MediaPlace-Upload-Anbieter: Upload-Button/Drag&Drop durch den FilePond-Dialog ersetzen');
+rex_extension::register('PACKAGES_INCLUDED', static function () {
+    rex_extension::register('MEDIAPLACE_UPLOAD_PROVIDERS', static function (rex_extension_point $ep) {
+        $providers = $ep->getSubject();
+        $providers['filepond'] = [
+            'label' => 'FilePond',
+            'perm' => 'filepond_uploader[mediaplace_upload]',
+        ];
+
+        return $providers;
+    });
+});
+
 // Mediapool MIME-Types erweitern für Typen, die FilePond erlaubt aber der Mediapool nicht kennt
 if (rex_addon::get('mediapool')->isAvailable()) {
     $filepondMimeMap = [
@@ -164,6 +186,75 @@ if (rex::isBackend() && rex::getUser()) {
     ) {
         rex_view::addJsFile($this->getAssetsUrl('filepond_ycom_auth.js'));
     }
+
+    // Verstecktes, dauerhaftes FilePond-Widget fuer den MediaPlace-Upload-
+    // Anbieter (siehe assets/mediaplace_upload_provider.js): auf JEDER
+    // Backend-Seite vorhanden (initFilePond()'s eigener rex:ready/
+    // DOMContentLoaded-Scan initialisiert es wie jedes andere data-widget=
+    // "filepond"-Element automatisch, kein manuelles filepond:init noetig),
+    // damit die FilePond-Instanz beim Klick auf MediaPlace's Upload-Button/
+    // Drag&Drop bereits bereitsteht -- data-filepond-cat wird dort erst zur
+    // Laufzeit passend zur MediaPlace-Zielkategorie gesetzt (siehe
+    // pages/upload.php fuer dasselbe Attribut-Set als Vorbild). Rein
+    // clientseitig unsichtbar (Wrapper-Div traegt display:none inline,
+    // siehe $inject unten), damit auf Seiten ohne MediaPlace-Nutzung kein
+    // leeres FilePond-Panel auftaucht.
+    rex_extension::register('OUTPUT_FILTER', static function (rex_extension_point $ep): void {
+        $subject = $ep->getSubject();
+        if (!is_string($subject)) {
+            return;
+        }
+
+        $cfgAllowedTypes = rex_config::get('filepond_uploader', 'allowed_types', 'image/*,video/*,.pdf,.doc,.docx,.txt');
+        $dataAllowedTypes = is_string($cfgAllowedTypes) ? $cfgAllowedTypes : 'image/*,video/*,.pdf,.doc,.docx,.txt';
+        $cfgMaxFilesize = rex_config::get('filepond_uploader', 'max_filesize', 10);
+        $dataMaxFilesize = is_numeric($cfgMaxFilesize) ? (string) (int) $cfgMaxFilesize : '10';
+        $cfgClientMaxPixel = rex_config::get('filepond_uploader', 'client_max_pixel', '');
+        $cfgMaxPixel = rex_config::get('filepond_uploader', 'max_pixel', 2100);
+        $dataMaxPixel = is_scalar($cfgClientMaxPixel) && '' !== $cfgClientMaxPixel ? (string) $cfgClientMaxPixel : (is_numeric($cfgMaxPixel) ? (string) (int) $cfgMaxPixel : '2100');
+        $cfgClientQuality = rex_config::get('filepond_uploader', 'client_image_quality', '');
+        $cfgQuality = rex_config::get('filepond_uploader', 'image_quality', 90);
+        $dataQuality = is_scalar($cfgClientQuality) && '' !== $cfgClientQuality ? (string) $cfgClientQuality : (is_numeric($cfgQuality) ? (string) (int) $cfgQuality : '90');
+        $cfgCreateThumbnails = rex_config::get('filepond_uploader', 'create_thumbnails', '');
+        $dataClientResize = (is_string($cfgCreateThumbnails) && '|1|' === $cfgCreateThumbnails) ? 'true' : 'false';
+        $isEnabledConfig = static function (string $key, bool $default): bool {
+            $raw = rex_config::get('filepond_uploader', $key, $default ? '1' : '0');
+
+            return in_array($raw, [1, '1', true, 'true', '|1|'], true);
+        };
+        $titleRequired = $isEnabledConfig('title_required_default', false);
+        $altRequired = $isEnabledConfig('alt_required_default', true);
+        $currentUser = rex::getUser();
+        $langCode = $currentUser ? $currentUser->getLanguage() : 'en_gb';
+
+        $inject = '<div id="filepond-mp3-upload-provider-wrap" style="display:none">'
+            . '<input type="file" multiple'
+            . ' id="filepond-mp3-upload-provider"'
+            . ' data-widget="filepond"'
+            . ' data-filepond-cat="0"'
+            . ' data-filepond-types="' . rex_escape($dataAllowedTypes) . '"'
+            . ' data-filepond-maxsize="' . rex_escape($dataMaxFilesize) . '"'
+            . ' data-filepond-lang="' . rex_escape($langCode) . '"'
+            . ' data-filepond-skip-meta="false"'
+            . ' data-filepond-delayed-upload="false"'
+            . ' data-filepond-title-required="' . ($titleRequired ? 'true' : 'false') . '"'
+            . ' data-filepond-alt-required="' . ($altRequired ? 'true' : 'false') . '"'
+            . ' data-filepond-max-pixel="' . rex_escape($dataMaxPixel) . '"'
+            . ' data-filepond-image-quality="' . rex_escape($dataQuality) . '"'
+            . ' data-filepond-client-resize="' . $dataClientResize . '"'
+            . ' />'
+            . '</div>';
+
+        // Nur das LETZTE '</body>' ersetzen (gleiche Begruendung wie im
+        // mediaplace-Addon: ein einfaches str_replace koennte ein zufaellig
+        // gleichlautendes Vorkommen in einem Inline-Script/-Kommentar treffen).
+        $lastBodyPos = strrpos($subject, '</body>');
+        if (false !== $lastBodyPos) {
+            $subject = substr_replace($subject, $inject . "\n" . '</body>', $lastBodyPos, strlen('</body>'));
+        }
+
+        $ep->setSubject($subject);
+    });
 }
 
 // Backend-Permission für YCom-Media-Auth-Defaults registrieren

@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.9.0 (2026-08-30)
+
+### 🎉 Neue Features
+- **MediaPlace Upload-Anbieter**: filepond_uploader registriert sich jetzt als Upload-Anbieter für [MediaPlace](https://github.com/FriendsOfREDAXO/mediaplace) (neuer Erweiterungspunkt `MEDIAPLACE_UPLOAD_PROVIDERS` dort). Ist "FilePond" in MediaPlace's Einstellungen als aktiver Upload-Anbieter gewählt, übernimmt FilePond's eigener Metadaten-Dialog den Upload-Button/Drag&Drop/Paste im MediaPlace-Overlay komplett – die Dateien werden direkt an die bereits bestehende Upload-Pipeline weitergereicht (inkl. Chunk-Upload, KI-Alt-Text-Vorschlag, Pflichtfelder), keine doppelte Logik. Rein optional: ohne installiertes/aktives MediaPlace bleibt alles unverändert.
+
+### 🐛 Bugfixes
+- **Dark-Mode-Harmonisierung mit MediaPlace**: Der Metadaten-Dialog sowie die darin eingebetteten AI-Alt-Text-Buttons reagierten bisher nur auf REDAXOs eigenes Backend-Theme (`body.rex-theme-dark`), nicht auf MediaPlace's unabhängigen eigenen Dark-Mode-Umschalter (`#mp3-overlay.mp3-dark-mode`) – bei "Backend hell, MediaPlace dunkel" wirkte der Dialog unpassend hell. Reagiert jetzt auf beide unabhängig voneinander.
+- **Metadaten-Dialog wurde vom MediaPlace-Overlay verdeckt**: `#mp3-overlay` liegt mit `z-index:999999` über dem bisherigen `z-index:10000` des Dialogs – erschien dadurch unsichtbar hinter MediaPlace, sichtbar erst nach dessen Schließen. Auf `1000000` angehoben.
+
 ## 2.8.1 (2026-08-30)
 
 ### 🐛 Bugfixes

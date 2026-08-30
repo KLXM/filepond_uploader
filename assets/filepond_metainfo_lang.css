@@ -27,7 +27,8 @@
     margin-top: 8px;
 }
 
-.rex-theme-dark .simple-modal .lang-fields {
+.rex-theme-dark .simple-modal .lang-fields,
+.simple-modal-mp3-dark .lang-fields {
     background: rgba(255,255,255,0.02);
 }
 
@@ -92,18 +93,21 @@
     opacity: 0.5;
 }
 
-.rex-theme-dark .simple-modal input[data-decorative-target="true"]:disabled {
+.rex-theme-dark .simple-modal input[data-decorative-target="true"]:disabled,
+.simple-modal-mp3-dark input[data-decorative-target="true"]:disabled {
     background-color: #333;
     color: #666;
     opacity: 0.5;
 }
 
-.rex-theme-dark .simple-modal .simple-modal-checkbox-label {
+.rex-theme-dark .simple-modal .simple-modal-checkbox-label,
+.simple-modal-mp3-dark .simple-modal-checkbox-label {
     background: rgba(255, 193, 7, 0.1);
     border-color: rgba(255, 193, 7, 0.3);
 }
 
-.rex-theme-dark .simple-modal .simple-modal-checkbox-label:hover {
+.rex-theme-dark .simple-modal .simple-modal-checkbox-label:hover,
+.simple-modal-mp3-dark .simple-modal-checkbox-label:hover {
     background: rgba(255, 193, 7, 0.15);
 }
 
@@ -120,7 +124,8 @@
     font-weight: normal;
 }
 
-.rex-theme-dark .simple-modal .field-error-message {
+.rex-theme-dark .simple-modal .field-error-message,
+.simple-modal-mp3-dark .field-error-message {
     color: #ff6b6b;
 }
 

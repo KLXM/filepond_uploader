@@ -52,6 +52,22 @@ class SimpleModal {
                     --modal-backdrop: rgba(0, 0, 0, 0.85);
                 }
 
+                /* Dark Mode via MediaPlace's eigenen Umschalter (#mp3-overlay.mp3-dark-mode) --
+                   unabhaengig von body.rex-theme-dark oben: SimpleModal haengt sich an
+                   document.body (ausserhalb von #mp3-overlay), ein Ahnen-Selektor wuerde hier
+                   nicht greifen. Eigene Klasse statt Verschachtelung, siehe SimpleModal.show(). */
+                .simple-modal.simple-modal-mp3-dark {
+                    --modal-color-bg: #202528;
+                    --modal-color-text: #dfe3e6;
+                    --modal-color-border: #333b41;
+                    --modal-color-header: #15191c;
+                    --modal-color-header-text: #fff;
+                    --modal-color-footer: #202528;
+                    --modal-color-input: #15191c;
+                    --modal-color-input-border: #333b41;
+                    --modal-backdrop: rgba(0, 0, 0, 0.85);
+                }
+
                 .simple-modal {
                     position: fixed;
                     inset: 0;
@@ -59,7 +75,14 @@ class SimpleModal {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    z-index: 10000;
+                    /* Muss ueber #mp3-overlay liegen (siehe mediaplace.css,
+                       aktuell z-index:999999), sonst rendert dieses Modal
+                       unsichtbar dahinter, wenn es -- wie beim MediaPlace-
+                       Upload-Anbieter -- waehrend geoeffnetem MediaPlace-
+                       Overlay erscheint. Bleibt unterhalb von
+                       .for-a11y-panel (1000300 in mediaplace.css), das
+                       bewusst immer alles andere ueberdecken soll. */
+                    z-index: 1000000;
                     opacity: 0;
                     transition: opacity .3s ease;
                     padding: 20px;
@@ -316,6 +339,13 @@ class SimpleModal {
 
         this.modal.innerHTML = '';
         this.modal.appendChild(content);
+
+        // MediaPlace's eigener Dark-Mode-Umschalter ist unabhaengig von REDAXOs
+        // body.rex-theme-dark (siehe CSS oben) -- pruefen, ob das Overlay gerade
+        // dunkel geschaltet ist, und entsprechend eine eigene Klasse setzen.
+        const mp3Overlay = document.getElementById('mp3-overlay');
+        this.modal.classList.toggle('simple-modal-mp3-dark', !!(mp3Overlay && mp3Overlay.classList.contains('mp3-dark-mode')));
+
         document.body.appendChild(this.modal);
 
         // Bootstrap-Modal-Fokusfalle kann verschachtelte Dialog-Inputs blockieren.

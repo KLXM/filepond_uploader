@@ -73,9 +73,14 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
      * dieses Feld einfach inaktiv und die Klassik-med_alt-Logik greift wie
      * bisher unveraendert.
      *
+     * public static (statt private), damit pages/settings.php denselben
+     * Check fuer den Status-Hinweis im AI-Alt-Text-Fieldset nutzen kann,
+     * ohne die Erkennungslogik zu duplizieren -- keine $this-Nutzung, war
+     * also gefahrlos statisch machbar.
+     *
      * @return array{active: bool, key: string}
      */
-    private function getMediaplaceOwnAltField(): array
+    public static function getMediaplaceOwnAltField(): array
     {
         if (!rex_addon::exists('mediaplace') || !rex_addon::get('mediaplace')->isAvailable()) {
             return ['active' => false, 'key' => 'alt'];
@@ -155,7 +160,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             }
         }
 
-        $mediaplaceOwnAlt = $this->getMediaplaceOwnAltField();
+        $mediaplaceOwnAlt = self::getMediaplaceOwnAltField();
 
         $this->sendResponse([
             'success' => true,

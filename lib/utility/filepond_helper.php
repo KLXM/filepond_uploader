@@ -34,6 +34,7 @@ class filepond_helper
 
         if (rex::isBackend()) {
             $jsFiles[] = $addon->getAssetsUrl('mediapool_ai.js');
+            $jsFiles[] = $addon->getAssetsUrl('mediaplace_upload_provider.js');
         }
 
         if (rex::isBackend()) {

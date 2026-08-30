@@ -539,6 +539,29 @@ $form->addRawField('</div>'); // Ende row
 // ============================================================================
 $form->addFieldset($addon->i18n('filepond_ai_settings'));
 
+// Status-Hinweis: die beiden Schalter unten ("AI-Button auf Medienpool-
+// Detailseite" + "Zielfeld für AI-Vorschlag") gelten GLEICHERMASSEN fuer den
+// klassischen Medienpool UND fuer MediaPlace, falls installiert -- es gibt
+// keinen eigenen "MediaPlace aktivieren"-Schalter. MediaPlace erkennt sich
+// selbst rein automatisch (siehe rex_api_filepond_auto_metainfo::
+// getMediaplaceOwnAltField()): hat MediaPlace dort "Eigene Metadaten" an UND
+// ein eigenes Feld vom Typ "ALT-Text" konfiguriert, wird DIESES Feld statt
+// des klassischen "Zielfeld für AI-Vorschlag" benutzt -- ohne dass das hier
+// irgendwo sichtbar waere. Dieser Block macht den tatsaechlich aktiven
+// Zustand explizit, statt ihn nur in der Doku zu erklaeren.
+if (class_exists('rex_api_filepond_auto_metainfo')) {
+    $mediaplaceAvailable = rex_addon::exists('mediaplace') && rex_addon::get('mediaplace')->isAvailable();
+    if (!$mediaplaceAvailable) {
+        $statusText = $addon->i18n('filepond_settings_mediaplace_status_not_installed');
+    } else {
+        $ownAlt = rex_api_filepond_auto_metainfo::getMediaplaceOwnAltField();
+        $statusText = $ownAlt['active']
+            ? $addon->i18n('filepond_settings_mediaplace_status_active', rex_escape($ownAlt['key']))
+            : $addon->i18n('filepond_settings_mediaplace_status_fallback');
+    }
+    $form->addRawField('<div class="alert alert-info" style="margin-bottom:15px;"><i class="rex-icon fa-info-circle"></i> ' . $statusText . '</div>');
+}
+
 $form->addRawField('<div class="row">');
 
 // Linke Spalte - Aktivierung und Provider
