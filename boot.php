@@ -9,7 +9,7 @@ rex_yform::addTemplatePath($this->getPath('ytemplates'));
 // MEDIA_IS_IN_USE Extension Point registrieren für bessere Kontrolle
 rex_extension::register('MEDIA_IS_IN_USE', [FilePondMediaCleanup::class, 'isMediaInUse']);
 
-// MediaPlace-Upload-Anbieter (siehe UploadProviderRegistry/MP3.registerUploadProvider()
+// MediaPlace-Upload-Anbieter (siehe UploadProviderRegistry/MP.registerUploadProvider()
 // im mediaplace-Addon): rein soft-optional, komplett wirkungslos ohne installiertes
 // MediaPlace, da MEDIAPLACE_UPLOAD_PROVIDERS ausschliesslich von dessen eigenem Code
 // abgefragt wird. Label/Recht hier, die eigentliche Uebernahme passiert clientseitig
