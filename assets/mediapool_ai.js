@@ -213,7 +213,7 @@
             fileName = $('input[name="file_name"]').val();
         }
         if (!fileName) {
-            var $canvasOpenBtn = $('.mp3-metainfo-canvas-open[data-canvas-file]').first();
+            var $canvasOpenBtn = $('.mp-metainfo-canvas-open[data-canvas-file]').first();
             if ($canvasOpenBtn.length > 0) {
                 fileName = $canvasOpenBtn.attr('data-canvas-file');
             }
@@ -244,7 +244,7 @@
         attachButtonsForLangContainers(classicTargetField);
     }
 
-    // ---- MediaPlace's eigenes Alt-Feld (JSON-Metadaten, .mp3-alt-wrap im
+    // ---- MediaPlace's eigenes Alt-Feld (JSON-Metadaten, .mp-alt-wrap im
     // Detail-Panel, siehe fragments/mediaplace/detail_field_body_alt.php) ----
     // Nur relevant, wenn mediaplace_own_alt_active (siehe getAiTargetField()
     // serverseitig) -- das Detail-Panel wird von MediaPlace komplett per AJAX
@@ -265,7 +265,7 @@
     }
 
     function resolveOwnAltFileName($wrap) {
-        var $panel = $wrap.closest('#mp3-detail');
+        var $panel = $wrap.closest('#mp-detail');
         var $withFilename = $panel.find('[data-filename]').first();
         return $withFilename.length > 0 ? ($withFilename.attr('data-filename') || '') : '';
     }
@@ -276,7 +276,7 @@
         }
         $wrap.data('filepondAiAttached', true);
 
-        var $langInputs = $wrap.find('.mp3-lang-inputs');
+        var $langInputs = $wrap.find('.mp-lang-inputs');
         if ($langInputs.length === 0) {
             return;
         }
@@ -291,7 +291,7 @@
         if (!aiEnabled || !mediaplaceOwnAltActive) {
             return;
         }
-        $('.mp3-alt-wrap[data-alt-key="' + mediaplaceOwnAltKey + '"]').each(function() {
+        $('.mp-alt-wrap[data-alt-key="' + mediaplaceOwnAltKey + '"]').each(function() {
             addOwnAltButton($(this));
         });
     }
@@ -548,12 +548,12 @@
         $(document).on('click', '.btn-ai-generate-mp-own', function(e) {
             e.preventDefault();
             var btn = $(this);
-            var $wrap = btn.closest('.mp3-alt-wrap');
+            var $wrap = btn.closest('.mp-alt-wrap');
             if ($wrap.length === 0) {
                 return;
             }
 
-            var $inputs = $wrap.find('.mp3-lang-inputs [data-json-field="' + mediaplaceOwnAltKey + '"][data-clang]');
+            var $inputs = $wrap.find('.mp-lang-inputs [data-json-field="' + mediaplaceOwnAltKey + '"][data-clang]');
             if ($inputs.length === 0) {
                 alert('Keine Sprachfelder gefunden.');
                 return;

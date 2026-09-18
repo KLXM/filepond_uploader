@@ -78,7 +78,7 @@
 
 /* Status-Text neben den AI-Buttons (Mehrsprachig-/Own-Feld-Varianten) --
    Farbe liegt bewusst hier statt als Inline-Style, sonst waere sie ohne
-   !important nicht per body.rex-theme-dark/#mp3-overlay.mp3-dark-mode
+   !important nicht per body.rex-theme-dark/#mp-overlay.mp-dark-mode
    ueberschreibbar (Inline-Styles gewinnen sonst gegen externe Regeln). */
 .filepond-ai-status {
     margin-left: 8px;
@@ -134,33 +134,33 @@ body.rex-theme-dark .filepond-ai-status {
     }
 }
 
-/* MediaPlace's eigener Dark-Mode-Umschalter (#mp3-overlay.mp3-dark-mode)
+/* MediaPlace's eigener Dark-Mode-Umschalter (#mp-overlay.mp-dark-mode)
    ist UNABHAENGIG von REDAXOs body.rex-theme-dark -- ein User kann das
    Overlay dunkel geschaltet haben, waehrend das Backend-Theme selbst hell
    ist (und umgekehrt). Die obigen body.rex-theme-dark-Regeln greifen in
    diesem Fall nicht, da .btn-ai-generate-mp-own/.filepond-ai-status hier
-   innerhalb von #mp3-metainfo-canvas injiziert werden (siehe
+   innerhalb von #mp-metainfo-canvas injiziert werden (siehe
    mediapool_ai.js) -- gleiche Farben, eigener Selektor-Scope. */
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own {
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-lang,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-own {
     border-color: #4d6175;
     background-color: #263342;
     color: #d5e6f7;
 }
 
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp:hover,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp:focus,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang:hover,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-lang:focus,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own:hover,
-#mp3-overlay.mp3-dark-mode .btn-ai-generate-mp-own:focus {
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp:hover,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp:focus,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-lang:hover,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-lang:focus,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-own:hover,
+#mp-overlay.mp-dark-mode .btn-ai-generate-mp-own:focus {
     border-color: #6f86a0;
     background-color: #2f3f51;
     color: #f0f7ff;
 }
 
-#mp3-overlay.mp3-dark-mode .filepond-ai-status {
+#mp-overlay.mp-dark-mode .filepond-ai-status {
     color: #9aa9ba;
 }
 

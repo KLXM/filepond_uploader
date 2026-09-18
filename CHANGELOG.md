@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.9.1 (2026-09-18)
+
+### 🐛 Bugfixes
+- **MediaPlace-Upload-Anbieter registrierte sich nie**: `assets/mediaplace_upload_provider.js` wartete auf `window.MP3`, MediaPlace's tatsächliches globales Objekt heißt aber `window.MP` – dadurch gab die Registrierung nach 10 Sekunden lautlos auf, FilePond übernahm den Upload-Button/Drag&Drop im MediaPlace-Overlay nie, und der eingebaute MediaPlace-Upload lief unbemerkt weiter.
+- **Dark-Mode- und Z-Index-Abgleich mit MediaPlace griff nie**: dieselbe Namensverwechslung (`#mp3-overlay`/`.mp3-dark-mode` statt `#mp-overlay`/`.mp-dark-mode`) betraf auch den Metadaten-Dialog (`assets/filepond_modal.js`, `assets/filepond_metainfo_lang.css`) sowie die AI-Alt-Text-Buttons im eigenen JSON-Alt-Feld von MediaPlace (`assets/mediapool_ai.js`, u. a. `.mp3-alt-wrap`/`.mp3-lang-inputs`/`#mp3-detail`/`.mp3-metainfo-canvas-open` → `.mp-*`/`#mp-*`).
+
 ## 2.9.0 (2026-08-30)
 
 ### 🎉 Neue Features

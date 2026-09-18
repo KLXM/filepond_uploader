@@ -52,11 +52,11 @@ class SimpleModal {
                     --modal-backdrop: rgba(0, 0, 0, 0.85);
                 }
 
-                /* Dark Mode via MediaPlace's eigenen Umschalter (#mp3-overlay.mp3-dark-mode) --
+                /* Dark Mode via MediaPlace's eigenen Umschalter (#mp-overlay.mp-dark-mode) --
                    unabhaengig von body.rex-theme-dark oben: SimpleModal haengt sich an
-                   document.body (ausserhalb von #mp3-overlay), ein Ahnen-Selektor wuerde hier
+                   document.body (ausserhalb von #mp-overlay), ein Ahnen-Selektor wuerde hier
                    nicht greifen. Eigene Klasse statt Verschachtelung, siehe SimpleModal.show(). */
-                .simple-modal.simple-modal-mp3-dark {
+                .simple-modal.simple-modal-mp-dark {
                     --modal-color-bg: #202528;
                     --modal-color-text: #dfe3e6;
                     --modal-color-border: #333b41;
@@ -75,7 +75,7 @@ class SimpleModal {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    /* Muss ueber #mp3-overlay liegen (siehe mediaplace.css,
+                    /* Muss ueber #mp-overlay liegen (siehe mediaplace.css,
                        aktuell z-index:999999), sonst rendert dieses Modal
                        unsichtbar dahinter, wenn es -- wie beim MediaPlace-
                        Upload-Anbieter -- waehrend geoeffnetem MediaPlace-
@@ -343,8 +343,8 @@ class SimpleModal {
         // MediaPlace's eigener Dark-Mode-Umschalter ist unabhaengig von REDAXOs
         // body.rex-theme-dark (siehe CSS oben) -- pruefen, ob das Overlay gerade
         // dunkel geschaltet ist, und entsprechend eine eigene Klasse setzen.
-        const mp3Overlay = document.getElementById('mp3-overlay');
-        this.modal.classList.toggle('simple-modal-mp3-dark', !!(mp3Overlay && mp3Overlay.classList.contains('mp3-dark-mode')));
+        const mpOverlay = document.getElementById('mp-overlay');
+        this.modal.classList.toggle('simple-modal-mp-dark', !!(mpOverlay && mpOverlay.classList.contains('mp-dark-mode')));
 
         document.body.appendChild(this.modal);
 

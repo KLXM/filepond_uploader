@@ -1,6 +1,6 @@
 /**
  * Registriert filepond_uploader als MediaPlace-Upload-Anbieter (siehe
- * MEDIAPLACE_UPLOAD_PROVIDERS in boot.php + MP3.registerUploadProvider()
+ * MEDIAPLACE_UPLOAD_PROVIDERS in boot.php + MP.registerUploadProvider()
  * im mediaplace-Addon): MediaPlace's eigener Upload-Button/Drag&Drop/Paste
  * uebergibt Dateien hierher statt an seinen eingebauten Upload-Flow, sobald
  * "FilePond" als Upload-Anbieter in MediaPlace's Einstellungen gewaehlt ist.
@@ -21,7 +21,7 @@
     var pendingOnDone = null;
 
     function waitForMP3(cb, attemptsLeft) {
-        if (window.MP3 && typeof window.MP3.registerUploadProvider === 'function') {
+        if (window.MP && typeof window.MP.registerUploadProvider === 'function') {
             cb();
             return;
         }
@@ -80,6 +80,6 @@
     }
 
     waitForMP3(function () {
-        window.MP3.registerUploadProvider('filepond', handleMediaplaceUpload);
+        window.MP.registerUploadProvider('filepond', handleMediaplaceUpload);
     }, 100);
 })();
