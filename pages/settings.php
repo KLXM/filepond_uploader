@@ -763,7 +763,10 @@ $form->addRawField('</div>');
 $form->addRawField('<div class="col-sm-6">');
 
 // Gemini Modell Auswahl
-$field = $form->addSelectField('gemini_model', null, [
+// Abgeschaltete Modelle erscheinen gleich mit ihrem Nachfolger vorbelegt,
+// Speichern übernimmt ihn dann in die Konfiguration.
+$geminiModel = filepond_ai_alt_generator::getGeminiModel();
+$field = $form->addSelectField('gemini_model', $geminiModel, [
     'class' => 'form-control selectpicker'
 ]);
 $field->setAttribute('data-ai-provider-field', 'gemini');
@@ -771,6 +774,11 @@ $field->setLabel($addon->i18n('filepond_settings_gemini_model'));
 $select = $field->getSelect();
 foreach (filepond_ai_alt_generator::GEMINI_MODELS as $modelId => $modelName) {
     $select->addOption($modelName, $modelId);
+}
+// Ein Modell, das nicht (mehr) in der Liste steht, nicht stillschweigend
+// gegen den ersten Eintrag tauschen.
+if (!isset(filepond_ai_alt_generator::GEMINI_MODELS[$geminiModel])) {
+    $select->addOption($geminiModel, $geminiModel);
 }
 $field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
 
