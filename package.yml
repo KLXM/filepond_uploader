@@ -63,7 +63,7 @@ default_config:
     ai_max_image_dimension: 1024
     ai_alt_prompt: null
     gemini_api_key: null
-    gemini_model: 'gemini-1.5-flash'
+    gemini_model: 'gemini-3.8-flash'
     cloudflare_api_token: null
     cloudflare_account_id: null
     items_per_page: 30

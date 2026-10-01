@@ -17,17 +17,36 @@ class filepond_ai_alt_generator
         'openwebui' => 'OpenWebUI / OpenAI Compatible',
     ];
 
-    // Verfügbare Gemini-Modelle (Stand: Dezember 2025)
+    // Verfügbare Gemini-Modelle (Stand: Oktober 2026, siehe
+    // https://ai.google.dev/gemini-api/docs/models)
     // Diese werden für die Settings-Seite benötigt
     public const GEMINI_MODELS = [
-        // Kostenlose Modelle (Free Tier)
-        'gemini-2.5-flash' => 'Gemini 2.5 Flash - Kostenlos ⭐',
-        'gemini-2.5-flash-lite' => 'Gemini 2.5 Flash-Lite - Kostenlos (schneller)',
-        'gemini-2.0-flash' => 'Gemini 2.0 Flash - Kostenlos',
-        'gemini-2.0-flash-lite' => 'Gemini 2.0 Flash-Lite - Kostenlos (schneller)',
-        // Bezahlte Modelle
-        'gemini-3-pro-preview' => 'Gemini 3 Pro (Preview) - Bezahlt 💎',
-        'gemini-2.5-pro' => 'Gemini 2.5 Pro - Bezahlt 💎',
+        'gemini-3.8-flash' => 'Gemini 3.8 Flash ⭐',
+        'gemini-3.6-flash' => 'Gemini 3.6 Flash',
+        'gemini-3.5-flash-lite' => 'Gemini 3.5 Flash-Lite (günstiger, schneller)',
+        'gemini-3.1-pro-preview' => 'Gemini 3.1 Pro (Preview) 💎',
+        // Google gibt die 2.5-Modelle nur noch an Projekte aus, die sie
+        // bereits genutzt haben -- neue API-Keys bekommen eine Fehlermeldung.
+        'gemini-2.5-flash' => 'Gemini 2.5 Flash (nur bestehende Projekte)',
+        'gemini-2.5-flash-lite' => 'Gemini 2.5 Flash-Lite (nur bestehende Projekte)',
+        'gemini-2.5-pro' => 'Gemini 2.5 Pro (nur bestehende Projekte) 💎',
+    ];
+
+    public const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+
+    // Von Google abgeschaltete Modelle => Nachfolger laut
+    // https://ai.google.dev/gemini-api/docs/deprecations
+    // Ältere Installationen haben diese IDs noch in rex_config stehen
+    // (gemini-1.5-flash war bis 2.9.1 der Default in package.yml).
+    public const GEMINI_MODEL_REPLACEMENTS = [
+        'gemini-1.5-flash' => 'gemini-3.6-flash',
+        'gemini-1.5-flash-8b' => 'gemini-3.5-flash-lite',
+        'gemini-1.5-pro' => 'gemini-3.1-pro-preview',
+        'gemini-2.0-flash' => 'gemini-3.6-flash',
+        'gemini-2.0-flash-001' => 'gemini-3.6-flash',
+        'gemini-2.0-flash-lite' => 'gemini-3.5-flash-lite',
+        'gemini-2.0-flash-lite-001' => 'gemini-3.5-flash-lite',
+        'gemini-3-pro-preview' => 'gemini-3.1-pro-preview',
     ];
 
     // Verfügbare Cloudflare-Modelle
@@ -75,10 +94,36 @@ class filepond_ai_alt_generator
             default:
                 $this->provider = new filepond_ai_provider_gemini(
                     rex_config::get('filepond_uploader', 'gemini_api_key', ''),
-                    rex_config::get('filepond_uploader', 'gemini_model', 'gemini-2.5-flash'),
+                    self::getGeminiModel(),
                 );
                 break;
         }
+    }
+
+    /**
+     * Gibt das konfigurierte Gemini-Modell zurück, abgeschaltete Modelle
+     * bereits durch ihren Nachfolger ersetzt.
+     */
+    public static function getGeminiModel(): string
+    {
+        $model = rex_config::get('filepond_uploader', 'gemini_model', '');
+
+        return self::resolveGeminiModel(is_string($model) ? $model : '');
+    }
+
+    /**
+     * Ersetzt eine abgeschaltete Gemini-Modell-ID durch ihren Nachfolger,
+     * leere Werte durch das Standardmodell. Unbekannte IDs bleiben
+     * unverändert, damit neuere Modelle weiter funktionieren.
+     */
+    public static function resolveGeminiModel(string $model): string
+    {
+        $model = trim($model);
+        if ('' === $model) {
+            return self::DEFAULT_GEMINI_MODEL;
+        }
+
+        return self::GEMINI_MODEL_REPLACEMENTS[$model] ?? $model;
     }
 
     /**
@@ -1021,7 +1066,7 @@ class filepond_ai_alt_generator
 
         $providerIdentity = [
             'provider' => self::getProvider(),
-            'gemini_model' => (string) rex_config::get('filepond_uploader', 'gemini_model', ''),
+            'gemini_model' => self::getGeminiModel(),
             'cloudflare_model' => (string) rex_config::get('filepond_uploader', 'cloudflare_model', ''),
             'openwebui_model' => (string) rex_config::get('filepond_uploader', 'openwebui_model', ''),
             'openwebui_base_url' => (string) rex_config::get('filepond_uploader', 'openwebui_base_url', ''),

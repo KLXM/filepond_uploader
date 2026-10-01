@@ -1473,7 +1473,9 @@ Pfad: **FilePond Uploader → Einstellungen → AI Alt-Text Generierung**
 
 Google Gemini bietet exzellente Bildanalyse mit hervorragender Mehrsprachigkeit.
 
-**Kostenlos:** Bis zu 1500 Requests pro Tag (Free Tier)
+**Kostenlos nutzbar** mit begrenztem Kontingent (Free Tier). Wie viele Anfragen pro Minute und Tag möglich sind, hängt von Modell und Projekt ab und ändert sich immer wieder – die aktuellen Werte stehen im [Google AI Studio unter „Rate limits“](https://aistudio.google.com/rate-limit). Jeder Klick auf „Verbindung testen“ zählt mit.
+
+> **Datenschutz:** Im kostenlosen Zugang darf Google hochgeladene Bilder und die erzeugten Texte laut [Nutzungsbedingungen](https://ai.google.dev/gemini-api/terms) zur Verbesserung seiner Produkte verwenden, auch durch menschliche Prüfer. Für Bilder mit Personen oder vertraulichen Inhalten einen bezahlten Zugang (Abrechnung im AI Studio aktivieren) verwenden.
 
 **Einrichtung:**
 1. Gehe zu [Google AI Studio](https://aistudio.google.com/apikey)
@@ -1481,23 +1483,20 @@ Google Gemini bietet exzellente Bildanalyse mit hervorragender Mehrsprachigkeit.
 3. In REDAXO: **FilePond Uploader → Einstellungen → AI Alt-Text**
 4. Wähle Provider: **Google Gemini**
 5. Füge den API-Key ein
-6. Wähle ein Modell (empfohlen: **Gemini 2.5 Flash**)
+6. Wähle ein Modell (empfohlen: **Gemini 3.8 Flash**)
 7. Aktiviere "AI-Generierung aktivieren"
 8. Teste die Verbindung
 
-**Verfügbare Modelle:**
-| Modell | Kosten | Beschreibung |
-|--------|--------|--------------|
-| Gemini 2.5 Flash | Kostenlos | Beste Balance aus Qualität und Geschwindigkeit ⭐ |
-| Gemini 2.5 Flash-Lite | Kostenlos | Schneller, etwas kürzer |
-| Gemini 2.0 Flash | Kostenlos | Älteres Modell |
-| Gemini 2.5 Pro | Bezahlt | Höchste Qualität |
+**Verfügbare Modelle** (Stand: Oktober 2026, aktuelle Liste: [Gemini-Modelle](https://ai.google.dev/gemini-api/docs/models)):
+| Modell | Beschreibung |
+|--------|--------------|
+| Gemini 3.8 Flash | Aktuelles Flash-Modell, von Google für neue Projekte empfohlen ⭐ |
+| Gemini 3.6 Flash | Vorgängermodell |
+| Gemini 3.5 Flash-Lite | Günstiger und schneller, für große Mengen |
+| Gemini 3.1 Pro (Preview) | Höchste Qualität, in der Regel nur mit bezahltem Key |
+| Gemini 2.5 Flash / Flash-Lite / Pro | Nur noch für Projekte, die diese Modelle bereits genutzt haben |
 
-**Rate Limits (Free Tier):**
-- 20 Requests pro Minute (RPM)
-- 1500 Requests pro Tag (RPD)
-- 250.000 Tokens pro Minute
-- Reset: Täglich um 9:00 Uhr MEZ
+Von Google abgeschaltete Modelle (Gemini 1.5, Gemini 2.0, Gemini 3 Pro Preview) werden automatisch durch ihren Nachfolger ersetzt. In den Einstellungen erscheint dann gleich das neue Modell; mit „Speichern“ wird es übernommen.
 
 ### Cloudflare Workers AI
 
