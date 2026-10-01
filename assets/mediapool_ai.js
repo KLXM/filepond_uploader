@@ -88,10 +88,21 @@
             return;
         }
 
-        // Prüfen ob Button schon existiert
-        if ($input.closest('.form-group').find('.btn-ai-generate-mp').length > 0) {
+        // Felder im FilePond-Metadaten-Dialog ueberspringen -- der bringt mit
+        // "AI-Vorschlag" einen eigenen Button mit (filepond_widget.js), und
+        // resolveClassicFileName() kennt dort ohnehin noch keine Datei.
+        if ($input.closest('.simple-modal').length > 0) {
             return;
         }
+
+        // Prüfen ob Button schon existiert. Das Flag am Input greift auch
+        // ohne umgebendes .form-group -- sonst haengt jeder Scan des
+        // MutationObservers einen weiteren Button an, und jeder neue Button
+        // loest den naechsten Scan aus (Endlosschleife).
+        if ($input.data('filepondAiAttached') || $input.closest('.form-group').find('.btn-ai-generate-mp').length > 0) {
+            return;
+        }
+        $input.data('filepondAiAttached', true);
 
         var inputName = $input.attr('name') || '';
         var btnHtml = '<button class="btn btn-default btn-ai-generate-mp" type="button" title="AI Alt-Text generieren" aria-label="AI Alt-Text generieren" data-lang="' + langCode + '" data-target-name="' + inputName.replace(/"/g, '&quot;') + '">' + getButtonContent('AI ALT', false) + '</button>';
