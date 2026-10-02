@@ -10,13 +10,6 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 {
     protected $published = true;
 
-    private function isEnabledConfig(string $key, bool $default): bool
-    {
-        $raw = rex_config::get('filepond_uploader', $key, $default ? '1' : '0');
-
-        return in_array($raw, [1, '1', true, 'true', '|1|'], true);
-    }
-
     /**
      * Zentrale Methode für das Senden von JSON-Antworten.
      *
@@ -25,15 +18,54 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
     protected function sendResponse(array $data, int $statusCode = 200): never
     {
         rex_response::cleanOutputBuffers();
-        if (200 !== $statusCode) {
-            http_response_code($statusCode);
-        }
+        // rex_response::sendJson() setzt den Status selbst, http_response_code() wuerde ueberschrieben.
+        $statusMap = [
+            400 => rex_response::HTTP_BAD_REQUEST,
+            401 => rex_response::HTTP_UNAUTHORIZED,
+            403 => rex_response::HTTP_FORBIDDEN,
+            404 => rex_response::HTTP_NOT_FOUND,
+            500 => rex_response::HTTP_INTERNAL_ERROR,
+        ];
+        rex_response::setStatus($statusMap[$statusCode] ?? rex_response::HTTP_OK);
         rex_response::sendJson($data);
         exit;
     }
 
+    /**
+     * Gleiche Pruefung wie rex_api_filepond_uploader::isAuthorized():
+     * Backend-User, API-Token oder YCom-User.
+     */
+    private function isAuthorized(): bool
+    {
+        if (null !== rex_backend_login::createUser()) {
+            return true;
+        }
+
+        $apiToken = rex_config::get('filepond_uploader', 'api_token');
+        $apiTokenStr = is_string($apiToken) ? $apiToken : '';
+        $requestToken = rex_request('api_token', 'string', '');
+        $sessionToken = rex_session('filepond_token', 'string', '');
+        if ('' !== $apiTokenStr
+            && (('' !== $requestToken && hash_equals($apiTokenStr, $requestToken))
+                || ('' !== $sessionToken && hash_equals($apiTokenStr, $sessionToken)))
+        ) {
+            return true;
+        }
+
+        /** @phpstan-ignore class.notFound */
+        return rex_plugin::get('ycom', 'auth')->isAvailable() && null !== rex_ycom_auth::getUser();
+    }
+
     public function execute(): rex_api_result
     {
+        if (!$this->isAuthorized()) {
+            $this->sendResponse(['success' => false, 'error' => 'Unauthorized'], 401);
+        }
+
+        // Keine der Aktionen schreibt in die Session -- Sperre sofort freigeben,
+        // sonst warten parallele Backend-Requests derselben Session auf diesen.
+        session_write_close();
+
         $action = rex_request('action', 'string');
 
         switch ($action) {
@@ -103,8 +135,25 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 
     private function getAiTargetField(): void
     {
-        $globalEnabled = $this->isEnabledConfig('enable_ai_alt', false);
-        $mediapoolEnabled = $this->isEnabledConfig('enable_ai_mediapool_detail', true);
+        $this->sendResponse(['success' => true] + self::getAiButtonConfig());
+    }
+
+    /**
+     * Konfiguration fuer die KI-Buttons im Medienpool (mediapool_ai.js). Wird
+     * per rex_view::setJsProperty() direkt in die Backend-Seite geschrieben,
+     * die API-Aktion get_ai_target_field bleibt fuer bestehende Aufrufer.
+     *
+     * @return array{enabled: bool, target_field: string, languages: array<string, string>, fallback_language: string, blocked_languages: list<string>, mediaplace_own_alt_active: bool, mediaplace_own_alt_key: string}
+     */
+    public static function getAiButtonConfig(): array
+    {
+        $isEnabled = static function (string $key, bool $default): bool {
+            $raw = rex_config::get('filepond_uploader', $key, $default ? '1' : '0');
+
+            return in_array($raw, [1, '1', true, 'true', '|1|'], true);
+        };
+        $globalEnabled = $isEnabled('enable_ai_alt', false);
+        $mediapoolEnabled = $isEnabled('enable_ai_mediapool_detail', true);
         $enabled = $globalEnabled && $mediapoolEnabled;
         $targetFieldRaw = rex_config::get('filepond_uploader', 'ai_target_field', 'med_alt');
         $targetField = is_string($targetFieldRaw) ? trim($targetFieldRaw) : 'med_alt';
@@ -162,8 +211,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
 
         $mediaplaceOwnAlt = self::getMediaplaceOwnAltField();
 
-        $this->sendResponse([
-            'success' => true,
+        return [
             'enabled' => $enabled,
             'target_field' => $targetField,
             'languages' => $languages,
@@ -176,7 +224,7 @@ class rex_api_filepond_auto_metainfo extends rex_api_function
             // eigene Feld, nicht zusaetzlich an med_alt.
             'mediaplace_own_alt_active' => $mediaplaceOwnAlt['active'],
             'mediaplace_own_alt_key' => $mediaplaceOwnAlt['key'],
-        ]);
+        ];
     }
 
     /**

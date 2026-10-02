@@ -8,6 +8,10 @@
     // Queue für Metadaten-Dialoge
     let metadataDialogQueue = Promise.resolve();
 
+    // MetaInfo-Felder: erst beim ersten Metadaten-Dialog laden, einmal fuer alle
+    // Widget-Instanzen der Seite (frueher Prefetch pro Instanz auf jeder Seite).
+    let metaInfoFieldsPromise = null;
+
     const initFilePond = () => {
 
         // Translations
@@ -189,15 +193,11 @@
             return normalized;
         };
 
-        // Funktion zum Ermitteln des Basepaths
-        const getBasePath = () => {
-            const baseElement = document.querySelector('base');
-            if (baseElement && baseElement.href) {
-                return baseElement.href.replace(/\/$/, ''); // Entferne optionalen trailing slash
-            }
-            // Fallback, wenn kein <base>-Tag vorhanden ist
-            return window.location.origin;
-        };
+        // API-Endpunkt: die aktuelle Seite selbst (Backend: /redaxo/index.php,
+        // Frontend: die aktuelle Artikel-URL). REDAXO verarbeitet rex-api-call auf
+        // jeder URL. Frueher Domain-Root bzw. <base href> -- dort leitet z. B. YRewrite
+        // mit "Startsprache gemaess Browser" per 302 um und der Upload bekam HTML statt JSON.
+        const getBasePath = () => window.location.origin + window.location.pathname;
         const basePath = getBasePath();
         const magicIconUrl = `${window.location.origin}/assets/addons/filepond_uploader/icons/magic.svg`;
         // console.log('Basepath ermittelt:', basePath);
@@ -492,27 +492,28 @@
                 return dialogPromise;
             };
             
-            // Cache für MetaInfo-Felder
-            let cachedMetaInfoFields = null;
-
-            // Lädt MetaInfo-Felder über API
-            const loadMetaInfoFields = async () => {
-                if (cachedMetaInfoFields) return cachedMetaInfoFields;
-
-                const response = await fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
-                    method: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await response.json();
-                if (!data.success) {
-                    throw new Error(data.error || 'Fehler beim Laden der MetaInfo-Felder');
+            // Lädt MetaInfo-Felder über API (geteilter Promise, siehe metaInfoFieldsPromise)
+            const loadMetaInfoFields = () => {
+                if (!metaInfoFieldsPromise) {
+                    metaInfoFieldsPromise = fetch('/redaxo/index.php?rex-api-call=filepond_auto_metainfo&action=get_fields', {
+                        method: 'GET',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (!data.success) {
+                                throw new Error(data.error || 'Fehler beim Laden der MetaInfo-Felder');
+                            }
+                            return data.fields;
+                        })
+                        .catch((err) => {
+                            // Fehlschlag nicht cachen, naechster Dialog versucht es erneut
+                            metaInfoFieldsPromise = null;
+                            throw err;
+                        });
                 }
-                cachedMetaInfoFields = data.fields;
-                return data.fields;
+                return metaInfoFieldsPromise;
             };
-            
-            // Pre-Fetch MetaInfo Fields sofort starten
-            loadMetaInfoFields().catch(() => {});
             
             // Erweiterte MetaInfo-Dialog
             const createEnhancedMetadataDialog = (file, existingMetadata, fields, originalFileName = null) => {
@@ -1030,9 +1031,14 @@
                             statusNode.textContent = '';
                         }
 
-                        const requestAiSuggestion = async (languageCode) => {
+                        // Originalname fuer {filename} im Prompt (Blob nach Image-Transform hat keinen Namen).
+                        const sourceFileName = originalFileName || fileBlob.name || '';
+
+                        const requestAiSuggestion = async (languageCode, regenerate = false) => {
                             const requestData = new FormData();
                             requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
+                            requestData.append('file_name', sourceFileName);
+                            requestData.append('regenerate', regenerate ? '1' : '0');
                             requestData.append('language', languageCode);
                             requestData.append('rex-api-call', 'filepond_ai_generate');
 
@@ -1062,9 +1068,11 @@
                             return suggestion;
                         };
 
-                        const requestAiSuggestions = async (languageCodes) => {
+                        const requestAiSuggestions = async (languageCodes, regenerate = false) => {
                             const requestData = new FormData();
                             requestData.append('file', fileBlob, fileBlob.name || 'upload-file');
+                            requestData.append('file_name', sourceFileName);
+                            requestData.append('regenerate', regenerate ? '1' : '0');
                             languageCodes.forEach((code) => {
                                 requestData.append('languages[]', code);
                             });
@@ -1109,10 +1117,13 @@
                                 let successCount = 0;
                                 let lastError = null;
 
+                                // Erster Klick fuellt nur leere Sprachfelder; sind alle befuellt,
+                                // erzeugt ein weiterer Klick alle Sprachen neu.
+                                const regenerate = writableInputs.every((inputEl) => (inputEl.value || '').toString().trim() !== '');
                                 const targetByLanguage = {};
                                 writableInputs.forEach((inputEl) => {
                                     const currentVal = (inputEl.value || '').toString().trim();
-                                    if (currentVal !== '') {
+                                    if (currentVal !== '' && !regenerate) {
                                         return;
                                     }
 
@@ -1141,7 +1152,7 @@
                                 let skippedLanguages = [];
                                 let fallbackLanguage = 'en';
                                 try {
-                                    const batchResult = await requestAiSuggestions(languageCodes);
+                                    const batchResult = await requestAiSuggestions(languageCodes, regenerate);
                                     batchSuggestions = batchResult.altTexts || {};
                                     skippedLanguages = batchResult.skippedLanguages || [];
                                     fallbackLanguage = batchResult.fallbackLanguage || 'en';
@@ -1159,7 +1170,7 @@
                                         suggestion = batchValue;
                                     } else {
                                         try {
-                                            suggestion = await requestAiSuggestion(languageCode);
+                                            suggestion = await requestAiSuggestion(languageCode, regenerate);
                                         } catch (err) {
                                             lastError = err;
                                         }
@@ -1210,7 +1221,7 @@
                                 const languageValue = targetInput.getAttribute('data-lang') || 'de';
                                 const languageCode = languageValue.split('_')[0] || 'de';
 
-                                const suggestion = await requestAiSuggestion(languageCode);
+                                const suggestion = await requestAiSuggestion(languageCode, (targetInput.value || '').toString().trim() !== '');
 
                                 const destinationInputs = writableInputs.filter((inputEl) => {
                                     const langAttr = inputEl.getAttribute('data-lang');

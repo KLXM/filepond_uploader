@@ -11,6 +11,24 @@ class rex_api_filepond_ai_generate extends rex_api_function
     protected $published = true;
 
     /**
+     * Urspruenglicher Name der hochgeladenen Datei (fuer {filename} im Prompt).
+     */
+    private function getUploadedFileName(): string
+    {
+        $name = rex_request('file_name', 'string', '');
+        if ('' === $name) {
+            foreach ($_FILES as $fileInfo) {
+                if (is_array($fileInfo) && isset($fileInfo['name']) && is_string($fileInfo['name'])) {
+                    $name = $fileInfo['name'];
+                    break;
+                }
+            }
+        }
+
+        return basename(str_replace('\\', '/', $name));
+    }
+
+    /**
      * @return array{path: string, error: string|null}
      */
     private function getUploadedFilePath(): array
@@ -159,6 +177,8 @@ class rex_api_filepond_ai_generate extends rex_api_function
         }
 
         $generator = new filepond_ai_alt_generator();
+        // Erneutes Erzeugen fuer bereits befuellte Felder: Ergebnis-Cache ueberspringen.
+        $generator->setForceRefresh(rex_request('regenerate', 'bool', false));
         $result = ['success' => false, 'error' => 'Unknown error'];
 
         try {
@@ -189,7 +209,7 @@ class rex_api_filepond_ai_generate extends rex_api_function
                     if ([] !== $languages) {
                         $result = $generator->generateAltTextsFromPath($filePath, $languages);
                     } else {
-                        $result = $generator->generateAltTextFromPath($filePath, $language);
+                        $result = $generator->generateAltTextFromPath($filePath, $language, $this->getUploadedFileName());
                     }
                 } else {
                     $errorMessage = null !== $uploaded['error'] ? $uploaded['error'] : 'No file provided';

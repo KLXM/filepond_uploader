@@ -65,6 +65,16 @@ class filepond_ai_alt_generator
 
     private filepond_ai_provider_interface $provider;
 
+    /** Gespeichertes Ergebnis ignorieren (bewusste Neuerzeugung), neues Ergebnis wird trotzdem gecacht. */
+    private bool $forceRefresh = false;
+
+    public function setForceRefresh(bool $forceRefresh): static
+    {
+        $this->forceRefresh = $forceRefresh;
+
+        return $this;
+    }
+
     /**
      * Constructor.
      */
@@ -209,7 +219,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        return $this->executeGeneration($filePath, $language);
+        return $this->executeGeneration($filePath, $language, $filename);
     }
 
     /**
@@ -217,9 +227,10 @@ class filepond_ai_alt_generator
      *
      * @param string $filePath Absoluter Pfad zur Datei
      * @param string $language Zielsprache
+     * @param string $originalFilename Urspruenglicher Dateiname fuer {filename} im Prompt (z. B. bei temporaeren Uploads)
      * @return array{success: bool, alt_text: string, error: string|null}
      */
-    public function generateAltTextFromPath(string $filePath, string $language = 'de'): array
+    public function generateAltTextFromPath(string $filePath, string $language = 'de', string $originalFilename = ''): array
     {
         if (!$this->provider->isConfigured()) {
             return [
@@ -257,7 +268,7 @@ class filepond_ai_alt_generator
             ];
         }
 
-        return $this->executeGeneration($filePath, $language);
+        return $this->executeGeneration($filePath, $language, $originalFilename);
     }
 
     /**
@@ -366,10 +377,10 @@ class filepond_ai_alt_generator
      *
      * @return array{success: bool, alt_text: string, error: string|null, tokens?: array{prompt: int, response: int, total: int}|null}
      */
-    private function executeGeneration(string $filePath, string $language): array
+    private function executeGeneration(string $filePath, string $language, string $sourceFilename = ''): array
     {
         // Prompt zusammenstellen (wird auch für den Cache-Key benötigt)
-        $prompt = $this->buildPrompt($language);
+        $prompt = $this->buildPrompt($language, '' !== $sourceFilename ? $sourceFilename : basename($filePath));
 
         $cacheKey = $this->buildCacheKey(
             'single',
@@ -860,7 +871,7 @@ class filepond_ai_alt_generator
     /**
      * Baut den Prompt für die AI.
      */
-    private function buildPrompt(string $language = 'de'): string
+    private function buildPrompt(string $language = 'de', string $filename = ''): string
     {
         // Custom Prompt aus Einstellungen laden
         $customPrompt = rex_config::get('filepond_uploader', 'ai_alt_prompt', '');
@@ -868,8 +879,8 @@ class filepond_ai_alt_generator
         if ('' !== $customPrompt && is_string($customPrompt)) {
             // Platzhalter ersetzen
             return str_replace(
-                ['{language}', '{lang}'],
-                [$this->getLanguageName($language), $language],
+                ['{language}', '{lang}', '{filename}'],
+                [$this->getLanguageName($language), $language, basename($filename)],
                 $customPrompt,
             );
         }
@@ -1102,7 +1113,7 @@ class filepond_ai_alt_generator
      */
     private function readCache(string $cacheKey): ?array
     {
-        if (!$this->isCacheEnabled()) {
+        if ($this->forceRefresh || !$this->isCacheEnabled()) {
             return null;
         }
 

@@ -611,6 +611,8 @@ rex_login::startSession();
 rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_token'));
 ```
 
+> **Note:** Since 2.10.0 the same check (backend login, API token or YCom login) also applies to the metadata endpoint `rex_api_filepond_auto_metainfo` used by the metadata dialog. Custom frontend integrations calling it directly need a token or login as well.
+
 ### Disable Metadata Prompt
 
 ```php
@@ -907,6 +909,36 @@ Not supported: SVG files
 - The magic button appears in each enabled area at the configured target field.
 - Configure target via Target field for AI suggestion (default: med_alt).
 - Multilingual target fields such as med_alt_en are detected automatically.
+
+### Regenerating
+
+- **Single field:** clicking the magic button again creates a new suggestion and replaces the current text.
+- **Multilingual fields ("AI ALT alle"):** the first click only fills empty languages, existing texts stay. Once all languages are filled, the next click **regenerates all languages**.
+- A deliberate regeneration bypasses the AI result cache, so the cache still saves requests on first fill but never blocks new suggestions.
+
+> **Tip:** To rephrase a single language only, clear its field and click "AI ALT alle" – exactly that gap gets filled.
+
+### Custom Prompt and Placeholders
+
+Under **Settings → AI Alt Text → Custom prompt** you can replace the default prompt. Available placeholders:
+
+| Placeholder | Replaced with |
+|---|---|
+| `{language}` | Language name, e.g. "Englisch" |
+| `{lang}` | Language code, e.g. `en` |
+| `{filename}` | File name, e.g. `town-hall-kleve-winter.jpg` (original name for fresh uploads) |
+
+Example:
+
+```text
+Write a one-sentence alt text in {language}.
+The file name "{filename}" may reveal place, people or occasion – use it as context, but only describe what is visible in the image.
+Reply with the alt text only.
+```
+
+> **Tip:** Meaningful file names (`town-hall-kleve-winter.jpg` instead of `IMG_4711.jpg`) noticeably improve alt texts because the AI doesn't have to guess the place or occasion. Keep the "only describe what is visible" instruction, otherwise misleading file names get copied unchecked.
+
+> **Note:** The custom prompt applies to single-language generation. For several languages at once ("AI ALT alle", Alt Text Checker) the built-in prompt profiles are used.
 
 ### MediaPlace Integration
 

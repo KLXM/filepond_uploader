@@ -32,19 +32,22 @@
         return 'de';
     }
 
-    function generateForLanguage(fileName, langCode) {
+    // regenerate: Feld(er) bereits befuellt -> bewusst neu erzeugen, Ergebnis-Cache umgehen.
+    function generateForLanguage(fileName, langCode, regenerate) {
         return $.ajax({
             url: '/redaxo/index.php',
+            cache: false,
             data: {
                 'rex-api-call': 'filepond_ai_generate',
                 'media_name': fileName,
-                'language': langCode
+                'language': langCode,
+                'regenerate': regenerate ? 1 : 0
             },
             dataType: 'json'
         });
     }
 
-    function generateForLanguages(fileName, langCodes) {
+    function generateForLanguages(fileName, langCodes, regenerate) {
         return $.ajax({
             url: '/redaxo/index.php',
             method: 'POST',
@@ -52,9 +55,18 @@
             data: {
                 'rex-api-call': 'filepond_ai_generate',
                 'media_name': fileName,
-                'languages[]': langCodes
+                'languages[]': langCodes,
+                'regenerate': regenerate ? 1 : 0
             },
             dataType: 'json'
+        });
+    }
+
+    // Erster Klick fuellt nur leere Sprachfelder; sind alle befuellt, erzeugt ein
+    // weiterer Klick alle Sprachen neu.
+    function allInputsFilled($inputs) {
+        return $inputs.length > 0 && $inputs.toArray().every(function(el) {
+            return ($(el).val() || '').toString().trim() !== '';
         });
     }
 
@@ -337,47 +349,47 @@
         observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    // Konfiguration laden, danach ersten Scan ausloesen + Observer starten.
-    $.ajax({
-        url: '/redaxo/index.php',
-        dataType: 'json',
-        data: {
-            'rex-api-call': 'filepond_auto_metainfo',
-            'action': 'get_ai_target_field'
-        },
-        success: function(data) {
-            if (!data || !data.success || !data.enabled) {
-                return;
-            }
+    // Konfiguration kommt per rex_view::setJsProperty() mit der Seite (rex.filepond_ai,
+    // siehe boot.php) -- kein eigener Request pro Backend-Seite.
+    function applyConfig(data) {
+        if (!data || !data.enabled) {
+            return;
+        }
 
-            aiEnabled = true;
-            classicTargetField = typeof data.target_field === 'string' && data.target_field.trim() !== ''
-                ? data.target_field.trim()
-                : 'med_alt';
-            mediaplaceOwnAltActive = !!data.mediaplace_own_alt_active;
-            mediaplaceOwnAltKey = typeof data.mediaplace_own_alt_key === 'string' && data.mediaplace_own_alt_key.trim() !== ''
-                ? data.mediaplace_own_alt_key.trim()
-                : 'alt';
+        aiEnabled = true;
+        classicTargetField = typeof data.target_field === 'string' && data.target_field.trim() !== ''
+            ? data.target_field.trim()
+            : 'med_alt';
+        mediaplaceOwnAltActive = !!data.mediaplace_own_alt_active;
+        mediaplaceOwnAltKey = typeof data.mediaplace_own_alt_key === 'string' && data.mediaplace_own_alt_key.trim() !== ''
+            ? data.mediaplace_own_alt_key.trim()
+            : 'alt';
 
-            if (data.languages && typeof data.languages === 'object') {
-                languagesMap = data.languages;
-                window.filepondAiLanguagesMap = languagesMap;
-            }
+        if (data.languages && typeof data.languages === 'object') {
+            languagesMap = data.languages;
+            window.filepondAiLanguagesMap = languagesMap;
+        }
 
-            if (Array.isArray(data.blocked_languages)) {
-                blockedLanguages = data.blocked_languages
-                    .filter(function(code) { return typeof code === 'string'; })
-                    .map(function(code) { return normalizeLanguageCode(code); })
-                    .filter(function(code) { return code !== ''; });
-            }
+        if (Array.isArray(data.blocked_languages)) {
+            blockedLanguages = data.blocked_languages
+                .filter(function(code) { return typeof code === 'string'; })
+                .map(function(code) { return normalizeLanguageCode(code); })
+                .filter(function(code) { return code !== ''; });
+        }
 
-            if (typeof data.fallback_language === 'string' && data.fallback_language.trim() !== '') {
-                fallbackLanguage = normalizeLanguageCode(data.fallback_language) || 'en';
-            }
+        if (typeof data.fallback_language === 'string' && data.fallback_language.trim() !== '') {
+            fallbackLanguage = normalizeLanguageCode(data.fallback_language) || 'en';
+        }
 
-            scanClassicField();
-            scanOwnAltField();
-            initObserver();
+        scanClassicField();
+        scanOwnAltField();
+        initObserver();
+    }
+
+    // Skript laeuft im <head> -- Scan/Observer brauchen document.body.
+    $(function() {
+        if (window.rex && rex.filepond_ai) {
+            applyConfig(rex.filepond_ai);
         }
     });
 
@@ -402,7 +414,7 @@
             var originalIcon = btn.html();
             btn.prop('disabled', true).html(getButtonContent('AI ALT', true));
 
-            generateForLanguage(fileName, lang)
+            generateForLanguage(fileName, lang, (input.val() || '').toString().trim() !== '')
                 .done(function(data) {
                     if (data.success && data.alt_text) {
                         input.val(data.alt_text);
@@ -452,11 +464,12 @@
             (async function() {
                 try {
                     var groupedInputs = {};
+                    var regenerate = allInputsFilled($inputs);
 
                     for (var i = 0; i < $inputs.length; i++) {
                         var $input = $($inputs[i]);
                         var currentVal = ($input.val() || '').toString().trim();
-                        if (currentVal !== '') {
+                        if (currentVal !== '' && !regenerate) {
                             continue;
                         }
 
@@ -503,7 +516,7 @@
 
                     var batchData = null;
                     try {
-                        batchData = await generateForLanguages(fileName, languageCodes);
+                        batchData = await generateForLanguages(fileName, languageCodes, regenerate);
                     } catch (batchError) {
                         console.error('AI-Mehrsprachen-Fehler', batchError);
                     }
@@ -518,7 +531,7 @@
 
                         if (suggestion === '') {
                             try {
-                                var fallbackData = await generateForLanguage(fileName, code);
+                                var fallbackData = await generateForLanguage(fileName, code, regenerate);
                                 if (fallbackData && fallbackData.success && fallbackData.alt_text) {
                                     suggestion = String(fallbackData.alt_text).trim();
                                 } else if (fallbackData && fallbackData.error) {
@@ -586,11 +599,12 @@
             (async function() {
                 try {
                     var groupedInputs = {};
+                    var regenerate = allInputsFilled($inputs);
 
                     $inputs.each(function() {
                         var $input = $(this);
                         var currentVal = ($input.val() || '').toString().trim();
-                        if (currentVal !== '') {
+                        if (currentVal !== '' && !regenerate) {
                             return;
                         }
 
@@ -615,7 +629,7 @@
 
                     var batchData = null;
                     try {
-                        batchData = await generateForLanguages(fileName, languageCodes);
+                        batchData = await generateForLanguages(fileName, languageCodes, regenerate);
                     } catch (batchError) {
                         console.error('AI-Mehrsprachen-Fehler', batchError);
                     }
@@ -630,7 +644,7 @@
 
                         if (suggestion === '') {
                             try {
-                                var fallbackData = await generateForLanguage(fileName, code);
+                                var fallbackData = await generateForLanguage(fileName, code, regenerate);
                                 if (fallbackData && fallbackData.success && fallbackData.alt_text) {
                                     suggestion = String(fallbackData.alt_text).trim();
                                 } else if (fallbackData && fallbackData.error) {

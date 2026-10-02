@@ -208,7 +208,7 @@ filepond_settings_ai_result_cache_enabled_notice = Speichert generierte Alt-Text
 filepond_settings_ai_result_cache_ttl_hours = Cache-Gültigkeit (Stunden)
 filepond_settings_ai_result_cache_ttl_hours_notice = Wie lange ein AI-Ergebnis im Cache bleibt (Standard: 168 Stunden = 7 Tage).
 filepond_settings_ai_prompt = Custom Prompt (optional)
-filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache.
+filepond_settings_ai_prompt_notice = Eigener Prompt für die AI. Leer lassen für Standard-Prompt. Platzhalter: {language} für Sprache, {filename} für den Dateinamen.
 filepond_settings_test_ai_connection = Verbindung testen
 filepond_settings_test_connection_hint = Testet die Verbindung und zeigt bei Erfolg eine Liste der verfügbaren Modelle an.
 filepond_settings_gemini_usage = Limits und Verbrauch anzeigen

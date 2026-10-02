@@ -209,7 +209,7 @@ filepond_settings_ai_result_cache_enabled_notice = Stores generated alt texts fo
 filepond_settings_ai_result_cache_ttl_hours = Cache lifetime (hours)
 filepond_settings_ai_result_cache_ttl_hours_notice = How long an AI result stays in cache (default: 168 hours = 7 days).
 filepond_settings_ai_prompt = Custom Prompt (optional)
-filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholder: {language} for language.
+filepond_settings_ai_prompt_notice = Custom prompt for the AI. Leave empty for default prompt. Placeholders: {language} for language, {filename} for the file name.
 filepond_settings_test_ai_connection = Test connection
 filepond_settings_test_connection_save_first = Please save first: no configuration exists yet for the selected provider.
 filepond_settings_gemini_usage = View limits and usage

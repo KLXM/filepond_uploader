@@ -168,6 +168,10 @@ if (rex::isBackend() && rex::getUser()) {
         $filepondScriptsLoaded = true;
     }
 
+    // KI-Button-Konfiguration fuer mediapool_ai.js direkt in die Seite (rex.filepond_ai),
+    // statt sie auf jeder Backend-Seite per eigenem Request nachzuladen.
+    rex_view::setJsProperty('filepond_ai', rex_api_filepond_auto_metainfo::getAiButtonConfig());
+
     // Settings-Seite: JS für Dateitypen-Auswahl
     if ('filepond_uploader/settings' === rex_be_controller::getCurrentPage()) {
         rex_view::addJsFile($this->getAssetsUrl('filepond_settings.js'));

@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.10.0 (2026-10-02)
+
+### 🎉 Neue Features
+- **Platzhalter `{filename}` im eigenen KI-Prompt** (#115): Dateinamen enthalten oft wichtigen Kontext. Bei frischen Uploads wird der ursprüngliche Dateiname verwendet, nicht der Name der temporären Datei.
+
+### 🐛 Bugfixes
+- **Erneutes Generieren liefert wieder neue Texte** (#111): Die Mehrsprachen-Buttons („AI ALT alle“) füllten nur leere Sprachfelder – waren alle befüllt, passierte beim nächsten Klick nichts. Jetzt füllt der erste Klick die Lücken, ein weiterer Klick erzeugt alle Sprachen neu. Bewusste Neuerzeugung umgeht den Ergebnis-Cache (`regenerate`), auch beim Einzelfeld-Button.
+- **Upload bricht mit YRewrite „Startsprache gemäß Browser“ ab** (#112): Das Widget schickte Uploads an die Domain-Wurzel bzw. `<base href>` – also ans Frontend, auch im Backend. YRewrite leitete dort per 302 auf die Browsersprache um, der Upload bekam HTML statt JSON. Uploads gehen jetzt an die aktuelle Seite (Backend: `/redaxo/index.php`, Frontend: die aktuelle Artikel-URL).
+- **Keine API-Aufrufe mehr auf jeder Backend-Seite** (#110): Die MetaInfo-Felder werden erst beim Öffnen des Metadaten-Dialogs geladen (einmal pro Seite statt Prefetch pro Widget), die KI-Button-Konfiguration kommt per `rex_view::setJsProperty()` mit der Seite (`rex.filepond_ai`). Die Aufrufe von `filepond_auto_metainfo` geben außerdem sofort die Session-Sperre frei (`session_write_close()`), statt nachfolgende Seitenaufrufe zu blockieren.
+
+- **AI-ALT-Button vervielfachte sich endlos im Metadaten-Dialog** (#113, danke @alexwenz): Die Doppel-Prüfung suchte in `.form-group`, das Feld liegt im Dialog aber in `.simple-modal-form-group`.
+- **Gemini-Modellliste aktualisiert** (#108, #114, danke @alexwenz): Von Google abgeschaltete Modelle werden automatisch durch ihren Nachfolger ersetzt.
+
+### 🔒 Sicherheit
+- **`rex_api_filepond_auto_metainfo` prüfte keine Anmeldung**: Die API ist öffentlich aufrufbar (`$published = true`), hatte aber keinerlei Berechtigungsprüfung – MetaInfo-Daten jeder Mediendatei ließen sich ohne Login lesen und per `save_metadata` überschreiben. Jetzt gilt dieselbe Prüfung wie beim Upload-Endpunkt (Backend-Login, API-Token oder YCom-Login). Fehlerantworten liefern zudem den korrekten HTTP-Status (vorher wurde z. B. 401/400 von `rex_response::sendJson()` überschrieben).
+
 ## 2.9.1 (2026-09-18)
 
 ### 🐛 Bugfixes

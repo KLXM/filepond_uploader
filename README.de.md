@@ -654,6 +654,8 @@ rex_set_session('filepond_token', rex_config::get('filepond_uploader', 'api_toke
 
 Dadurch wird der API-Token übergeben, um Datei-Uploads auch außerhalb von YCOM im Frontend zu ermöglichen.
 
+> **Hinweis:** Dieselbe Prüfung (Backend-Login, API-Token oder YCom-Login) gilt seit 2.10.0 auch für die Metadaten-Schnittstelle `rex_api_filepond_auto_metainfo`, die der Metadaten-Dialog nutzt. Eigene Frontend-Integrationen, die diese Schnittstelle direkt aufrufen, brauchen also ebenfalls Token oder Login.
+
 ### Meta-Abfrage deaktivieren
 
 ```php
@@ -1541,6 +1543,36 @@ Nach der Einrichtung erscheint im Alt-Text-Checker:
 - Der Zauberbutton erscheint im jeweils aktivierten Bereich am konfigurierten Zielfeld.
 - Das Zielfeld wird über **„Zielfeld für AI-Vorschlag“** gesteuert (Standard: `med_alt`).
 - Mehrsprachige Zielfelder (z. B. `med_alt_en`) werden automatisch berücksichtigt.
+
+### Neu generieren
+
+- **Einzelnes Feld:** Ein weiterer Klick auf den Zauberbutton erzeugt einen neuen Vorschlag und überschreibt den bisherigen Text.
+- **Mehrsprachige Felder („AI ALT alle“):** Der erste Klick füllt nur die noch leeren Sprachen, vorhandene Texte bleiben stehen. Sind alle Sprachen befüllt, erzeugt der nächste Klick **alle Sprachen neu**.
+- Eine bewusste Neuerzeugung umgeht den AI-Result-Cache. Der Cache spart also weiterhin Anfragen beim ersten Befüllen, verhindert aber keine neuen Vorschläge.
+
+> **Tipp:** Soll nur eine einzelne Sprache neu formuliert werden, deren Feld leeren und „AI ALT alle“ klicken – dann wird genau diese Lücke gefüllt.
+
+### Eigener Prompt und Platzhalter
+
+Unter **Einstellungen → AI Alt-Text → Eigener Prompt** lässt sich der Standard-Prompt ersetzen. Verfügbare Platzhalter:
+
+| Platzhalter | Ersetzt durch |
+|---|---|
+| `{language}` | Sprachname, z. B. „Deutsch“ |
+| `{lang}` | Sprachcode, z. B. `de` |
+| `{filename}` | Dateiname, z. B. `rathaus-kleve-winter.jpg` (bei frischen Uploads der ursprüngliche Name) |
+
+Beispiel:
+
+```text
+Erstelle einen Alt-Text auf {language} in einem Satz.
+Der Dateiname „{filename}“ kann Ort, Personen oder Anlass verraten – nutze ihn als Kontext, aber beschreibe nur, was im Bild zu sehen ist.
+Antworte nur mit dem Alt-Text.
+```
+
+> **Tipp:** Aussagekräftige Dateinamen (`rathaus-kleve-winter.jpg` statt `IMG_4711.jpg`) bringen damit spürbar bessere Alt-Texte, z. B. weil die KI den Ort oder Anlass nicht erraten muss. Den Hinweis „nur beschreiben, was zu sehen ist“ im Prompt lassen – sonst übernimmt die KI auch irreführende Dateinamen ungeprüft.
+
+> **Hinweis:** Der eigene Prompt gilt für die Generierung einer einzelnen Sprache. Für mehrere Sprachen auf einmal („AI ALT alle“, Alt-Text-Checker) nutzt das Addon die eingebauten Prompt-Profile.
 
 ### MediaPlace-Integration
 
