@@ -765,22 +765,29 @@ $form->addRawField('<div class="col-sm-6">');
 // Gemini Modell Auswahl
 // Abgeschaltete Modelle erscheinen gleich mit ihrem Nachfolger vorbelegt,
 // Speichern übernimmt ihn dann in die Konfiguration.
+// Liste kommt live von Google (GeminiModelCatalog), ohne API-Key die Standardliste.
+$geminiModels = \FriendsOfRedaxo\FilePond\GeminiModelCatalog::getModels();
 $geminiModel = filepond_ai_alt_generator::getGeminiModel();
 $field = $form->addSelectField('gemini_model', $geminiModel, [
-    'class' => 'form-control selectpicker'
+    'class' => 'form-control selectpicker',
+    'data-live-search' => 'true',
 ]);
 $field->setAttribute('data-ai-provider-field', 'gemini');
 $field->setLabel($addon->i18n('filepond_settings_gemini_model'));
 $select = $field->getSelect();
-foreach (filepond_ai_alt_generator::GEMINI_MODELS as $modelId => $modelName) {
+foreach ($geminiModels as $modelId => $modelName) {
     $select->addOption($modelName, $modelId);
 }
 // Ein Modell, das nicht (mehr) in der Liste steht, nicht stillschweigend
 // gegen den ersten Eintrag tauschen.
-if (!isset(filepond_ai_alt_generator::GEMINI_MODELS[$geminiModel])) {
+if (!isset($geminiModels[$geminiModel])) {
     $select->addOption($geminiModel, $geminiModel);
 }
-$field->setNotice($addon->i18n('filepond_settings_gemini_model_notice'));
+$geminiFetchedAt = \FriendsOfRedaxo\FilePond\GeminiModelCatalog::getFetchedAt();
+$geminiSourceNotice = null !== $geminiFetchedAt
+    ? $addon->i18n('filepond_settings_gemini_model_live', rex_formatter::intlDateTime($geminiFetchedAt, IntlDateFormatter::SHORT))
+    : $addon->i18n('filepond_settings_gemini_model_fallback');
+$field->setNotice($geminiSourceNotice . ' ' . $addon->i18n('filepond_settings_gemini_model_notice'));
 
 $form->addRawField('</div>');
 $form->addRawField('</div>'); // Ende row
@@ -1198,6 +1205,33 @@ echo $fragment->parse('core/page/section.php');
 
         updateAiTestButtonState();
         
+        // Gemini-Modellliste nach dem Test durch die frische Liste von Google ersetzen.
+        function refreshGeminiModelOptions(models, suggestedModel) {
+            const select = document.querySelector('select[name$="[gemini_model]"], select[name="gemini_model"]');
+            if (!select) {
+                return;
+            }
+            const current = select.value;
+            const ids = Object.keys(models);
+            select.innerHTML = '';
+            ids.forEach((id) => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = models[id];
+                select.appendChild(opt);
+            });
+            if (current && ids.indexOf(current) === -1) {
+                const opt = document.createElement('option');
+                opt.value = current;
+                opt.textContent = current;
+                select.appendChild(opt);
+            }
+            select.value = suggestedModel && ids.indexOf(suggestedModel) !== -1 ? suggestedModel : current;
+            if (window.jQuery && jQuery.fn.selectpicker) {
+                jQuery(select).selectpicker('refresh');
+            }
+        }
+
         testBtn.addEventListener('click', function() {
             if (testBtn.disabled) {
                 return;
@@ -1219,6 +1253,9 @@ echo $fragment->parse('core/page/section.php');
                     return r.json();
                 })
                 .then(data => {
+                    if (data && data.models && typeof data.models === 'object') {
+                        refreshGeminiModelOptions(data.models, data.suggested_model || null);
+                    }
                     if (data && data.success) {
                         resultSpan.setAttribute('data-ai-state', 'success');
                         resultSpan.innerHTML = '<span class="text-success"><i class="fa fa-check"></i> ' + (data.message || 'OK') + '</span>';

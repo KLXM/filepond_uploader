@@ -94,7 +94,6 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
         if (0 !== curl_errno($ch)) {
             $this->handleCurlError($ch);
         }
-        curl_close($ch);
 
         if (!is_string($response)) {
             throw new Exception('Empty response from API');
@@ -177,7 +176,6 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
                 return ['success' => false, 'message' => $e->getMessage()];
             }
         }
-        curl_close($ch);
 
         if (!is_string($response)) {
             return ['success' => false, 'message' => 'Empty response from API'];
@@ -203,6 +201,16 @@ class filepond_ai_provider_gemini extends filepond_ai_provider_abstract
 
         $errorData = json_decode($response, true);
         $errorMessage = $errorData['error']['message'] ?? 'HTTP Error ' . $httpCode;
+
+        // Google listet z. B. die 2.5-Modelle weiter, neue Projekte bekommen aber 404
+        // mit dem Nachfolger in der Meldung ("... use models/gemini-x.y-flash").
+        if (is_string($errorMessage) && 1 === preg_match('~use models/([a-z0-9.\-]+)~i', $errorMessage, $m)) {
+            return [
+                'success' => false,
+                'message' => sprintf('Das Modell %s steht für dieses Projekt nicht mehr zur Verfügung. Google empfiehlt: %s – bitte in der Modellauswahl wählen und speichern.', $this->model, rtrim($m[1], '.')),
+                'suggested_model' => rtrim($m[1], '.'),
+            ];
+        }
 
         return ['success' => false, 'message' => 'API-Fehler: ' . $errorMessage];
     }

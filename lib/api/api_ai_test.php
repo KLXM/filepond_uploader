@@ -33,8 +33,19 @@ class rex_api_filepond_ai_test extends rex_api_function
         }
 
         try {
+            // Gemini: Modellliste bei jedem Test frisch von Google holen, die
+            // Einstellungsseite aktualisiert damit ihre Auswahl ohne Neuladen.
+            $models = null;
+            if ('gemini' === filepond_ai_alt_generator::getProvider()) {
+                $catalog = \FriendsOfRedaxo\FilePond\GeminiModelCatalog::refresh();
+                $models = null !== $catalog ? $catalog['models'] : null;
+            }
+
             $generator = new filepond_ai_alt_generator();
             $result = $generator->testConnection();
+            if (null !== $models) {
+                $result['models'] = $models;
+            }
 
             rex_response::cleanOutputBuffers();
             rex_response::sendJson($result);

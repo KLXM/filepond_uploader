@@ -1485,20 +1485,18 @@ Google Gemini bietet exzellente Bildanalyse mit hervorragender Mehrsprachigkeit.
 3. In REDAXO: **FilePond Uploader → Einstellungen → AI Alt-Text**
 4. Wähle Provider: **Google Gemini**
 5. Füge den API-Key ein
-6. Wähle ein Modell (empfohlen: **Gemini 3.8 Flash**)
-7. Aktiviere "AI-Generierung aktivieren"
-8. Teste die Verbindung
+6. Speichern – danach lädt die Modellauswahl die aktuellen Modelle direkt von Google
+7. Wähle ein Modell (empfohlen: das neueste **Flash**-Modell, es steht oben in der Liste)
+8. Aktiviere "AI-Generierung aktivieren"
+9. Teste die Verbindung
 
-**Verfügbare Modelle** (Stand: Oktober 2026, aktuelle Liste: [Gemini-Modelle](https://ai.google.dev/gemini-api/docs/models)):
-| Modell | Beschreibung |
-|--------|--------------|
-| Gemini 3.8 Flash | Aktuelles Flash-Modell, von Google für neue Projekte empfohlen ⭐ |
-| Gemini 3.6 Flash | Vorgängermodell |
-| Gemini 3.5 Flash-Lite | Günstiger und schneller, für große Mengen |
-| Gemini 3.1 Pro (Preview) | Höchste Qualität, in der Regel nur mit bezahltem Key |
-| Gemini 2.5 Flash / Flash-Lite / Pro | Nur noch für Projekte, die diese Modelle bereits genutzt haben |
+**Modellauswahl:** Die Liste kommt live von Google (`GET /v1beta/models` mit deinem API-Key) statt aus einer fest eingebauten Liste, die bei jedem Modellwechsel veraltet. Angezeigt werden nur Modelle, die Bilder beschreiben können – Embedding-, Sprachausgabe-, Live- und Bildgenerierungs-Modelle sind ausgefiltert. Die Liste wird 24 Stunden zwischengespeichert und bei jedem Klick auf „Verbindung testen“ aktualisiert. Ohne API-Key oder ohne Verbindung zu Google erscheint eine Standardliste.
 
-Von Google abgeschaltete Modelle (Gemini 1.5, Gemini 2.0, Gemini 3 Pro Preview) werden automatisch durch ihren Nachfolger ersetzt. In den Einstellungen erscheint dann gleich das neue Modell; mit „Speichern“ wird es übernommen.
+> **Tipp:** Google listet manche Modelle weiter, gibt sie neuen Projekten aber nicht mehr frei (z. B. die 2.5-Modelle). „Verbindung testen“ erkennt das, nennt das von Google empfohlene Ersatzmodell und wählt es in der Liste vor – dann nur noch speichern.
+
+> **Tipp:** Die `-latest`-Einträge (z. B. „Gemini Flash Latest“) zeigen immer auf das jeweils aktuelle Modell. Bequem, aber die Alt-Texte können sich nach einem Modellwechsel bei Google im Stil ändern. Wer gleichbleibende Ergebnisse will, wählt eine feste Version.
+
+Ist kein Modell gespeichert oder kennt Google das gespeicherte Modell nicht mehr, wird automatisch das neueste stabile Flash-Modell der Live-Liste verwendet. Bekannte abgeschaltete Modelle (Gemini 1.5, Gemini 2.0, Gemini 3 Pro Preview) werden auf ihren Nachfolger abgebildet.
 
 ### Cloudflare Workers AI
 

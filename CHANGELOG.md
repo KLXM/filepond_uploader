@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.11.0 (2026-10-02)
+
+### 🎉 Neue Features
+- **Gemini-Modelle live von Google statt fester Liste** (Folge zu #108/#114): Die Modellauswahl lädt die verfügbaren Modelle mit dem eingetragenen API-Key über `GET /v1beta/models` (neue Klasse `FriendsOfRedaxo\FilePond\GeminiModelCatalog`). Angezeigt werden nur Modelle, die Bilder beschreiben können (ohne Embedding, TTS, Live, Transkription, Bildgenerierung), neueste zuerst. Zwischenspeicher 24 Stunden je API-Key, Aktualisierung bei jedem „Verbindung testen“ – die Auswahl wird dabei ohne Neuladen aktualisiert. Ohne Key oder Verbindung greift die bisherige Standardliste.
+- **Verbindungstest erkennt für das Projekt abgeschaltete Modelle**: Google listet z. B. die 2.5-Modelle weiter, neue Projekte bekommen aber 404. Der Test nennt das von Google empfohlene Ersatzmodell und wählt es in der Liste vor.
+- Kein gespeichertes Modell bzw. ein Modell, das Google nicht mehr kennt: Es wird automatisch das neueste stabile Flash-Modell der Live-Liste verwendet.
+
+### 🐛 Bugfixes
+- `curl_close()`-Aufrufe in den KI-Providern entfernt: Unter PHP 8.5 erzeugten sie eine Deprecation-Meldung, die bei aktivem `display_errors` vor dem JSON landete und die Antwort für das JavaScript unlesbar machte (seit PHP 8.0 ohne Wirkung).
+
 ## 2.10.0 (2026-10-02)
 
 ### 🎉 Neue Features

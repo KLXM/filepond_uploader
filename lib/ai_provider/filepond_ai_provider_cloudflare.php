@@ -69,7 +69,6 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
         if (0 !== curl_errno($ch)) {
             $this->handleCurlError($ch);
         }
-        curl_close($ch);
 
         if (!is_string($response)) {
             throw new Exception('Empty response from API');
@@ -131,7 +130,6 @@ class filepond_ai_provider_cloudflare extends filepond_ai_provider_abstract
                 return ['success' => false, 'message' => $e->getMessage()];
             }
         }
-        curl_close($ch);
 
         if (!is_string($response)) {
             return ['success' => false, 'message' => 'Empty response from API'];

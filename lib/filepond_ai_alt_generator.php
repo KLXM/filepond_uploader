@@ -17,9 +17,8 @@ class filepond_ai_alt_generator
         'openwebui' => 'OpenWebUI / OpenAI Compatible',
     ];
 
-    // Verfügbare Gemini-Modelle (Stand: Oktober 2026, siehe
-    // https://ai.google.dev/gemini-api/docs/models)
-    // Diese werden für die Settings-Seite benötigt
+    // Standardliste (Stand: Oktober 2026), nur noch Rueckfall ohne API-Key bzw. ohne
+    // Verbindung -- die Auswahl kommt live von Google, siehe GeminiModelCatalog.
     public const GEMINI_MODELS = [
         'gemini-3.8-flash' => 'Gemini 3.8 Flash ⭐',
         'gemini-3.6-flash' => 'Gemini 3.6 Flash',
@@ -122,18 +121,27 @@ class filepond_ai_alt_generator
     }
 
     /**
-     * Ersetzt eine abgeschaltete Gemini-Modell-ID durch ihren Nachfolger,
-     * leere Werte durch das Standardmodell. Unbekannte IDs bleiben
-     * unverändert, damit neuere Modelle weiter funktionieren.
+     * Leerer Wert => empfohlenes Modell, bekannte abgeschaltete IDs => Nachfolger.
+     * Liegt eine Live-Liste von Google vor und kennt Google das Modell nicht mehr,
+     * wird das empfohlene Modell der Live-Liste verwendet. Ohne Live-Liste bleiben
+     * unbekannte IDs unverändert.
      */
     public static function resolveGeminiModel(string $model): string
     {
         $model = trim($model);
+        $liveDefault = \FriendsOfRedaxo\FilePond\GeminiModelCatalog::getLiveDefault();
         if ('' === $model) {
-            return self::DEFAULT_GEMINI_MODEL;
+            return $liveDefault ?? self::DEFAULT_GEMINI_MODEL;
         }
 
-        return self::GEMINI_MODEL_REPLACEMENTS[$model] ?? $model;
+        $model = self::GEMINI_MODEL_REPLACEMENTS[$model] ?? $model;
+
+        $knownIds = \FriendsOfRedaxo\FilePond\GeminiModelCatalog::getKnownIds();
+        if (null !== $knownIds && null !== $liveDefault && !in_array($model, $knownIds, true)) {
+            return $liveDefault;
+        }
+
+        return $model;
     }
 
     /**

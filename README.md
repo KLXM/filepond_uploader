@@ -891,6 +891,12 @@ Both area toggles are in addition to the global toggle Enable AI generation.
 
 Google Gemini provides excellent image analysis with strong multilingual quality.
 
+**Model selection:** after saving the API key, the model list is loaded live from Google (`GET /v1beta/models`) instead of a built-in list that goes stale with every model change. Only models that can describe images are shown (embedding, speech, live and image-generation models are filtered out). The list is cached for 24 hours and refreshed on every "Test connection". Without API key or connection a default list is shown.
+
+> **Tip:** Google still lists some models it no longer grants to new projects (e.g. the 2.5 models). "Test connection" detects this, names Google's recommended replacement and preselects it – just save.
+
+> **Tip:** The `-latest` entries always point to Google's current model. Convenient, but the alt text style may change when Google switches models. Choose a fixed version for consistent results.
+
 ### Cloudflare Workers AI
 
 Cloudflare provides an alternative with a generous free quota.
